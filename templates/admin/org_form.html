@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}{% if org %}Edit {{ org.name }}{% else %}New Organization{% endif %} | Admin | DSA{% endblock %}
+
+{% block content %}
+<div class="container-narrow">
+    <div style="margin-bottom: 1.5rem;">
+        <a href="{{ url_for('admin.organizations') }}" style="font-size: 0.85rem; color: var(--text-muted);">&larr; Back to Organizations</a>
+        <h1 style="font-size: 2rem; margin-top: 0.25rem;">
+            {% if org %}Edit Organization: {{ org.name }}{% else %}Add New Organization{% endif %}
+        </h1>
+    </div>
+
+    <div class="form-card">
+        <form method="POST">
+            <h3 style="font-size: 1.2rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
+                Organization Information
+            </h3>
+
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label class="form-label">Organization Name *</label>
+                    <input type="text" name="name" class="form-control" value="{{ org.name if org else '' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">State in Nigeria *</label>
+                    <select name="state" id="stateSelect" class="form-control" required>
+                        <option value="">Select State</option>
+                        {% for st in states %}
+                        <option value="{{ st }}" {% if org and org.state == st %}selected{% endif %}>{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">City / Town *</label>
+                    <input type="text" name="city" id="cityInput" list="cityList" class="form-control" value="{{ org.city if org else '' }}" required>
+                    <datalist id="cityList"></datalist>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Industry / Sector *</label>
+                    <select name="industry" class="form-control" required>
+                        <option value="">Select Industry</option>
+                        {% for org_opt in org_types %}
+                        <option value="{{ org_opt }}" {% if org and org.industry == org_opt %}selected{% endif %}>{{ org_opt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Engineering Relevance Areas</label>
+                    <input type="text" name="relevance_areas" class="form-control" placeholder="e.g. Software Development, AI, Networking" value="{{ org.relevance_areas if org else '' }}">
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label">Physical Address</label>
+                    <input type="text" name="address" class="form-control" value="{{ org.address if org else '' }}">
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-control" required>{{ org.description if org else '' }}</textarea>
+                </div>
+            </div>
+
+            <h3 style="font-size: 1.2rem; margin: 1.5rem 0 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
+                Contact & Verification Status
+            </h3>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Verification Status</label>
+                    <select name="verification_status" class="form-control">
+                        <option value="Verified" {% if org and org.verification_status == 'Verified' %}selected{% endif %}>Verified</option>
+                        <option value="Online Source" {% if org and org.verification_status == 'Online Source' %}selected{% endif %}>Online Source</option>
+                        <option value="Student Submitted" {% if org and org.verification_status == 'Student Submitted' %}selected{% endif %}>Student Submitted</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Information Source</label>
+                    <input type="text" name="source" class="form-control" value="{{ org.source if org else 'Departmental Directory' }}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Website</label>
+                    <input type="url" name="website" class="form-control" value="{{ org.website if org else '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="contact_email" class="form-control" value="{{ org.contact_email if org else '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Phone</label>
+                    <input type="tel" name="contact_phone" class="form-control" value="{{ org.contact_phone if org else '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Why Relevant for SIWES</label>
+                    <input type="text" name="why_relevant" class="form-control" value="{{ org.why_relevant if org else '' }}">
+                </div>
+
+                {% if org %}
+                <div class="form-group full-width" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="checkbox" name="is_active" id="isActive" {% if org.is_active %}checked{% endif %}>
+                    <label for="isActive" class="form-label" style="margin: 0; cursor: pointer;">Active & Visible to Students</label>
+                </div>
+                {% endif %}
+            </div>
+
+            <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                <a href="{{ url_for('admin.organizations') }}" class="btn btn-outline">Cancel</a>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    {% if org %}Update Organization{% else %}Save Organization{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

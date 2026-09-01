@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}SIWES Knowledge Guide | Departmental SIWES Assistant{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <div class="hero-badge" style="margin-bottom: 0.75rem;">
+        <span>📚</span>
+        <span>Student Knowledge Base</span>
+    </div>
+    <h1 style="font-size: 2.25rem; margin-bottom: 0.5rem;">SIWES Preparation & Handbook</h1>
+    <p style="color: var(--text-muted); max-width: 750px;">
+        Practical guidelines and procedural advice for Computer Engineering and tech students undergoing a 6-month industrial work experience scheme in Nigeria.
+    </p>
+</div>
+
+<!-- Important Guidance Disclaimer Notice -->
+<div class="notice-banner">
+    <div class="icon">ℹ️</div>
+    <div>
+        <strong>General Guidance Note:</strong>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+            The information presented here serves as general professional guidance. Specific submission deadlines, grading rubrics, and logbook formats may vary slightly depending on your university's Departmental SIWES Coordinator and ITF Area Office requirements.
+        </p>
+    </div>
+</div>
+
+<div class="guide-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="guide-sidebar">
+        <h4 style="font-size: 1rem; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
+            Guide Topics
+        </h4>
+
+        <!-- Category Filters -->
+        <div style="margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">
+            <a href="{{ url_for('main.siwes_guide', category='all') }}" 
+               class="btn btn-sm {% if active_category == 'all' %}btn-primary{% else %}btn-outline{% endif %}" 
+               style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+                All
+            </a>
+            {% for cat in categories %}
+            <a href="{{ url_for('main.siwes_guide', category=cat) }}" 
+               class="btn btn-sm {% if active_category == cat %}btn-primary{% else %}btn-outline{% endif %}"
+               style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+                {{ cat }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <ul class="guide-nav-list">
+            {% for topic in topics %}
+            <li class="guide-nav-item {% if selected_topic and selected_topic.id == topic.id %}active{% endif %}">
+                <a href="{{ url_for('main.siwes_guide', topic=topic.slug, category=active_category) }}">
+                    <span style="font-size: 0.8rem; color: var(--text-light); margin-right: 0.35rem;">{{ topic.order_num }}.</span>
+                    {{ topic.title }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </aside>
+
+    <!-- Main Content Reader -->
+    <section class="guide-content-view">
+        {% if selected_topic %}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+                <div>
+                    <span class="badge badge-online">{{ selected_topic.category }}</span>
+                    <span style="font-size: 0.85rem; color: var(--text-light); margin-left: 0.5rem;">Topic #{{ selected_topic.order_num }}</span>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">
+                    Last Updated: {{ selected_topic.updated_at.strftime('%B %Y') if selected_topic.updated_at else 'Recent' }}
+                </div>
+            </div>
+
+            <article class="guide-article">
+                <h2>{{ selected_topic.title }}</h2>
+                <p style="font-size: 1.05rem; color: var(--text-muted); font-weight: 500; margin-bottom: 1.5rem; background: var(--bg-subtle); padding: 0.85rem 1.25rem; border-radius: var(--radius-md); border-left: 3px solid var(--primary);">
+                    {{ selected_topic.summary }}
+                </p>
+
+                <div class="guide-body" style="line-height: 1.8; font-size: 1rem;">
+                    {{ selected_topic.content | markdown | safe }}
+                </div>
+            </article>
+
+            <!-- Quick Action Links -->
+            <div style="margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary">
+                    <span>🔍 Find Organizations Matching This Topic</span>
+                </a>
+                <a href="{{ url_for('student.profile') }}" class="btn btn-outline">
+                    <span>👤 Set Up Your Profile</span>
+                </a>
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 3rem;">
+                <p style="color: var(--text-muted);">No topic selected or found in this category.</p>
+                <a href="{{ url_for('main.siwes_guide') }}" class="btn btn-outline" style="margin-top: 1rem;">View All Topics</a>
+            </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

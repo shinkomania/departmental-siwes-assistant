@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Submit an Organization | Departmental SIWES Assistant{% endblock %}
+
+{% block content %}
+<div class="container-narrow">
+    <div style="margin-bottom: 2rem; text-align: center;">
+        <div class="hero-badge">
+            <span>🏢</span>
+            <span>Community Contributions</span>
+        </div>
+        <h1 style="font-size: 2.25rem; margin-bottom: 0.5rem;">Submit an IT Organization</h1>
+        <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto;">
+            Help your fellow computer engineering students by submitting a technology firm, lab, or engineering company that accepts SIWES trainees in Nigeria.
+        </p>
+    </div>
+
+    <!-- Student Submission Disclaimer -->
+    <div class="notice-banner">
+        <div class="icon">ℹ️</div>
+        <div>
+            <strong>Transparency Notice:</strong>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+                Organizations submitted through this form will initially be marked with the <strong>"Student Submitted"</strong> status label so that other students know it came from peer recommendation before departmental verification.
+            </p>
+        </div>
+    </div>
+
+    <div class="form-card">
+        <form action="{{ url_for('placement.submit_organization') }}" method="POST">
+            <h3 style="font-size: 1.2rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
+                Organization Information
+            </h3>
+
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label class="form-label">Organization Name *</label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. Apex Software Solutions Limited" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">State in Nigeria *</label>
+                    <select name="state" id="stateSelect" class="form-control" required>
+                        <option value="">Select State</option>
+                        {% for st in states %}
+                        <option value="{{ st }}">{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">City / Town *</label>
+                    <input type="text" name="city" id="cityInput" list="cityList" class="form-control" placeholder="e.g. Zaria, Ikeja, Garki" required>
+                    <datalist id="cityList"></datalist>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Industry / Sector *</label>
+                    <select name="industry" class="form-control" required>
+                        <option value="">Select Industry</option>
+                        {% for org_opt in org_types %}
+                        <option value="{{ org_opt }}">{{ org_opt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Engineering Relevance Areas</label>
+                    <input type="text" name="relevance_areas" class="form-control" placeholder="e.g. Software Development, Networking, AI, Embedded Systems">
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label">Physical Address</label>
+                    <input type="text" name="address" class="form-control" placeholder="e.g. 15 Commercial Avenue, Sabo">
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label">Brief Description of Organization</label>
+                    <textarea name="description" class="form-control" placeholder="What does this company do and what kind of engineering or IT work happens there?"></textarea>
+                </div>
+            </div>
+
+            <h3 style="font-size: 1.2rem; margin: 1.5rem 0 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
+                Contact & Verification Details
+            </h3>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Official Website</label>
+                    <input type="url" name="website" class="form-control" placeholder="https://example.com">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">HR / Inquiry Email</label>
+                    <input type="email" name="contact_email" class="form-control" placeholder="careers@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Contact Phone</label>
+                    <input type="tel" name="contact_phone" class="form-control" placeholder="+234 ...">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Why is it recommended for SIWES?</label>
+                    <input type="text" name="why_relevant" class="form-control" placeholder="e.g. Accepted 4 computer engineering interns last year with good software mentors.">
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline">Cancel</a>
+                <button type="submit" class="btn btn-primary btn-lg">Submit for Verification</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

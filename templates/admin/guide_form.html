@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}{% if topic %}Edit Topic: {{ topic.title }}{% else %}New Guide Topic{% endif %} | Admin | DSA{% endblock %}
+
+{% block content %}
+<div class="container-narrow">
+    <div style="margin-bottom: 1.5rem;">
+        <a href="{{ url_for('admin.guides') }}" style="font-size: 0.85rem; color: var(--text-muted);">&larr; Back to Guide Topics</a>
+        <h1 style="font-size: 2rem; margin-top: 0.25rem;">
+            {% if topic %}Edit Guide Topic{% else %}Create New SIWES Guide Topic{% endif %}
+        </h1>
+    </div>
+
+    <div class="form-card">
+        <form method="POST">
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label class="form-label">Topic Title *</label>
+                    <input type="text" name="title" class="form-control" placeholder="e.g. Mastering the SIWES Logbook" value="{{ topic.title if topic else '' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">URL Slug (lowercase-hyphenated) *</label>
+                    <input type="text" name="slug" class="form-control" placeholder="e.g. mastering-siwes-logbook" value="{{ topic.slug if topic else '' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Category *</label>
+                    <input type="text" name="category" class="form-control" placeholder="e.g. Logbook, Preparation, Overview" value="{{ topic.category if topic else 'General Guidance' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Order Number (1, 2, 3...)</label>
+                    <input type="number" name="order_num" class="form-control" value="{{ topic.order_num if topic else 0 }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Icon / Symbol</label>
+                    <input type="text" name="icon" class="form-control" placeholder="e.g. book-open, target" value="{{ topic.icon if topic else 'book-open' }}">
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label">Short Summary (1-2 sentences) *</label>
+                    <input type="text" name="summary" class="form-control" placeholder="Summary shown in card overviews..." value="{{ topic.summary if topic else '' }}" required>
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label">Full Markdown / HTML Guide Content *</label>
+                    <textarea name="content" class="form-control" style="min-height: 250px; font-family: monospace;" required>{{ topic.content if topic else '' }}</textarea>
+                </div>
+
+                {% if topic %}
+                <div class="form-group full-width" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="checkbox" name="is_published" id="isPublished" {% if topic.is_published %}checked{% endif %}>
+                    <label for="isPublished" class="form-label" style="margin: 0; cursor: pointer;">Published & Visible to Students</label>
+                </div>
+                {% endif %}
+            </div>
+
+            <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                <a href="{{ url_for('admin.guides') }}" class="btn btn-outline">Cancel</a>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    {% if topic %}Update Guide Topic{% else %}Save Guide Topic{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

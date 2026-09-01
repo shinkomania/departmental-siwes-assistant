@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Find SIWES Placement | Departmental SIWES Assistant{% endblock %}
+
+{% block content %}
+<div class="container-narrow">
+    <div style="margin-bottom: 2rem; text-align: center;">
+        <div class="hero-badge">
+            <span>🔎</span>
+            <span>Placement Discovery</span>
+        </div>
+        <h1 style="font-size: 2.25rem; margin-bottom: 0.5rem;">Find SIWES Placement</h1>
+        <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto;">
+            Search verified technology companies, telecom providers, research hubs, and fintech firms offering industrial training in Nigeria.
+        </p>
+    </div>
+
+    <!-- Search Form Card -->
+    <div class="form-card">
+        <form action="{{ url_for('placement.search_results') }}" method="GET">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Preferred State</label>
+                    <select name="state" id="stateSelect" class="form-control">
+                        <option value="">All Nigerian States</option>
+                        {% for st in states %}
+                        <option value="{{ st }}" {% if default_state == st %}selected{% endif %}>{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Preferred City / Area</label>
+                    <input type="text" name="city" id="cityInput" list="cityList" class="form-control" placeholder="e.g. Zaria, Yaba, Victoria Island, Ikeja" value="{{ default_city }}">
+                    <datalist id="cityList"></datalist>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Area of Interest</label>
+                    <select name="interest" class="form-control">
+                        <option value="">All Engineering Disciplines</option>
+                        {% for int_opt in interests %}
+                        <option value="{{ int_opt }}" {% if default_interest == int_opt %}selected{% endif %}>{{ int_opt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Organization Type</label>
+                    <select name="org_type" class="form-control">
+                        <option value="">All Organization Types</option>
+                        {% for org_opt in org_types %}
+                        <option value="{{ org_opt }}" {% if default_org_type == org_opt %}selected{% endif %}>{{ org_opt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label">Optional Keywords (Company Name, Tech Stack, or Keywords)</label>
+                    <input type="text" name="keywords" class="form-control" placeholder="e.g. Paystack, AI, Linux, Cloud, Embedded, Fiber">
+                </div>
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <a href="{{ url_for('placement.submit_organization') }}" style="font-size: 0.85rem; color: var(--text-muted);">
+                    Know a good company not listed? <span style="text-decoration: underline; color: var(--primary);">Submit it here</span>
+                </a>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <span>Search Organizations &rarr;</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Placement Tips Card -->
+    <div style="margin-top: 2.5rem; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem;">
+        <h4 style="margin-bottom: 0.5rem;">💡 SIWES Placement Search Tips</h4>
+        <ul style="padding-left: 1.25rem; font-size: 0.9rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.35rem;">
+            <li><strong>Apply early:</strong> Most high-demand tech companies (Fintech, Telecom, Datacenters) open industrial training applications 2-3 months before the semester ends.</li>
+            <li><strong>Attach your official IT letter:</strong> Always request an introductory letter from your university IT unit before visiting HR offices.</li>
+            <li><strong>Broaden your location:</strong> If placements in your immediate university town are limited, consider technology hubs in Lagos, Abuja, Kaduna, Kano, or Enugu.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

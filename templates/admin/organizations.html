@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Organizations | Admin | DSA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <a href="{{ url_for('admin.dashboard') }}" style="font-size: 0.85rem; color: var(--text-muted);">&larr; Back to Admin Dashboard</a>
+        <h1 style="font-size: 2rem; margin-top: 0.25rem;">Placement Organizations</h1>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{{ url_for('admin.new_organization') }}" class="btn btn-primary">
+            <span>➕ Add New Organization</span>
+        </a>
+    </div>
+</div>
+
+<!-- Filter Tabs -->
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+    <a href="{{ url_for('admin.organizations', status='all') }}" class="btn btn-sm {% if active_status == 'all' %}btn-primary{% else %}btn-outline{% endif %}">
+        All ({{ organizations | length }})
+    </a>
+    <a href="{{ url_for('admin.organizations', status='Verified') }}" class="btn btn-sm {% if active_status == 'Verified' %}btn-primary{% else %}btn-outline{% endif %}">
+        Verified
+    </a>
+    <a href="{{ url_for('admin.organizations', status='Student Submitted') }}" class="btn btn-sm {% if active_status == 'Student Submitted' %}btn-primary{% else %}btn-outline{% endif %}">
+        Student Submitted
+    </a>
+    <a href="{{ url_for('admin.organizations', status='Online Source') }}" class="btn btn-sm {% if active_status == 'Online Source' %}btn-primary{% else %}btn-outline{% endif %}">
+        Online Source
+    </a>
+</div>
+
+<!-- Table of Organizations -->
+<div class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Organization Name</th>
+                <th>Location</th>
+                <th>Industry</th>
+                <th>Status</th>
+                <th>Source</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for org in organizations %}
+            <tr>
+                <td>
+                    <strong>{{ org.name }}</strong>
+                    {% if not org.is_active %}
+                    <span style="font-size: 0.7rem; color: var(--danger);">(Inactive)</span>
+                    {% endif %}
+                </td>
+                <td style="white-space: nowrap;">
+                    📍 {{ org.city }}, {{ org.state }}
+                </td>
+                <td>{{ org.industry }}</td>
+                <td>
+                    <span class="badge {{ org.verification_status | badge_class }}">
+                        {{ org.verification_status }}
+                    </span>
+                </td>
+                <td style="font-size: 0.8rem; color: var(--text-muted);">
+                    {{ org.source }}
+                </td>
+                <td style="white-space: nowrap;">
+                    <div style="display: flex; gap: 0.35rem;">
+                        {% if org.verification_status != 'Verified' %}
+                        <form action="{{ url_for('admin.verify_organization', org_id=org.id) }}" method="POST" style="margin:0;">
+                            <button type="submit" class="btn btn-sm btn-primary" title="Mark as Verified">✓ Verify</button>
+                        </form>
+                        {% endif %}
+                        <a href="{{ url_for('admin.edit_organization', org_id=org.id) }}" class="btn btn-sm btn-outline">Edit</a>
+                        <form action="{{ url_for('admin.delete_organization', org_id=org.id) }}" method="POST" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete {{ org.name }}?');">
+                            <button type="submit" class="btn btn-sm btn-outline" style="color: var(--danger);">✕</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

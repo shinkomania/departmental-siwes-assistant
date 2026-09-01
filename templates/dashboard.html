@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard | Departmental SIWES Assistant{% endblock %}
+
+{% block content %}
+<!-- Dashboard Header -->
+<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <div class="hero-badge">
+            <span>⚡</span>
+            <span>Student Command Center</span>
+        </div>
+        <h1 style="font-size: 2.25rem;">Welcome, {{ student.full_name }}</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Matric: <strong>{{ student.matric_no }}</strong> • {{ student.department }}, {{ student.university }}
+        </p>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary">
+            <span>🔍 Find Placements</span>
+        </a>
+        <a href="{{ url_for('student.profile') }}" class="btn btn-outline">
+            <span>✏️ Edit Profile</span>
+        </a>
+    </div>
+</div>
+
+<!-- Key Performance / Application Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <span class="stat-label">Saved Organizations</span>
+        <span class="stat-value">{{ total_saved }}</span>
+        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Bookmarked for review</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Tracked Applications</span>
+        <span class="stat-value">{{ total_applied }}</span>
+        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Companies in your pipeline</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Interviews / Assessments</span>
+        <span class="stat-value" style="color: #86198f;">{{ status_counts.get('Interview', 0) }}</span>
+        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Upcoming or completed</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Offers / Accepted</span>
+        <span class="stat-value" style="color: var(--success);">{{ status_counts.get('Accepted', 0) }}</span>
+        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Placements secured</span>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: start;">
+    <!-- Left Column: Active Applications Pipeline -->
+    <div>
+        <div class="form-card" style="margin-bottom: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+                <h3 style="font-size: 1.25rem;">📋 My Application Pipeline</h3>
+                <span style="font-size: 0.85rem; color: var(--text-muted);">{{ applications | length }} Active Applications</span>
+            </div>
+
+            {% if applications %}
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Organization</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Notes</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for app in applications %}
+                        <tr>
+                            <td>
+                                <strong>
+                                    <a href="{{ url_for('placement.organization_detail', org_id=app.organization_id) }}">
+                                        {{ app.organization.name }}
+                                    </a>
+                                </strong>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">
+                                    📍 {{ app.organization.city }}, {{ app.organization.state }}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge {{ app.status | badge_class }}">
+                                    {{ app.status }}
+                                </span>
+                            </td>
+                            <td style="font-size: 0.85rem; color: var(--text-muted); white-space: nowrap;">
+                                {{ app.applied_date.strftime('%d %b %Y') if app.applied_date else 'Recent' }}
+                            </td>
+                            <td style="font-size: 0.85rem; max-width: 200px;">
+                                {{ app.notes or 'No notes added yet.' }}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('placement.organization_detail', org_id=app.organization_id) }}" class="btn btn-outline btn-sm">
+                                    Update
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2rem; background: var(--bg-subtle); border-radius: var(--radius-md);">
+                <p style="color: var(--text-muted); margin-bottom: 1rem;">You haven't tracked any placement applications yet.</p>
+                <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary btn-sm">Browse Organizations & Track</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Saved Organizations Section -->
+        <div class="form-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                <h3 style="font-size: 1.25rem;">⭐ Saved / Bookmarked Organizations</h3>
+                <span style="font-size: 0.85rem; color: var(--text-muted);">{{ saved_entries | length }} Saved</span>
+            </div>
+
+            {% if saved_entries %}
+            <div class="grid-cards" style="grid-template-columns: 1fr;">
+                {% for entry in saved_entries %}
+                <div class="card" style="padding: 1.25rem;">
+                    <div class="card-header">
+                        <div>
+                            <span class="badge {{ entry.organization.verification_status | badge_class }}">
+                                {{ entry.organization.verification_status }}
+                            </span>
+                            <h4 style="font-size: 1.1rem; margin-top: 0.35rem;">
+                                <a href="{{ url_for('placement.organization_detail', org_id=entry.organization.id) }}">
+                                    {{ entry.organization.name }}
+                                </a>
+                            </h4>
+                        </div>
+
+                        <!-- Remove Bookmark -->
+                        <form action="{{ url_for('placement.toggle_save', org_id=entry.organization.id) }}" method="POST">
+                            <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger);" title="Remove Bookmark">
+                                ✕
+                            </button>
+                        </form>
+                    </div>
+
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                        📍 {{ entry.organization.city }}, {{ entry.organization.state }} • {{ entry.organization.industry }}
+                    </p>
+
+                    <div class="card-footer" style="padding-top: 0.75rem;">
+                        <span style="font-size: 0.75rem; color: var(--text-light);">
+                            Saved on: {{ entry.saved_at.strftime('%d %b %Y') }}
+                        </span>
+                        <a href="{{ url_for('placement.organization_detail', org_id=entry.organization.id) }}" class="btn btn-primary btn-sm">
+                            Manage Application &rarr;
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2rem; background: var(--bg-subtle); border-radius: var(--radius-md);">
+                <p style="color: var(--text-muted); margin-bottom: 1rem;">No saved organizations yet. Bookmark companies during your search to compare them here.</p>
+                <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline btn-sm">Find Organizations to Save</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Column: Student Profile Summary Card & Fast Helpers -->
+    <div>
+        <div class="form-card" style="margin-bottom: 1.5rem;">
+            <h3 style="font-size: 1.15rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
+                Student Profile Summary
+            </h3>
+
+            <div style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.9rem;">
+                <div>
+                    <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Full Name:</span>
+                    <strong>{{ student.full_name }}</strong>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Matriculation Number:</span>
+                    <strong>{{ student.matric_no }}</strong>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Department & Faculty:</span>
+                    <span>{{ student.department }} ({{ student.faculty }})</span>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">University:</span>
+                    <span>{{ student.university }}</span>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Preferred Location:</span>
+                    <strong>📍 {{ student.preferred_city }}, {{ student.preferred_state }}</strong>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Engineering Focus:</span>
+                    <span class="badge badge-online" style="margin-top: 0.2rem;">{{ student.area_of_interest }}</span>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Preferred Org Type:</span>
+                    <span>{{ student.preferred_org_type }}</span>
+                </div>
+                {% if student.skills %}
+                <div>
+                    <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Declared Skills:</span>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.25rem;">
+                        {% for sk in student.to_dict()['skills'] %}
+                        <span style="font-size: 0.75rem; background: var(--bg-subtle); padding: 0.15rem 0.45rem; border-radius: var(--radius-sm);">{{ sk }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                <a href="{{ url_for('student.profile') }}" class="btn btn-outline btn-sm" style="width: 100%;">
+                    Edit Full Profile
+                </a>
+            </div>
+        </div>
+
+        <!-- Quick SIWES Checklist Card -->
+        <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem;">
+            <h4 style="margin-bottom: 0.75rem; font-size: 1rem;">📋 Quick SIWES Checklist</h4>
+            <ul style="list-style: none; font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.5rem;">
+                <li><a href="{{ url_for('main.guide_detail', slug='how-to-prepare-for-siwes') }}">✓ Collect Stamped IT Letter</a></li>
+                <li><a href="{{ url_for('main.guide_detail', slug='how-to-prepare-for-siwes') }}">✓ Fill & Return ITF Form 8</a></li>
+                <li><a href="{{ url_for('main.guide_detail', slug='siwes-logbook') }}">✓ Fill Daily Logbook Every Evening</a></li>
+                <li><a href="{{ url_for('main.guide_detail', slug='weekly-activities') }}">✓ Get Weekly Supervisor Sign-off</a></li>
+                <li><a href="{{ url_for('main.guide_detail', slug='siwes-report') }}">✓ Draft Technical Report Chapters</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

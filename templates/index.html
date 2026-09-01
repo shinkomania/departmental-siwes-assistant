@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Departmental SIWES Assistant{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero" style="margin: -2rem -1.5rem 3rem -1.5rem; padding: 4rem 1.5rem;">
+    <div class="container">
+        <div class="hero-grid">
+            <div>
+                <div class="hero-badge">
+                    <span>🇳🇬</span>
+                    <span>For Computer Engineering & Tech Students</span>
+                </div>
+                <h1 class="hero-title">
+                    Departmental <span class="gradient-text">SIWES Assistant</span>
+                </h1>
+                <p class="hero-subtitle">
+                    Your comprehensive guide to SIWES information, verified industrial training placements across Nigeria, logbook guidance, and application management.
+                </p>
+                <div class="hero-cta">
+                    <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary btn-lg">
+                        <span>🔍 Find Placement</span>
+                    </a>
+                    <a href="{{ url_for('main.siwes_guide') }}" class="btn btn-outline btn-lg">
+                        <span>📖 Read SIWES Guide</span>
+                    </a>
+                    {% if not current_student %}
+                    <a href="{{ url_for('student.profile') }}" class="btn btn-secondary btn-lg">
+                        <span>👤 Create Profile</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Hero Quick Search Widget -->
+            <div class="hero-card">
+                <h3 style="margin-bottom: 0.5rem; font-size: 1.25rem;">Quick Placement Search</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+                    Filter verified Nigerian tech organizations by state and engineering focus.
+                </p>
+                <form action="{{ url_for('placement.search_results') }}" method="GET">
+                    <div class="form-group" style="margin-bottom: 0.75rem;">
+                        <label class="form-label" style="font-size: 0.8rem;">Preferred State</label>
+                        <select name="state" class="form-control" style="padding: 0.5rem 0.75rem; font-size: 0.9rem;">
+                            <option value="">All Nigerian States</option>
+                            <option value="FCT Abuja">FCT Abuja</option>
+                            <option value="Lagos">Lagos</option>
+                            <option value="Kaduna">Kaduna</option>
+                            <option value="Kano">Kano</option>
+                            <option value="Rivers">Rivers</option>
+                            <option value="Enugu">Enugu</option>
+                            <option value="Oyo">Oyo</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label class="form-label" style="font-size: 0.8rem;">Area of Interest</label>
+                        <select name="interest" class="form-control" style="padding: 0.5rem 0.75rem; font-size: 0.9rem;">
+                            <option value="">All Engineering Disciplines</option>
+                            <option value="Software Development">Software Development</option>
+                            <option value="Artificial Intelligence">Artificial Intelligence & ML</option>
+                            <option value="Networking & Telecommunications">Networking & Telecom</option>
+                            <option value="Cybersecurity">Cybersecurity</option>
+                            <option value="Embedded Systems & IoT">Embedded Systems & IoT</option>
+                            <option value="Cloud Computing & DevOps">Cloud & DevOps</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        Search Verified Placements
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Quick Stats Section -->
+<section style="margin-bottom: 3.5rem;">
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-label">Verified Organizations</span>
+            <span class="stat-value">{{ verified_orgs_count }}+</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Across Lagos, Abuja, Kaduna, Kano, Enugu & more</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Curated Guide Modules</span>
+            <span class="stat-value">{{ guide_topics_count }}</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">From ITF Form 8 to Final Technical Defense</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Programme Duration</span>
+            <span class="stat-value">6 Months</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Standard 400L University Engineering SIWES</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Data Transparency</span>
+            <span class="stat-value">100%</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Zero fabricated companies; verified sources only</span>
+        </div>
+    </div>
+</section>
+
+<!-- Core SIWES Journey Steps -->
+<section style="margin-bottom: 4rem;">
+    <div style="text-align: center; max-width: 650px; margin: 0 auto 2.5rem;">
+        <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">The SIWES Success Pathway</h2>
+        <p style="color: var(--text-muted);">Four structured phases to help you maximize your 6-month industrial work experience.</p>
+    </div>
+
+    <div class="grid-cards">
+        <div class="card">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">1️⃣</div>
+            <h3 class="card-title" style="margin-bottom: 0.5rem;">Discover & Apply</h3>
+            <p class="card-body">
+                Search verified organizations aligning with your computer engineering interests (Software, Hardware, Telecom, AI). Track submission dates and responses.
+            </p>
+            <div class="card-footer">
+                <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline btn-sm">Find Companies &rarr;</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">2️⃣</div>
+            <h3 class="card-title" style="margin-bottom: 0.5rem;">Documentation & ITF Form 8</h3>
+            <p class="card-body">
+                Obtain your introductory letter, secure an acceptance endorsement, and submit your ITF Form 8 to your university coordinator and nearest ITF area office.
+            </p>
+            <div class="card-footer">
+                <a href="{{ url_for('main.guide_detail', slug='how-to-prepare-for-siwes') }}" class="btn btn-outline btn-sm">Checklist &rarr;</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">3️⃣</div>
+            <h3 class="card-title" style="margin-bottom: 0.5rem;">Logbook & Weekly Records</h3>
+            <p class="card-body">
+                Record technical daily activities, circuit diagrams, code structures, and get weekly supervisor endorsements to ensure complete compliance.
+            </p>
+            <div class="card-footer">
+                <a href="{{ url_for('main.guide_detail', slug='siwes-logbook') }}" class="btn btn-outline btn-sm">Logbook Rules &rarr;</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">4️⃣</div>
+            <h3 class="card-title" style="margin-bottom: 0.5rem;">Report Writing & Defense</h3>
+            <p class="card-body">
+                Format your final technical report according to departmental standards and prepare high-impact presentation slides for your oral defense.
+            </p>
+            <div class="card-footer">
+                <a href="{{ url_for('main.guide_detail', slug='siwes-report') }}" class="btn btn-outline btn-sm">Report Guide &rarr;</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Featured SIWES Guide Modules -->
+<section style="margin-bottom: 4rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2 style="font-size: 1.8rem; margin-bottom: 0.25rem;">SIWES Essential Guidance</h2>
+            <p style="color: var(--text-muted);">Practical guidelines curated for engineering and technology trainees.</p>
+        </div>
+        <a href="{{ url_for('main.siwes_guide') }}" class="btn btn-outline">View All Topics &rarr;</a>
+    </div>
+
+    <div class="grid-cards">
+        {% for guide in featured_guides %}
+        <div class="card">
+            <div class="card-header">
+                <span class="badge badge-online">{{ guide.category }}</span>
+                <span style="font-size: 0.8rem; color: var(--text-light);">Topic #{{ guide.order_num }}</span>
+            </div>
+            <h3 class="card-title" style="font-size: 1.15rem; margin-bottom: 0.5rem;">
+                <a href="{{ url_for('main.guide_detail', slug=guide.slug) }}">{{ guide.title }}</a>
+            </h3>
+            <p class="card-body" style="font-size: 0.9rem;">
+                {{ guide.summary }}
+            </p>
+            <div class="card-footer">
+                <a href="{{ url_for('main.guide_detail', slug=guide.slug) }}" style="font-weight: 600; font-size: 0.85rem;">
+                    Read Topic &rarr;
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Call to Action Banner -->
+<section class="form-card" style="background: linear-gradient(135deg, var(--bg-surface), var(--primary-light)); text-align: center; padding: 3rem 1.5rem;">
+    <h2 style="font-size: 1.85rem; margin-bottom: 0.75rem;">Ready to Kickstart Your SIWES Placement?</h2>
+    <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto 1.5rem;">
+        Create your student profile today to save preferred technology companies, track your application stages, and prepare your logbook documentation.
+    </p>
+    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <a href="{{ url_for('student.profile') }}" class="btn btn-primary btn-lg">Set Up Student Profile</a>
+        <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline btn-lg">Browse Verified Companies</a>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Student Profile | Departmental SIWES Assistant{% endblock %}
+
+{% block content %}
+<div class="container-narrow">
+    <div style="margin-bottom: 2rem;">
+        <div class="hero-badge">
+            <span>👤</span>
+            <span>SIWES Trainee Profile</span>
+        </div>
+        <h1 style="font-size: 2.25rem; margin-bottom: 0.5rem;">
+            {% if student %}Edit Student Profile{% else %}Create Student Profile{% endif %}
+        </h1>
+        <p style="color: var(--text-muted);">
+            Save your placement preferences, technical interests, and institution details to get tailored organization recommendations.
+        </p>
+    </div>
+
+    <!-- Quick Switcher Box if already registered -->
+    <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <strong style="font-size: 0.9rem;">Already have a profile?</strong>
+            <p style="font-size: 0.8rem; color: var(--text-muted);">Enter your Matriculation Number to load your information.</p>
+        </div>
+        <form action="{{ url_for('student.switch_profile') }}" method="POST" style="display: flex; gap: 0.5rem;">
+            <input type="text" name="matric_no" class="form-control" placeholder="e.g. ENG/2022/1042" required style="padding: 0.4rem 0.75rem; font-size: 0.85rem;">
+            <button type="submit" class="btn btn-outline btn-sm">Load Profile</button>
+        </form>
+    </div>
+
+    <!-- Profile Form -->
+    <div class="form-card">
+        <form action="{{ url_for('student.profile') }}" method="POST">
+            <h3 style="font-size: 1.2rem; margin-bottom: 1.25rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);">
+                1. Academic & Personal Information
+            </h3>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" name="full_name" class="form-control" placeholder="e.g. Amina Ibrahim" value="{{ student.full_name if student else '' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Matriculation Number *</label>
+                    <input type="text" name="matric_no" class="form-control" placeholder="e.g. ENG/2022/1042" value="{{ student.matric_no if student else '' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Department *</label>
+                    <input type="text" name="department" class="form-control" placeholder="e.g. Computer Engineering" value="{{ student.department if student else 'Computer Engineering' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Faculty *</label>
+                    <input type="text" name="faculty" class="form-control" placeholder="e.g. Faculty of Engineering" value="{{ student.faculty if student else 'Faculty of Engineering' }}" required>
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label">University / Institution *</label>
+                    <input type="text" name="university" class="form-control" placeholder="e.g. Ahmadu Bello University (ABU), Zaria" value="{{ student.university if student else '' }}" required>
+                </div>
+            </div>
+
+            <h3 style="font-size: 1.2rem; margin: 2rem 0 1.25rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);">
+                2. SIWES Placement Preferences
+            </h3>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Preferred Nigerian State *</label>
+                    <select name="preferred_state" id="stateSelect" class="form-control" required>
+                        <option value="">Select State</option>
+                        {% for st in states %}
+                        <option value="{{ st }}" {% if student and student.preferred_state == st %}selected{% endif %}>{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Preferred City / Town *</label>
+                    <input type="text" name="preferred_city" id="cityInput" list="cityList" class="form-control" placeholder="e.g. Zaria or Ikeja" value="{{ student.preferred_city if student else '' }}" required>
+                    <datalist id="cityList"></datalist>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Primary Area of Interest *</label>
+                    <select name="area_of_interest" class="form-control" required>
+                        <option value="">Select Engineering Field</option>
+                        {% for int_opt in interests %}
+                        <option value="{{ int_opt }}" {% if student and student.area_of_interest == int_opt %}selected{% endif %}>{{ int_opt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Preferred Organization Type *</label>
+                    <select name="preferred_org_type" class="form-control" required>
+                        <option value="">Select Organization Type</option>
+                        {% for org_opt in org_types %}
+                        <option value="{{ org_opt }}" {% if student and student.preferred_org_type == org_opt %}selected{% endif %}>{{ org_opt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label">Technical Skills (Comma separated)</label>
+                    <input type="text" name="skills" class="form-control" placeholder="e.g. Python, Flask, Git, Linux, C++, Hardware Troubleshooting, SQL" value="{{ student.skills if student else '' }}">
+                    <span class="form-hint">Highlight programming languages, frameworks, or hardware skills you know or want to practice.</span>
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label">Student Bio / Placement Objectives</label>
+                    <textarea name="bio" class="form-control" placeholder="Brief summary of your learning objectives during the 6-month industrial work experience...">{{ student.bio if student else '' }}</textarea>
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                <a href="{{ url_for('student.dashboard') }}" class="btn btn-outline">Cancel</a>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    {% if student %}Update Profile & Open Dashboard{% else %}Save Profile & Continue{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

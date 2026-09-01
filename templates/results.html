@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Search Results | Departmental SIWES Assistant{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <div class="hero-badge">
+                <span>🎯</span>
+                <span>{{ total_count }} Match{{ 'es' if total_count != 1 else '' }} Found</span>
+            </div>
+            <h1 style="font-size: 2.25rem; margin-bottom: 0.25rem;">Placement Organizations</h1>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">
+                Showing matches for: 
+                <strong>{{ query_params.state or 'All States' }}</strong>
+                {% if query_params.city %} • City: <strong>{{ query_params.city }}</strong>{% endif %}
+                {% if query_params.interest %} • Field: <strong>{{ query_params.interest }}</strong>{% endif %}
+                {% if query_params.org_type %} • Type: <strong>{{ query_params.org_type }}</strong>{% endif %}
+                {% if query_params.keywords %} • Keyword: <strong>"{{ query_params.keywords }}"</strong>{% endif %}
+            </p>
+        </div>
+
+        <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline">
+            <span>✏️ Refine Search</span>
+        </a>
+    </div>
+</div>
+
+<!-- Live Web Research Transparency Status Banner -->
+<div class="notice-banner">
+    <div class="icon">ℹ️</div>
+    <div>
+        <strong>Search Transparency Notice:</strong>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+            {{ live_search_status.message }}
+        </p>
+    </div>
+</div>
+
+{% if results %}
+<div class="grid-cards" style="margin-top: 1.5rem;">
+    {% for org in results %}
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <span class="badge {{ org.verification_status | badge_class }}">
+                    {{ org.verification_status }}
+                </span>
+                <span style="font-size: 0.75rem; color: var(--text-light); margin-left: 0.4rem;">
+                    Source: {{ org.source }}
+                </span>
+            </div>
+
+            <!-- Save / Bookmark Button -->
+            <form action="{{ url_for('placement.toggle_save', org_id=org.id) }}" method="POST" style="margin: 0;">
+                <button type="submit" class="btn btn-outline btn-sm" title="{% if org.id in saved_org_ids %}Remove Bookmark{% else %}Save Organization{% endif %}" style="padding: 0.2rem 0.5rem; font-size: 0.85rem;">
+                    {% if org.id in saved_org_ids %}⭐ Saved{% else %}☆ Save{% endif %}
+                </button>
+            </form>
+        </div>
+
+        <h3 class="card-title" style="margin-bottom: 0.35rem;">
+            <a href="{{ url_for('placement.organization_detail', org_id=org.id) }}">
+                {{ org.name }}
+            </a>
+        </h3>
+
+        <div style="font-size: 0.85rem; color: var(--secondary-dark); font-weight: 600; margin-bottom: 0.75rem;">
+            📍 {{ org.city }}, {{ org.state }} • {{ org.industry }}
+        </div>
+
+        <p class="card-body" style="font-size: 0.9rem; margin-bottom: 0.75rem;">
+            {{ org.description | truncate(140) }}
+        </p>
+
+        <!-- Relevance Reason Callout -->
+        {% if org.why_relevant %}
+        <div style="background: var(--bg-subtle); padding: 0.6rem 0.85rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-main); margin-bottom: 1rem; border-left: 2px solid var(--primary);">
+            <strong>Why it's relevant:</strong> {{ org.why_relevant }}
+        </div>
+        {% endif %}
+
+        <!-- Relevance tags -->
+        <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 1rem;">
+            {% for tag in org.relevance_areas %}
+            <span style="font-size: 0.75rem; padding: 0.15rem 0.45rem; background: var(--bg-subtle); border-radius: var(--radius-sm); color: var(--text-muted);">
+                {{ tag }}
+            </span>
+            {% endfor %}
+        </div>
+
+        <div class="card-footer">
+            {% if org.website %}
+            <a href="{{ org.website }}" target="_blank" rel="noopener noreferrer" style="font-size: 0.85rem; color: var(--text-muted);">
+                🌐 Website &nearr;
+            </a>
+            {% else %}
+            <span></span>
+            {% endif %}
+
+            <a href="{{ url_for('placement.organization_detail', org_id=org.id) }}" class="btn btn-primary btn-sm">
+                View Details &rarr;
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="form-card" style="text-align: center; padding: 3.5rem 1.5rem;">
+    <div style="font-size: 2.5rem; margin-bottom: 1rem;">🔍</div>
+    <h3 style="margin-bottom: 0.5rem;">No Organizations Match Your Exact Search</h3>
+    <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto 1.5rem;">
+        Try broadening your search criteria (e.g. selecting "All Nigerian States" or "All Engineering Disciplines"), or submit a new company.
+    </p>
+    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary">Try Another Search</a>
+        <a href="{{ url_for('placement.submit_organization') }}" class="btn btn-outline">Submit Organization</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

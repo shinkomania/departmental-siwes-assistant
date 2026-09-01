@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Manage SIWES Guides | Admin | DSA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <a href="{{ url_for('admin.dashboard') }}" style="font-size: 0.85rem; color: var(--text-muted);">&larr; Back to Admin Dashboard</a>
+        <h1 style="font-size: 2rem; margin-top: 0.25rem;">SIWES Guide Topics</h1>
+    </div>
+
+    <div>
+        <a href="{{ url_for('admin.new_guide') }}" class="btn btn-primary">
+            <span>➕ Add New Guide Topic</span>
+        </a>
+    </div>
+</div>
+
+<div class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Order</th>
+                <th>Topic Title</th>
+                <th>Category</th>
+                <th>Slug</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for topic in topics %}
+            <tr>
+                <td><strong>#{{ topic.order_num }}</strong></td>
+                <td>
+                    <strong>{{ topic.title }}</strong>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">{{ topic.summary | truncate(80) }}</div>
+                </td>
+                <td><span class="badge badge-online">{{ topic.category }}</span></td>
+                <td><code>{{ topic.slug }}</code></td>
+                <td>
+                    {% if topic.is_published %}
+                    <span style="color: var(--success); font-weight: 600; font-size: 0.85rem;">Published</span>
+                    {% else %}
+                    <span style="color: var(--text-light); font-size: 0.85rem;">Draft</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('admin.edit_guide', topic_id=topic.id) }}" class="btn btn-sm btn-outline">
+                        Edit Topic
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

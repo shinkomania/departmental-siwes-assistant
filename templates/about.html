@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}About | Departmental SIWES Assistant{% endblock %}
+
+{% block content %}
+<div class="container-narrow">
+    <div style="margin-bottom: 2rem;">
+        <div class="hero-badge">
+            <span>ℹ️</span>
+            <span>Project Overview</span>
+        </div>
+        <h1 style="font-size: 2.25rem; margin-bottom: 0.5rem;">About Departmental SIWES Assistant (DSA)</h1>
+        <p style="color: var(--text-muted);">
+            A dedicated system built for Computer Engineering students undertaking a 6-month Industrial Work Experience Scheme (SIWES) in Nigeria.
+        </p>
+    </div>
+
+    <div class="form-card" style="margin-bottom: 2rem;">
+        <h3 style="font-size: 1.35rem; margin-bottom: 1rem; color: var(--primary);">🎯 Mission & Purpose</h3>
+        <p style="margin-bottom: 1rem; line-height: 1.7;">
+            The <strong>Departmental SIWES Assistant (DSA)</strong> was conceived to solve two fundamental challenges faced by university engineering students:
+        </p>
+        <ol style="margin-left: 1.5rem; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+            <li><strong>Finding High-Quality, Relevant Placements:</strong> Moving beyond word-of-mouth by providing transparent, categorized, and verified technology companies, datacenters, and fintech hubs across all Nigerian states.</li>
+            <li><strong>Mastering SIWES Academic Requirements:</strong> Demystifying ITF Form 8, daily logbook entries, supervisor inspection protocols, technical report writing, and final presentation defense.</li>
+        </ol>
+
+        <h3 style="font-size: 1.35rem; margin: 2rem 0 1rem; color: var(--primary);">🛡️ Data Integrity & Source Transparency</h3>
+        <p style="margin-bottom: 1rem; line-height: 1.7;">
+            A key architectural tenet of DSA is <strong>truth in data</strong>. The platform strictly distinguishes between:
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem;">
+            <div style="background: var(--bg-subtle); padding: 0.85rem 1.25rem; border-radius: var(--radius-md); border-left: 3px solid var(--success);">
+                <span class="badge badge-verified" style="margin-bottom: 0.25rem;">Verified</span>
+                <p style="font-size: 0.85rem; color: var(--text-main); margin-top: 0.25rem;">
+                    Organizations verified by the department or proven to accept engineering interns with active engineering teams.
+                </p>
+            </div>
+            <div style="background: var(--bg-subtle); padding: 0.85rem 1.25rem; border-radius: var(--radius-md); border-left: 3px solid var(--accent);">
+                <span class="badge badge-online" style="margin-bottom: 0.25rem;">Online Source</span>
+                <p style="font-size: 0.85rem; color: var(--text-main); margin-top: 0.25rem;">
+                    Results returned through structured web research adapters or verified online registries.
+                </p>
+            </div>
+            <div style="background: var(--bg-subtle); padding: 0.85rem 1.25rem; border-radius: var(--radius-md); border-left: 3px solid var(--warning);">
+                <span class="badge badge-student" style="margin-bottom: 0.25rem;">Student Submitted</span>
+                <p style="font-size: 0.85rem; color: var(--text-main); margin-top: 0.25rem;">
+                    Peer recommendations submitted by fellow students pending formal departmental verification.
+                </p>
+            </div>
+        </div>
+
+        <h3 style="font-size: 1.35rem; margin: 2rem 0 1rem; color: var(--primary);">🚀 Future AI & Intelligence Capabilities</h3>
+        <p style="margin-bottom: 1rem; line-height: 1.7;">
+            DSA is architected with modular service boundaries to facilitate upcoming intelligence modules without requiring code rewrites:
+        </p>
+        <ul style="margin-left: 1.5rem; display: flex; flex-direction: column; gap: 0.4rem; color: var(--text-muted); font-size: 0.95rem;">
+            <li><strong>AI SIWES Chatbot:</strong> Interactive Q&A on university guidelines and workplace etiquette.</li>
+            <li><strong>AI Logbook Assistant:</strong> Refines draft daily activities into technically precise, academic logbook entries.</li>
+            <li><strong>AI Report Structurer:</strong> Analyzes student project notes and generates standard Chapter outlines.</li>
+            <li><strong>Intelligent Placement Matcher:</strong> Uses student skill vectors and location proximity for personalized placement matching.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Departmental SIWES Assistant{% endblock %} | DSA</title>
+    <meta name="description" content="{% block meta_description %}Departmental SIWES Assistant (DSA) helps Nigerian Computer Engineering and tech students navigate SIWES, find verified industrial training placements, and track applications.{% endblock %}">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Core Custom Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Site Header & Navigation -->
+    <header class="site-header">
+        <div class="container nav-container">
+            <a href="{{ url_for('main.index') }}" class="brand">
+                <div class="brand-icon">⚡</div>
+                <span>DSA</span>
+                <span class="brand-badge">SIWES</span>
+            </a>
+
+            <!-- Navigation Links -->
+            <ul class="nav-menu">
+                <li><a href="{{ url_for('main.index') }}" class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}">Home</a></li>
+                <li><a href="{{ url_for('main.siwes_guide') }}" class="nav-link {% if 'guide' in request.endpoint %}active{% endif %}">SIWES Guide</a></li>
+                <li><a href="{{ url_for('placement.search_form') }}" class="nav-link {% if 'placement' in request.endpoint and request.endpoint != 'placement.submit_organization' %}active{% endif %}">Find Placement</a></li>
+                <li><a href="{{ url_for('student.profile') }}" class="nav-link {% if request.endpoint == 'student.profile' %}active{% endif %}">Student Profile</a></li>
+                <li><a href="{{ url_for('student.dashboard') }}" class="nav-link {% if request.endpoint == 'student.dashboard' %}active{% endif %}">Dashboard</a></li>
+                <li><a href="{{ url_for('main.about') }}" class="nav-link {% if request.endpoint == 'main.about' %}active{% endif %}">About</a></li>
+            </ul>
+
+            <!-- Active Student or Admin Actions -->
+            <div class="nav-actions">
+                {% if current_student %}
+                    <a href="{{ url_for('student.dashboard') }}" class="user-tag" title="Active Student Profile">
+                        <span>👤</span>
+                        <span>{{ current_student.full_name.split(' ')[0] }} ({{ current_student.matric_no }})</span>
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('student.profile') }}" class="btn btn-outline btn-sm">Create Profile</a>
+                {% endif %}
+
+                {% if is_admin %}
+                    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary btn-sm">Admin</a>
+                {% endif %}
+            </div>
+
+            <!-- Mobile Drawer Button -->
+            <button class="mobile-toggle" aria-label="Toggle navigation menu">☰</button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Flash Message Alerts -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-container">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">
+                                <span>{{ message }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Site Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="brand" style="margin-bottom: 0.75rem;">
+                        <div class="brand-icon" style="width: 1.75rem; height: 1.75rem; font-size: 0.9rem;">⚡</div>
+                        <span>Departmental SIWES Assistant</span>
+                    </div>
+                    <p style="margin-bottom: 1rem;">
+                        Empowering Computer Engineering and Technology students across Nigerian universities with verified industrial training placements, logbook guidance, and application management.
+                    </p>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <span class="badge badge-verified">Verified Organizations</span>
+                        <span class="badge badge-online">Extensible Research</span>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 style="margin-bottom: 1rem;">Quick Links</h4>
+                    <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.4rem;">
+                        <li><a href="{{ url_for('main.siwes_guide') }}">SIWES Knowledge Base</a></li>
+                        <li><a href="{{ url_for('placement.search_form') }}">Search Placements</a></li>
+                        <li><a href="{{ url_for('placement.submit_organization') }}">Submit an Organization</a></li>
+                        <li><a href="{{ url_for('student.dashboard') }}">Student Dashboard</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 style="margin-bottom: 1rem;">Academic & Admin</h4>
+                    <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.4rem;">
+                        <li><a href="{{ url_for('main.about') }}">About SIWES / ITF Scheme</a></li>
+                        <li><a href="{{ url_for('admin.login') }}">Admin Panel</a></li>
+                        <li><span style="color: var(--text-light); font-size: 0.85rem;">6-Month Industrial Training Support</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; {{ current_year }} Departmental SIWES Assistant (DSA). Designed for Computer Engineering Students.</p>
+                <p style="font-size: 0.85rem; color: var(--text-light);">Transparent • Modular • Educational</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Main JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
