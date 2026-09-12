@@ -71,11 +71,19 @@ def create_app(config_name=None):
     @app.context_processor
     def inject_global_context():
         """
-        Provides common application metadata and current authenticated
+        Provides common application metadata and authenticated
         user/student information to templates.
+
+        Student identity is resolved only through:
+
+            authenticated User -> StudentProfile
+
+        Legacy session['student_id'] is not trusted.
         """
         user_id = session.get("user_id")
+
         current_user = None
+        current_student = None
 
         if user_id:
             current_user = db.session.get(User, user_id)
@@ -86,14 +94,10 @@ def create_app(config_name=None):
             ):
                 current_user = None
 
-        student_id = session.get("student_id")
-        current_student = None
-
-        if student_id:
-            current_student = db.session.get(
-                StudentProfile,
-                student_id,
-            )
+        if current_user:
+            current_student = StudentProfile.query.filter_by(
+                user_id=current_user.id
+            ).first()
 
         return {
             "app_name": app.config.get(
@@ -106,13 +110,12 @@ def create_app(config_name=None):
             ),
             "current_year": datetime.utcnow().year,
             "current_user": current_user,
-
-            # Legacy values temporarily retained while old routes
-            # are migrated to unified authentication.
             "current_student": current_student,
+
+            # Legacy administrator authentication remains temporarily
+            # until the admin routes are migrated to role-based access.
             "is_admin": session.get("is_admin", False),
         }
-
     # Markdown rendering
     import markdown as md_parser
 
