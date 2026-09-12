@@ -1,229 +1,281 @@
 """
 Database Seeding Script
 -----------------------
-Populates the SQLite database with rich, factual SIWES guidance topics
-and verified Nigerian technology and engineering organizations.
+Seeds programme-neutral SIWES guidance, access-control defaults, starter
+organization records, and demonstration data.
+
+Organization records in this seed are NOT DSA certifications and do not imply
+that an organization is currently accepting SIWES students. Provenance,
+internal review state, listing state, and current intake are separate facts.
 
 Run via:
     python seed.py
-or
+or:
     flask seed-db
+
+Database schema creation is owned by Alembic/Flask-Migrate.
 """
 from models.db import db
 from models.guide import GuideTopic
 from models.organization import Organization
 from models.student import StudentProfile
 from models.application import SavedOrganization, PlacementApplication
+from models.access import Role, Permission
 
 GUIDE_TOPICS = [
     {
-        'slug': 'what-is-siwes',
-        'title': 'What is SIWES?',
-        'category': 'Overview',
-        'order_num': 1,
-        'icon': 'info-circle',
-        'summary': 'Understand the Student Industrial Work Experience Scheme (SIWES) and its background.',
+        'slug': 'what-is-siwes', 'title': 'What is SIWES?', 'category': 'Overview',
+        'order_num': 1, 'icon': 'info-circle',
+        'summary': 'Understand SIWES and how it connects academic learning with supervised workplace experience.',
         'content': """
-The **Students Industrial Work Experience Scheme (SIWES)** is a skills training programme designed to expose and prepare students of Universities, Polytechnics, and Colleges of Education for the industrial work situation they are likely to meet after graduation.
+The **Students Industrial Work Experience Scheme (SIWES)** is a skills-training programme that gives eligible students practical exposure to work situations related to their courses of study.
 
-In Nigeria, SIWES was established by the **Industrial Training Fund (ITF)** in 1973 to bridge the gap between theoretical knowledge acquired in higher institutions and practical industrial skills.
+SIWES is coordinated within Nigeria's national industrial-training framework involving the Industrial Training Fund (ITF), participating institutions, employers and relevant supervisory agencies.
 
-#### Key Highlights for Computer Engineering Students:
-- **Duration**: Typically 6 months for university engineering students (often during 400 Level / Year 4).
-- **Supervision**: Supervised jointly by Departmental/Institutional supervisors and ITF Industry supervisors.
-- **Grading**: SIWES is a credit-bearing course requiring a certified logbook, a comprehensive technical report, and an oral presentation/defense.
-        """
+**Important:** SIWES eligibility, duration, semester, documentation and assessment can differ by institution and programme. DSA's general guidance does not override verified instructions from your institution, department or programme.
+"""
     },
     {
-        'slug': 'purpose-of-siwes',
-        'title': 'Purpose of SIWES',
-        'category': 'Overview',
-        'order_num': 2,
-        'icon': 'target',
-        'summary': 'Why SIWES is mandatory for engineering and technology disciplines.',
+        'slug': 'purpose-of-siwes', 'title': 'Purpose of SIWES', 'category': 'Overview',
+        'order_num': 2, 'icon': 'target',
+        'summary': 'Why supervised industrial experience is an important part of eligible programmes.',
         'content': """
-SIWES serves as a critical bridge between academic engineering concepts and industry production environments.
+SIWES is intended to help students connect academic knowledge with practical workplace experience.
 
-#### Core Objectives:
-1. **Practical Exposure**: Provide students with an opportunity to apply their theoretical knowledge in real-world work situations.
-2. **Machinery & Tool Familiarity**: Expose students to work methods, advanced software engineering practices, testing frameworks, and hardware equipment not commonly accessible within universities.
-3. **Transition Ease**: Smooth the transition from the university environment to professional industry practices.
-4. **Professional Networking**: Enlist and strengthen employer involvement in the educational process of preparing students for employment.
-5. **Work Ethic Development**: Instill workplace discipline, teamwork, punctuality, safety compliance, and professional communication.
-        """
+#### Core objectives
+1. **Practical skills:** Develop relevant industrial and professional skills.
+2. **Workplace exposure:** Experience methods, equipment, systems and practices that may not be available in school.
+3. **Work readiness:** Prepare for the realities, responsibilities and discipline of employment.
+4. **Knowledge application:** Apply concepts learned in school to real tasks and problems.
+5. **Employer participation:** Strengthen employer involvement in preparing students for work.
+
+The exact activities that count as relevant experience depend on the student's programme and approved placement.
+"""
     },
     {
-        'slug': 'how-to-prepare-for-siwes',
-        'title': 'How to Prepare for SIWES',
-        'category': 'Preparation',
-        'order_num': 3,
-        'icon': 'clipboard-check',
-        'summary': 'Essential pre-commencement checklist: documents, letters, ITF Form 8, and safety.',
+        'slug': 'how-to-prepare-for-siwes', 'title': 'How to Prepare for SIWES', 'category': 'Preparation',
+        'order_num': 3, 'icon': 'clipboard-check',
+        'summary': 'Prepare your documents, placement information, expectations and practical readiness.',
         'content': """
-Preparation starts well before your official start date. Here is the step-by-step checklist:
+Start with the **official instructions for your institution and programme**.
 
-#### 1. Official Documentation
-- **Introductory / SIWES Request Letter**: Obtain your official stamped introductory letter from your university's Industrial Training Coordination Center (ITCC/SIWES Directorate).
-- **Acceptance Letter & ITF Form 8**: Once an organization accepts you, have them fill and stamp your acceptance slip/Form 8 and submit the designated copies back to your ITCC and the nearest ITF Area Office.
-- **SPE-1 Form**: Fill out your student placement information form accurately with your workplace address and phone numbers.
+#### Before commencement
+- Attend required SIWES orientation or briefings.
+- Obtain the documents and placement letters required by your institution.
+- Confirm the approved attachment period and reporting procedure.
+- Record your placement details accurately on required SIWES documentation.
+- Understand workplace rules, safety requirements, confidentiality and expected conduct.
+- Review practical knowledge relevant to your own programme and intended placement.
 
-#### 2. Technical Preparation
-- Brush up on core computer engineering fundamentals (e.g. Git, command line basics, Python, Linux, basic networking commands, hardware debugging).
-- Set up a clean portfolio or GitHub profile showcasing course projects.
-
-#### 3. Professional Mindset
-- Plan your commuting route and prepare professional business casual attire.
-- Understand workplace safety regulations and intellectual property confidentiality guidelines.
-        """
+ITF documentation includes the **Students Commencement of Attachment Form (SCAF)** and **Form 8 (End-of-Programme Report Sheet)** within the national SIWES process. Your institution should tell you which forms you must complete, when they are due and where they should be submitted.
+"""
     },
     {
-        'slug': 'choosing-a-suitable-organization',
-        'title': 'Choosing a Suitable Organization',
-        'category': 'Preparation',
-        'order_num': 4,
-        'icon': 'building',
-        'summary': 'How to evaluate potential IT/SIWES placement firms for relevant engineering experience.',
+        'slug': 'choosing-a-suitable-organization', 'title': 'Choosing a Suitable Organization', 'category': 'Preparation',
+        'order_num': 4, 'icon': 'building',
+        'summary': 'Evaluate a placement based on programme relevance, supervision, learning opportunities and approved requirements.',
         'content': """
-For a Computer Engineering student, where you spend your 6 months will significantly impact your practical skills and career trajectory.
+A useful SIWES placement should provide experience that is relevant to your **programme or approved field of training**.
 
-#### Key Criteria for Evaluation:
-1. **Engineering Relevance**: Does the company have an active Engineering, IT, Software Development, Infrastructure, or R&D department?
-2. **Mentorship & Supervision**: Will you have an experienced engineer or senior tech professional assigned to mentor you?
-3. **Hands-on Involvement**: Avoid firms that will relegate you to clerical or non-technical errands. Look for companies with real projects.
-4. **Industry Standards**: Companies that use modern version control (Git), cloud platforms, structured agile sprints, or hardware lab testing environments provide superior learning.
+Consider:
+1. **Programme relevance:** Are the organization's activities connected to skills your programme expects you to develop?
+2. **Supervision:** Is there a suitable workplace supervisor?
+3. **Practical exposure:** Will you participate in meaningful work rather than unrelated errands?
+4. **Safety and professionalism:** Does the workplace provide an appropriate environment for training?
+5. **Institution approval:** Does the placement satisfy your institution or department's requirements?
 
-#### Types of Suitable Organizations:
-- Software Engineering & Product companies
-- Fintech & Payment processors
-- Telecommunications operators & ISP network providers
-- Government Tech Agencies (e.g. NITDA, Galaxy Backbone)
-- Embedded systems, IoT, and hardware maintenance enterprises
-        """
+A directory listing alone does not prove that an organization is currently accepting SIWES students. Confirm current intake directly and follow your institution's placement-approval process.
+"""
     },
     {
-        'slug': 'siwes-logbook',
-        'title': 'SIWES Logbook Guidelines',
-        'category': 'Logbook',
-        'order_num': 5,
-        'icon': 'book',
-        'summary': 'Best practices for daily logbook entries, sketches, diagrams, and industry supervisor sign-offs.',
+        'slug': 'siwes-logbook', 'title': 'SIWES Logbook Guidelines', 'category': 'Logbook',
+        'order_num': 5, 'icon': 'book',
+        'summary': 'Keep accurate records of your training activities and obtain required supervision or endorsements.',
         'content': """
-Your SIWES Logbook (Daily Activities Book) is your legal and academic proof of industrial training.
+Your SIWES logbook is an important record of the training you actually performed.
 
-#### Rules for Daily Entries:
-- **Write Daily**: Fill your logbook at the end of each working day while tasks and technical details are fresh in your memory.
-- **Be Specific & Technical**: Avoid vague entries like *"worked on computers"*. Write *"Diagnosed a DNS resolution failure on subnet 192.168.1.0/24, reconfigured DHCP scope parameters on Cisco router, and tested connectivity using traceroute."*
-- **Include Diagrams & Circuit Sketches**: Dedicate the diagram/sketch section to block diagrams, network topologies, flowcharts, or system architecture sketches.
-- **Weekly Signatures**: Ensure your Industry-based supervisor reviews, comments on, and signs your logbook at the end of every work week.
-        """
+- Record activities regularly and accurately.
+- Describe the task, process, tool, equipment, method or lesson in terms appropriate to your field.
+- Add sketches, diagrams, tables or other supporting material where useful and permitted.
+- Obtain workplace-supervisor review/signatures at the intervals required by your institution.
+- Never invent activities or copy another student's entries.
+
+Follow your institution's logbook format whenever it differs from this general guidance.
+"""
     },
     {
-        'slug': 'weekly-activities',
-        'title': 'Weekly Activities & Documentation',
-        'category': 'Logbook',
-        'order_num': 6,
-        'icon': 'calendar',
-        'summary': 'How to summarize weekly milestones and keep track of accomplishments.',
+        'slug': 'weekly-activities', 'title': 'Weekly Activities & Documentation', 'category': 'Logbook',
+        'order_num': 6, 'icon': 'calendar',
+        'summary': 'Turn daily activities into clear weekly records of tasks, challenges and learning.',
         'content': """
-In addition to daily bullet points, each week requires a cohesive summary of learning milestones.
+A weekly summary should show what you actually learned and contributed.
 
-#### Structure of a Strong Weekly Summary:
-1. **Weekly Milestone**: The main objective for the week (e.g., *"Deployment of internal API service using Docker containers and Nginx reverse proxy"*).
-2. **Tools & Technologies Used**: Specific frameworks, libraries, oscilloscopes, cable testers, or IDEs.
-3. **Challenges Encountered**: Technical bottlenecks faced during the week.
-4. **Solutions Developed**: How you and your team debugged and resolved the problem.
-5. **Key Learning Takeaways**: New technical knowledge acquired.
-        """
+Useful elements include:
+- the week's main activities or objectives;
+- tools, equipment, methods or systems used;
+- challenges encountered;
+- how problems were handled;
+- new skills or knowledge gained; and
+- relevant safety or professional lessons.
+
+The terminology should match your discipline. A laboratory, farm, workshop, hospital-related unit, construction site, office, studio or software team will naturally produce different kinds of entries.
+"""
     },
     {
-        'slug': 'siwes-report',
-        'title': 'SIWES Technical Report Writing',
-        'category': 'Report',
-        'order_num': 7,
-        'icon': 'file-text',
-        'summary': 'Standard engineering format for your final SIWES technical report.',
+        'slug': 'siwes-report', 'title': 'SIWES Report Writing', 'category': 'Report',
+        'order_num': 7, 'icon': 'file-text',
+        'summary': 'Prepare an evidence-based report using the format required by your institution and programme.',
         'content': """
-Your final report is the primary academic document graded by your university departmental defense committee.
+Your final SIWES report should document your placement, activities, learning and relevant experience clearly.
 
-#### Standard Chapter Breakdown:
-- **Preliminary Pages**: Title Page, Certification/Approval Page, Dedication, Acknowledgements, Abstract, Table of Contents, List of Figures, List of Tables.
-- **Chapter 1: Introduction**:
-  - History, objectives, and administrative framework of SIWES and ITF.
-  - History, organizational structure, departments, and vision of your placement organization.
-- **Chapter 2: Safety & Workplace Environment**:
-  - Safety precautions, workplace regulations, and equipment handling guidelines.
-- **Chapter 3: Technical Experience & Projects Undertaken**:
-  - In-depth technical documentation of projects, software built, networks configured, or hardware tested. Include architecture diagrams, code snippets, and schematics.
-- **Chapter 4: Problems Encountered & Solutions**:
-  - Academic and operational bottlenecks and mitigation strategies.
-- **Chapter 5: Conclusion & Recommendations**:
-  - Summary of experience, recommendations to the Department, ITF, and the host organization.
-- **References & Appendices**: Cited literature, manuals, and data sheets.
-        """
+There is **no single DSA report structure that overrides every institution or programme**. Use the report template, chapter arrangement, formatting rules and submission requirements issued by your institution, faculty, department or programme.
+
+In general, a report may cover the host organization, work performed, skills and knowledge gained, challenges, observations, conclusions and recommendations. Include references, figures, appendices or other evidence where required and permitted.
+
+Respect employer confidentiality and never include protected information without authorization.
+"""
     },
     {
-        'slug': 'supervisor-visits',
-        'title': 'Supervisor Visits (Institutional & ITF)',
-        'category': 'Supervision',
-        'order_num': 8,
-        'icon': 'user-check',
-        'summary': 'What to expect when your university lecturer or ITF inspector visits your workplace.',
+        'slug': 'supervisor-visits', 'title': 'SIWES Supervision', 'category': 'Supervision',
+        'order_num': 8, 'icon': 'user-check',
+        'summary': 'Understand institutional, workplace and ITF supervision during industrial attachment.',
         'content': """
-During your 6-month SIWES, you will receive visits from both your University Departmental Supervisor and ITF Officials.
+SIWES involves supervision by the participating institution, the employer and the national SIWES framework.
 
-#### What Supervisors Check:
-1. **Physical Presence & Punctuality**: Confirming you are actively on-site and observing regular office hours.
-2. **Up-to-Date Logbook**: Ensuring your daily entries are complete, detailed, and signed up to the current week.
-3. **Industry Supervisor Feedback**: The supervisor meets with your workplace supervisor to evaluate your conduct, technical initiative, and discipline.
-4. **Hands-on Demonstration**: You may be asked to explain your current project, show code repositories, or demonstrate equipment you operate.
+During supervision, students may be expected to demonstrate attendance, explain their activities, present an up-to-date logbook and discuss progress with supervisors.
 
-#### Important Tip:
-Always keep your logbook and notebook at your desk. If your supervisor visits unannounced, your logbook must be immediately presentable.
-        """
+ITF operational guidance assigns supervision responsibilities to participating bodies and provides for visits during attachment. Your actual supervision schedule and assessment process should follow the verified instructions for your institution and programme.
+
+Keep your placement details current so authorized supervisors can locate and contact you when necessary.
+"""
     },
     {
-        'slug': 'common-siwes-challenges',
-        'title': 'Common SIWES Challenges & Solutions',
-        'category': 'Challenges',
-        'order_num': 9,
-        'icon': 'alert-triangle',
-        'summary': 'Overcoming stipend delays, lack of initial tasks, transportation, and technical roadblocks.',
+        'slug': 'common-siwes-challenges', 'title': 'Common SIWES Challenges & Responses', 'category': 'Challenges',
+        'order_num': 9, 'icon': 'alert-triangle',
+        'summary': 'Practical ways to respond to common placement and training difficulties.',
         'content': """
-Every student encounters challenges during industrial training. Here is how to handle the most common ones:
+Common challenges include difficulty finding a placement, limited meaningful tasks, transport costs, unfamiliar work methods, documentation problems and communication gaps.
 
-#### 1. "They aren't giving me serious work."
-- **Solution**: Don't just wait passively. Ask questions, shadow senior engineers, review company documentation/codebases, and propose small internal utility projects (e.g. automating a report or organizing cabling).
+Useful responses include:
+- contact your departmental/institutional SIWES coordinator when official guidance is needed;
+- ask your workplace supervisor for relevant learning tasks;
+- keep accurate records of applications and placement communication;
+- learn unfamiliar tools through appropriate documentation and supervised practice;
+- plan transport and accommodation realistically; and
+- report serious safety, misconduct or placement problems through the appropriate institutional channel.
 
-#### 2. "The technology stack is unfamiliar."
-- **Solution**: Dedicate evenings and weekends to crash courses and official documentation. Ask teammates for code reviews.
-
-#### 3. "Commute and Transportation Costs."
-- **Solution**: Choose placement locations strategically near family or reliable transit routes. Discuss flexible or hybrid schedules with your supervisor if approved by the department.
-
-#### 4. "Stipend Uncertainties."
-- **Solution**: View SIWES primarily as an invaluable practical education and career gateway rather than a wage-earning role.
-        """
+Do not falsify placement, attendance, logbook entries or acceptance evidence to solve a placement problem.
+"""
     },
     {
-        'slug': 'general-tips-for-success',
-        'title': 'General Tips for a Successful SIWES',
-        'category': 'Defense & Tips',
-        'order_num': 10,
-        'icon': 'award',
-        'summary': 'Pro tips on securing retainership offers, building professional relationships, and acing your defense.',
+        'slug': 'general-tips-for-success', 'title': 'General Tips for a Successful SIWES', 'category': 'Tips',
+        'order_num': 10, 'icon': 'award',
+        'summary': 'Build useful skills, professional habits and reliable evidence throughout your placement.',
         'content': """
-Transform your 6-month placement into a long-term career catalyst:
+Treat SIWES as structured workplace learning.
 
-1. **Build Real Relationships**: Connect with colleagues on LinkedIn, understand different career pathways, and seek mentorship.
-2. **Document Everything as You Go**: Take photos of equipment/setups (with company permission) for your presentation slides.
-3. **Maintain High Integrity**: Respect company confidentiality agreements, intellectual property, and client data.
-4. **Prepare Defense Slides Early**: Start organizing your PowerPoint slides 3 weeks before the end of the programme.
-5. **Seek Retainership**: High-performing SIWES students often receive graduate job offers, NYSC primary assignment placements, or contract project work from their host organizations.
-        """
-    }
+- Be punctual, responsible and willing to learn.
+- Ask thoughtful questions and seek appropriate feedback.
+- Keep your logbook and required documents current.
+- Build professional relationships without violating workplace boundaries.
+- Protect confidential information and follow safety rules.
+- Keep evidence of your work only where the organization permits it.
+- Prepare reports, presentations or assessments according to your programme's verified requirements.
+
+DSA should help you organize the process, but official institutional and SIWES instructions remain authoritative.
+"""
+    },
 ]
 
-VERIFIED_ORGANIZATIONS = [
+PERMISSIONS = [
+    ('View Institution Dashboard', 'view_institution_dashboard'),
+    ('Manage Coordinators', 'manage_coordinators'),
+    ('Manage Institution Settings', 'manage_institution_settings'),
+    ('View Verification Statistics', 'view_verification_statistics'),
+    ('Review Escalated Cases', 'review_escalated_cases'),
+    ('Verify Student Placement', 'verify_student_placement'),
+    ('View Department Students', 'view_department_students'),
+    ('Review Placement Evidence', 'review_placement_evidence'),
+    ('Publish Department Notice', 'publish_department_notice'),
+    ('Publish Institution Notice', 'publish_institution_notice'),
+]
+
+ROLE_DEFINITIONS = {
+    'platform_administrator': {
+        'name': 'Platform Administrator',
+        'description': 'Global DSA platform administration role.',
+        # Platform-wide authorization rules will be enforced by the access
+        # service; do not infer routine academic-verification authority here.
+        'permissions': [],
+    },
+    'primary_institution_administrator': {
+        'name': 'Primary Institution Administrator',
+        'description': 'Manages an approved institution within assigned scope.',
+        'permissions': [
+            'view_institution_dashboard', 'manage_coordinators',
+            'manage_institution_settings', 'view_verification_statistics',
+            'publish_institution_notice',
+        ],
+    },
+    'institution_siwes_officer': {
+        'name': 'Institution SIWES Officer',
+        'description': 'Handles authorized institution-level SIWES operations.',
+        'permissions': [
+            'view_institution_dashboard', 'view_verification_statistics',
+            'review_escalated_cases', 'verify_student_placement',
+            'review_placement_evidence', 'publish_institution_notice',
+        ],
+    },
+    'departmental_siwes_coordinator': {
+        'name': 'Departmental SIWES Coordinator',
+        'description': 'Coordinates SIWES only within assigned department/programme scope.',
+        'permissions': [
+            'verify_student_placement', 'view_department_students',
+            'review_placement_evidence', 'publish_department_notice',
+        ],
+    },
+    'student': {
+        'name': 'Student',
+        'description': 'Compatibility role for student-facing access; StudentProfile remains separate.',
+        'permissions': [],
+    },
+}
+
+def seed_access_control():
+    """Create/update the initial role and permission catalogue idempotently."""
+    permission_by_slug = {}
+    for name, slug in PERMISSIONS:
+        permission = Permission.query.filter_by(slug=slug).first()
+        if not permission:
+            permission = Permission(name=name, slug=slug)
+            db.session.add(permission)
+            db.session.flush()
+        else:
+            permission.name = name
+        permission_by_slug[slug] = permission
+
+    for slug, definition in ROLE_DEFINITIONS.items():
+        role = Role.query.filter_by(slug=slug).first()
+        if not role:
+            role = Role(
+                name=definition['name'],
+                slug=slug,
+                description=definition['description'],
+                is_active=True,
+            )
+            db.session.add(role)
+            db.session.flush()
+        else:
+            role.name = definition['name']
+            role.description = definition['description']
+            role.is_active = True
+
+        role.permissions = [
+            permission_by_slug[p]
+            for p in definition['permissions']
+        ]
+
+STARTER_ORGANIZATIONS = [
     {
         'name': 'Galaxy Backbone Limited',
         'description': 'The digital infrastructure and shared services provider for the Federal Government of Nigeria, operating nationwide Tier-III datacenter facilities and fiber network infrastructure.',
@@ -235,8 +287,12 @@ VERIFIED_ORGANIZATIONS = [
         'website': 'https://www.galaxybackbone.com.ng',
         'contact_email': 'info@galaxybackbone.com.ng',
         'contact_phone': '+234 9 462 1500',
-        'verification_status': 'Verified',
         'source': 'Federal Government Enterprise Directory',
+        'source_type': 'Other',
+        'source_name': 'Federal Government Enterprise Directory',
+        'review_status': 'Pending',
+        'listing_status': 'Unknown',
+        'acceptance_status': 'Unknown',
         'why_relevant': 'Exceptional enterprise datacenter, cloud computing, government network management, and cybersecurity operations.'
     },
     {
@@ -250,8 +306,12 @@ VERIFIED_ORGANIZATIONS = [
         'website': 'https://nitda.gov.ng',
         'contact_email': 'info@nitda.gov.ng',
         'contact_phone': '+234 816 840 1802',
-        'verification_status': 'Verified',
         'source': 'Official NITDA Agency Portal',
+        'source_type': 'Other',
+        'source_name': 'Official NITDA Agency Portal',
+        'review_status': 'Pending',
+        'listing_status': 'Unknown',
+        'acceptance_status': 'Unknown',
         'why_relevant': 'Hands-on exposure to national tech policy, emerging technologies research (AI/IoT), and cyber defense frameworks.'
     },
     {
@@ -265,8 +325,12 @@ VERIFIED_ORGANIZATIONS = [
         'website': 'https://paystack.com',
         'contact_email': 'contact@paystack.com',
         'contact_phone': '+234 1 631 6160',
-        'verification_status': 'Verified',
         'source': 'Paystack Careers & Engineering Portal',
+        'source_type': 'Other',
+        'source_name': 'Paystack Careers & Engineering Portal',
+        'review_status': 'Pending',
+        'listing_status': 'Unknown',
+        'acceptance_status': 'Unknown',
         'why_relevant': 'World-class fintech engineering practices, distributed systems architecture, microservices, and API integrations.'
     },
     {
@@ -280,8 +344,12 @@ VERIFIED_ORGANIZATIONS = [
         'website': 'https://flutterwave.com',
         'contact_email': 'hi@flutterwavego.com',
         'contact_phone': '+234 1 888 9595',
-        'verification_status': 'Verified',
         'source': 'Flutterwave Official Portal',
+        'source_type': 'Other',
+        'source_name': 'Flutterwave Official Portal',
+        'review_status': 'Pending',
+        'listing_status': 'Unknown',
+        'acceptance_status': 'Unknown',
         'why_relevant': 'High-scale global payments infrastructure, modern frontend/backend engineering, and cloud deployment pipelines.'
     },
     {
@@ -295,8 +363,12 @@ VERIFIED_ORGANIZATIONS = [
         'website': 'https://www.interswitchgroup.com',
         'contact_email': 'careers@interswitchgroup.com',
         'contact_phone': '+234 1 628 3888',
-        'verification_status': 'Verified',
         'source': 'Interswitch Enterprise Registry',
+        'source_type': 'Other',
+        'source_name': 'Interswitch Enterprise Registry',
+        'review_status': 'Pending',
+        'listing_status': 'Unknown',
+        'acceptance_status': 'Unknown',
         'why_relevant': 'Enterprise switching networks, cryptographic hardware security modules (HSM), and POS terminal firmware engineering.'
     },
     {
@@ -310,8 +382,12 @@ VERIFIED_ORGANIZATIONS = [
         'website': 'https://systemspecs.com.ng',
         'contact_email': 'info@systemspecs.com.ng',
         'contact_phone': '+234 1 280 5180',
-        'verification_status': 'Verified',
         'source': 'SystemSpecs Corporate Profile',
+        'source_type': 'Other',
+        'source_name': 'SystemSpecs Corporate Profile',
+        'review_status': 'Pending',
+        'listing_status': 'Unknown',
+        'acceptance_status': 'Unknown',
         'why_relevant': 'Decades of indigenous enterprise software architecture, database management, and transaction security.'
     },
     {
@@ -325,8 +401,12 @@ VERIFIED_ORGANIZATIONS = [
         'website': 'https://www.mainone.net',
         'contact_email': 'info@mainone.net',
         'contact_phone': '+234 1 343 2000',
-        'verification_status': 'Verified',
         'source': 'MainOne Telecommunications Registry',
+        'source_type': 'Other',
+        'source_name': 'MainOne Telecommunications Registry',
+        'review_status': 'Pending',
+        'listing_status': 'Unknown',
+        'acceptance_status': 'Unknown',
         'why_relevant': 'Direct practical exposure to submarine cable landing stations, BGP routing, Tier-III datacenters, and fiber optics.'
     },
     {
@@ -340,8 +420,12 @@ VERIFIED_ORGANIZATIONS = [
         'website': 'https://cchubnigeria.com',
         'contact_email': 'info@cchubnigeria.com',
         'contact_phone': '+234 1 295 6284',
-        'verification_status': 'Verified',
         'source': 'CcHUB Community Directory',
+        'source_type': 'Other',
+        'source_name': 'CcHUB Community Directory',
+        'review_status': 'Pending',
+        'listing_status': 'Unknown',
+        'acceptance_status': 'Unknown',
         'why_relevant': 'Dynamic startup incubator environment, multidisciplinary tech labs, prototyping facilities, and software teams.'
     },
     {
@@ -355,8 +439,12 @@ VERIFIED_ORGANIZATIONS = [
         'website': 'https://outsourceglobal.com',
         'contact_email': 'info@outsourceglobal.com',
         'contact_phone': '+234 9 292 0180',
-        'verification_status': 'Verified',
         'source': 'Outsource Global Corporate Portal',
+        'source_type': 'Other',
+        'source_name': 'Outsource Global Corporate Portal',
+        'review_status': 'Pending',
+        'listing_status': 'Unknown',
+        'acceptance_status': 'Unknown',
         'why_relevant': 'AI dataset engineering, machine learning pipelines, enterprise web development, and international client delivery.'
     },
     {
@@ -370,8 +458,12 @@ VERIFIED_ORGANIZATIONS = [
         'website': 'https://outsourceglobal.com',
         'contact_email': 'kaduna@outsourceglobal.com',
         'contact_phone': '+234 62 291 040',
-        'verification_status': 'Verified',
         'source': 'Kaduna State Technology Partnership',
+        'source_type': 'Other',
+        'source_name': 'Kaduna State Technology Partnership',
+        'review_status': 'Pending',
+        'listing_status': 'Unknown',
+        'acceptance_status': 'Unknown',
         'why_relevant': 'Excellent regional training ground in software engineering, technical support, and data workflows in Kaduna.'
     },
     {
@@ -385,8 +477,12 @@ VERIFIED_ORGANIZATIONS = [
         'website': 'https://kdsg.gov.ng',
         'contact_email': 'info@kadict.ng',
         'contact_phone': '+234 803 000 1234',
-        'verification_status': 'Verified',
         'source': 'Kaduna Tech Ecosystem Directory',
+        'source_type': 'Other',
+        'source_name': 'Kaduna Tech Ecosystem Directory',
+        'review_status': 'Pending',
+        'listing_status': 'Unknown',
+        'acceptance_status': 'Unknown',
         'why_relevant': 'Direct focus on IoT embedded systems, robotics training kits, and community software projects in Kaduna/Zaria axis.'
     },
     {
@@ -400,8 +496,12 @@ VERIFIED_ORGANIZATIONS = [
         'website': 'https://kanotechhub.ng',
         'contact_email': 'support@kanotechhub.ng',
         'contact_phone': '+234 64 892 110',
-        'verification_status': 'Verified',
         'source': 'Kano ICT Innovation Directory',
+        'source_type': 'Other',
+        'source_name': 'Kano ICT Innovation Directory',
+        'review_status': 'Pending',
+        'listing_status': 'Unknown',
+        'acceptance_status': 'Unknown',
         'why_relevant': 'Great practical exposure for students seeking placement in Kano for network administration and hardware maintenance.'
     },
     {
@@ -415,8 +515,12 @@ VERIFIED_ORGANIZATIONS = [
         'website': 'https://www.genesystechhub.com',
         'contact_email': 'learn@genesystechhub.com',
         'contact_phone': '+234 700 436 3797',
-        'verification_status': 'Verified',
         'source': 'Genesys Tech Hub Corporate Portal',
+        'source_type': 'Other',
+        'source_name': 'Genesys Tech Hub Corporate Portal',
+        'review_status': 'Pending',
+        'listing_status': 'Unknown',
+        'acceptance_status': 'Unknown',
         'why_relevant': 'Premier software engineering and tech innovation ecosystem in the South-East with structured internship learning tracks.'
     },
     {
@@ -430,8 +534,12 @@ VERIFIED_ORGANIZATIONS = [
         'website': 'https://bluechiptech.biz',
         'contact_email': 'info@bluechiptech.biz',
         'contact_phone': '+234 1 291 9456',
-        'verification_status': 'Verified',
         'source': 'Bluechip Technologies Official Portal',
+        'source_type': 'Other',
+        'source_name': 'Bluechip Technologies Official Portal',
+        'review_status': 'Pending',
+        'listing_status': 'Unknown',
+        'acceptance_status': 'Unknown',
         'why_relevant': 'Hands-on enterprise data warehouse engineering, ETL pipelines, Oracle/PostgreSQL databases, and business intelligence.'
     },
     {
@@ -445,8 +553,12 @@ VERIFIED_ORGANIZATIONS = [
         'website': 'https://terragongroup.com',
         'contact_email': 'hello@terragongroup.com',
         'contact_phone': '+234 1 454 4455',
-        'verification_status': 'Verified',
         'source': 'Terragon Group Tech Directory',
+        'source_type': 'Other',
+        'source_name': 'Terragon Group Tech Directory',
+        'review_status': 'Pending',
+        'listing_status': 'Unknown',
+        'acceptance_status': 'Unknown',
         'why_relevant': 'Pioneering big data processing, ML model deployment, and cloud infrastructure optimization in Nigeria.'
     },
     {
@@ -460,15 +572,22 @@ VERIFIED_ORGANIZATIONS = [
         'website': 'https://www.ihstowers.com',
         'contact_email': 'nigeria.info@ihstowers.com',
         'contact_phone': '+234 1 277 4000',
-        'verification_status': 'Verified',
         'source': 'IHS Towers Telecommunications Register',
+        'source_type': 'Other',
+        'source_name': 'IHS Towers Telecommunications Register',
+        'review_status': 'Pending',
+        'listing_status': 'Unknown',
+        'acceptance_status': 'Unknown',
         'why_relevant': 'Large-scale cellular base transceiver station (BTS) maintenance, power telemetry, IoT remote monitoring, and microwave links.'
     }
 ]
 
 def seed_database(app=None):
-    """Seed the database with initial guides and organizations."""
+    """Seed programme-neutral guides, access-control defaults, starter organizations, and demo data."""
     print("Beginning database seeding...")
+
+    # 0. Seed access-control catalogue
+    seed_access_control()
     
     # 1. Seed Guide Topics
     for g_data in GUIDE_TOPICS:
@@ -496,8 +615,8 @@ def seed_database(app=None):
             existing.icon = g_data['icon']
             print(f"  * Updated Guide Topic: {g_data['title']}")
 
-    # 2. Seed Verified Organizations
-    for org_data in VERIFIED_ORGANIZATIONS:
+    # 2. Seed starter organizations (provenance-aware; no intake guarantee)
+    for org_data in STARTER_ORGANIZATIONS:
         existing = Organization.query.filter_by(name=org_data['name']).first()
         if not existing:
             org = Organization(
@@ -511,9 +630,16 @@ def seed_database(app=None):
                 website=org_data['website'],
                 contact_email=org_data['contact_email'],
                 contact_phone=org_data['contact_phone'],
-                verification_status=org_data['verification_status'],
+                verification_status='Online Source',
                 source=org_data['source'],
                 why_relevant=org_data['why_relevant'],
+                source_type=org_data.get('source_type', 'Other'),
+                source_name=org_data.get('source_name'),
+                source_url=org_data.get('source_url'),
+                source_reference=org_data.get('source_reference'),
+                review_status=org_data.get('review_status', 'Pending'),
+                listing_status=org_data.get('listing_status', 'Unknown'),
+                acceptance_status=org_data.get('acceptance_status', 'Unknown'),
                 is_active=True
             )
             db.session.add(org)
@@ -528,9 +654,16 @@ def seed_database(app=None):
             existing.website = org_data['website']
             existing.contact_email = org_data['contact_email']
             existing.contact_phone = org_data['contact_phone']
-            existing.verification_status = org_data['verification_status']
+            existing.verification_status = 'Online Source'
             existing.source = org_data['source']
             existing.why_relevant = org_data['why_relevant']
+            existing.source_type = org_data.get('source_type', 'Other')
+            existing.source_name = org_data.get('source_name')
+            existing.source_url = org_data.get('source_url')
+            existing.source_reference = org_data.get('source_reference')
+            existing.review_status = org_data.get('review_status', 'Pending')
+            existing.listing_status = org_data.get('listing_status', 'Unknown')
+            existing.acceptance_status = org_data.get('acceptance_status', 'Unknown')
             print(f"  * Updated Organization: {org_data['name']}")
 
     # 3. Seed Sample Student Profile for quick demonstration
@@ -587,5 +720,4 @@ if __name__ == '__main__':
     from app import create_app
     app = create_app()
     with app.app_context():
-        db.create_all()
         seed_database(app)
