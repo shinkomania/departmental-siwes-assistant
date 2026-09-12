@@ -290,6 +290,49 @@ class RoleApprovalServiceTestCase(unittest.TestCase):
             ).count(),
             0,
         )
+    
+    def test_user_cannot_approve_own_role_application(self):
+        # Give the applicant global Platform Administrator authority so
+        # they would otherwise have permission to approve this request.
+        db.session.add(
+            UserRoleAssignment(
+                user_id=self.applicant.id,
+                role_id=self.platform_admin_role.id,
+                status="Approved",
+                approved_at=datetime.utcnow(),
+            )
+        )
+        db.session.commit()
+
+        application = self._application(
+            self.coordinator_role,
+            department_id=self.department.id,
+        )
+
+        with self.assertRaisesRegex(
+            RoleApprovalError,
+            "A user cannot approve their own role application.",
+        ):
+            approve_role_application(
+                application,
+                self.applicant,
+            )
+
+        # The privileged coordinator role must not have been granted.
+        coordinator_assignments = UserRoleAssignment.query.filter_by(
+            user_id=self.applicant.id,
+            role_id=self.coordinator_role.id,
+        ).count()
+
+        self.assertEqual(coordinator_assignments, 0)
+
+        # The application must remain untouched.
+        self.assertEqual(
+            application.status,
+            RoleApplication.STATUS_SUBMITTED,
+        )
+        self.assertIsNone(application.reviewed_by_user_id)
+        self.assertIsNone(application.decided_at)
 
     def test_institution_admin_can_approve_coordinator_in_own_institution(self):
         application = self._application(

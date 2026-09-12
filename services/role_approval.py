@@ -8,6 +8,7 @@ reviewer's explicit permission.
 Security rules:
 - Applications must exist and still be reviewable.
 - Applicant and reviewer accounts must be active.
+- A reviewer can never approve their own role application.
 - Only supported privileged institution roles can be approved here.
 - Platform Administrator and Student roles cannot be requested here.
 - Requested academic scope must be valid and internally consistent.
@@ -36,9 +37,14 @@ SUPPORTED_REQUEST_ROLE_SLUGS = {
 }
 
 REVIEW_PERMISSION_BY_ROLE = {
-    "primary_institution_administrator": "review_institution_admin_applications",
-    "institution_siwes_officer": "review_institution_siwes_officer_applications",
-    "departmental_siwes_coordinator": "review_coordinator_applications",
+    "primary_institution_administrator":
+        "review_institution_admin_applications",
+
+    "institution_siwes_officer":
+        "review_institution_siwes_officer_applications",
+
+    "departmental_siwes_coordinator":
+        "review_coordinator_applications",
 }
 
 
@@ -52,10 +58,31 @@ def _utcnow():
 
 def _require_active_user(user, label):
     if user is None or getattr(user, "id", None) is None:
-        raise RoleApprovalError(f"{label} user is required.")
+        raise RoleApprovalError(
+            f"{label} user is required."
+        )
 
-    if getattr(user, "account_status", None) != ACTIVE_ACCOUNT_STATUS:
-        raise RoleApprovalError(f"{label} user account is not active.")
+    if (
+        getattr(user, "account_status", None)
+        != ACTIVE_ACCOUNT_STATUS
+    ):
+        raise RoleApprovalError(
+            f"{label} user account is not active."
+        )
+
+
+def _require_different_reviewer(application, reviewer_user):
+    """
+    Prevent self-approval of privileged administrative access.
+
+    Even if a user currently holds another role with sufficient review
+    permission, they must not be allowed to approve their own pending
+    application.
+    """
+    if reviewer_user.id == application.user_id:
+        raise RoleApprovalError(
+            "A user cannot approve their own role application."
+        )
 
 
 def _validate_requested_scope(application):
@@ -71,13 +98,24 @@ def _validate_requested_scope(application):
         )
 
     institution = application.institution
-    if institution is None or not institution.is_active:
-        raise RoleApprovalError("Requested institution is invalid or inactive.")
+
+    if (
+        institution is None
+        or not institution.is_active
+    ):
+        raise RoleApprovalError(
+            "Requested institution is invalid or inactive."
+        )
 
     role = application.requested_role
 
-    if role is None or not role.is_active:
-        raise RoleApprovalError("Requested role does not exist or is inactive.")
+    if (
+        role is None
+        or not role.is_active
+    ):
+        raise RoleApprovalError(
+            "Requested role does not exist or is inactive."
+        )
 
     role_slug = role.slug
 
@@ -94,7 +132,10 @@ def _validate_requested_scope(application):
         "primary_institution_administrator",
         "institution_siwes_officer",
     }:
-        if department_id is not None or programme_id is not None:
+        if (
+            department_id is not None
+            or programme_id is not None
+        ):
             raise RoleApprovalError(
                 f"Role '{role_slug}' must be scoped to an institution only."
             )
@@ -103,10 +144,14 @@ def _validate_requested_scope(application):
 
     if department_id is None:
         raise RoleApprovalError(
-            "A Departmental SIWES Coordinator application must include a department."
+            "A Departmental SIWES Coordinator application "
+            "must include a department."
         )
 
-    department = db.session.get(Department, department_id)
+    department = db.session.get(
+        Department,
+        department_id,
+    )
 
     if (
         department is None
@@ -116,46 +161,75 @@ def _validate_requested_scope(application):
         or department.academic_unit.institution is None
         or not department.academic_unit.institution.is_active
     ):
-        raise RoleApprovalError("Requested department is invalid or inactive.")
+        raise RoleApprovalError(
+            "Requested department is invalid or inactive."
+        )
 
-    actual_institution_id = department.academic_unit.institution_id
+    actual_institution_id = (
+        department.academic_unit.institution_id
+    )
 
     if actual_institution_id != institution_id:
         raise RoleApprovalError(
-            "Requested department does not belong to the selected institution."
+            "Requested department does not belong "
+            "to the selected institution."
         )
 
     if programme_id is not None:
-        programme = db.session.get(Programme, programme_id)
+        programme = db.session.get(
+            Programme,
+            programme_id,
+        )
 
-        if programme is None or not programme.is_active:
-            raise RoleApprovalError("Requested programme is invalid or inactive.")
+        if (
+            programme is None
+            or not programme.is_active
+        ):
+            raise RoleApprovalError(
+                "Requested programme is invalid or inactive."
+            )
 
         if programme.department_id != department_id:
             raise RoleApprovalError(
-                "Requested programme does not belong to the selected department."
+                "Requested programme does not belong "
+                "to the selected department."
             )
 
-    return institution_id, department_id, programme_id
+    return (
+        institution_id,
+        department_id,
+        programme_id,
+    )
 
 
-def _require_reviewer_authorization(application, reviewer_user):
+def _require_reviewer_authorization(
+    application,
+    reviewer_user,
+):
     """
     Enforce explicit permission + institution scope for the requested role.
 
-    Platform administrators can satisfy this through a global approved assignment.
-    Institution administrators can satisfy coordinator review permission only
-    inside the institution to which their assignment is scoped.
+    Platform administrators can satisfy this through a global approved
+    assignment.
+
+    Institution administrators can satisfy coordinator review permission
+    only inside the institution to which their assignment is scoped.
     """
     role = application.requested_role
-    if role is None:
-        raise RoleApprovalError("Requested role does not exist.")
 
-    permission_slug = REVIEW_PERMISSION_BY_ROLE.get(role.slug)
+    if role is None:
+        raise RoleApprovalError(
+            "Requested role does not exist."
+        )
+
+    permission_slug = REVIEW_PERMISSION_BY_ROLE.get(
+        role.slug
+    )
 
     if permission_slug is None:
         raise RoleApprovalError(
-            f"Role '{role.slug}' has no administrative review workflow."
+            f"Role '{role.slug}' has no administrative "
+            "review workflow."
         )
 
     allowed = user_has_permission(
@@ -166,7 +240,8 @@ def _require_reviewer_authorization(application, reviewer_user):
 
     if not allowed:
         raise RoleApprovalError(
-            "Reviewer is not authorized to approve this application."
+            "Reviewer is not authorized to approve "
+            "this application."
         )
 
 
@@ -179,8 +254,8 @@ def _find_existing_assignment(
     """
     Find an equivalent currently-approved assignment.
 
-    Exact scope matching is intentional. A broader or narrower assignment is
-    not silently treated as the same authorization grant.
+    Exact scope matching is intentional. A broader or narrower assignment
+    is not silently treated as the same authorization grant.
     """
     return UserRoleAssignment.query.filter_by(
         user_id=application.user_id,
@@ -200,17 +275,24 @@ def approve_role_application(
     expires_at=None,
 ):
     """
-    Approve an administrative role application and create its scoped assignment.
+    Approve an administrative role application and create its
+    scoped assignment.
 
     Returns:
         UserRoleAssignment
 
     Raises:
-        RoleApprovalError on invalid state, user, role, scope, reviewer authority,
-        or duplicate grant.
+        RoleApprovalError on invalid application state, inactive user,
+        self-approval, unsupported role, invalid scope, missing reviewer
+        authority, or duplicate authorization grant.
     """
-    if application is None or getattr(application, "id", None) is None:
-        raise RoleApprovalError("Role application is required.")
+    if (
+        application is None
+        or getattr(application, "id", None) is None
+    ):
+        raise RoleApprovalError(
+            "Role application is required."
+        )
 
     if application.status not in {
         RoleApplication.STATUS_SUBMITTED,
@@ -219,18 +301,44 @@ def approve_role_application(
         RoleApplication.STATUS_MORE_INFO_REQUIRED,
     }:
         raise RoleApprovalError(
-            f"Application cannot be approved from status '{application.status}'."
+            f"Application cannot be approved "
+            f"from status '{application.status}'."
         )
 
-    applicant = db.session.get(User, application.user_id)
-    _require_active_user(applicant, "Applicant")
-    _require_active_user(reviewer_user, "Reviewer")
+    applicant = db.session.get(
+        User,
+        application.user_id,
+    )
 
-    institution_id, department_id, programme_id = _validate_requested_scope(
+    _require_active_user(
+        applicant,
+        "Applicant",
+    )
+
+    _require_active_user(
+        reviewer_user,
+        "Reviewer",
+    )
+
+    # Security boundary:
+    # no user may approve their own privileged role request.
+    _require_different_reviewer(
+        application,
+        reviewer_user,
+    )
+
+    (
+        institution_id,
+        department_id,
+        programme_id,
+    ) = _validate_requested_scope(
         application
     )
 
-    _require_reviewer_authorization(application, reviewer_user)
+    _require_reviewer_authorization(
+        application,
+        reviewer_user,
+    )
 
     existing = _find_existing_assignment(
         application,
@@ -241,7 +349,8 @@ def approve_role_application(
 
     if existing is not None:
         raise RoleApprovalError(
-            "This user already has an approved assignment for the same role and scope."
+            "This user already has an approved assignment "
+            "for the same role and scope."
         )
 
     now = _utcnow()
@@ -259,15 +368,25 @@ def approve_role_application(
         expires_at=expires_at,
     )
 
-    application.status = RoleApplication.STATUS_APPROVED
-    application.reviewed_by_user_id = reviewer_user.id
-    application.reviewer_notes = reviewer_notes
+    application.status = (
+        RoleApplication.STATUS_APPROVED
+    )
+
+    application.reviewed_by_user_id = (
+        reviewer_user.id
+    )
+
+    application.reviewer_notes = (
+        reviewer_notes
+    )
+
     application.decided_at = now
 
     db.session.add(assignment)
 
     try:
         db.session.commit()
+
     except Exception:
         db.session.rollback()
         raise
