@@ -109,10 +109,6 @@ def create_app(config_name=None):
             db.create_all()
             seed_database(app)
 
-    # Auto-create tables on startup in development mode
-    with app.app_context():
-        db.create_all()
-
     return app
 
 

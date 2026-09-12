@@ -24,3 +24,7 @@ Thumbs.db
 # IDE configuration
 .vscode/
 .idea/
+
+migrations_old_backup/
+
+migrations_old_backup/
