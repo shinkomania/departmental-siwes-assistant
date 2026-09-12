@@ -1,22 +1,19 @@
 """
 Administrative Role Approval Service
 ------------------------------------
-Safely converts an approved administrative role application into a scoped
-UserRoleAssignment.
+Safely converts an administrative role application into a scoped
+UserRoleAssignment after validating both the requested scope and the
+reviewer's explicit permission.
 
 Security rules:
 - Applications must exist and still be reviewable.
 - Applicant and reviewer accounts must be active.
-- Only supported privileged roles can be approved through this workflow.
+- Only supported privileged institution roles can be approved here.
 - Platform Administrator and Student roles cannot be requested here.
 - Requested academic scope must be valid and internally consistent.
-- Duplicate active assignments are not created.
+- Reviewer authority is enforced through explicit permission + scope.
+- Duplicate approved assignments are not created.
 - Approval and assignment creation happen in one database transaction.
-
-Important:
-This service validates the requested scope and materializes the assignment.
-Route-level authorization for who is allowed to review each application will
-be connected separately through the authorization service.
 """
 
 from datetime import datetime
@@ -26,6 +23,7 @@ from models.user import User
 from models.access import UserRoleAssignment
 from models.academic import Department, Programme
 from models.role_application import RoleApplication
+from services.authorization import user_has_permission
 
 
 ACTIVE_ACCOUNT_STATUS = "Active"
@@ -35,6 +33,12 @@ SUPPORTED_REQUEST_ROLE_SLUGS = {
     "primary_institution_administrator",
     "institution_siwes_officer",
     "departmental_siwes_coordinator",
+}
+
+REVIEW_PERMISSION_BY_ROLE = {
+    "primary_institution_administrator": "review_institution_admin_applications",
+    "institution_siwes_officer": "review_institution_siwes_officer_applications",
+    "departmental_siwes_coordinator": "review_coordinator_applications",
 }
 
 
@@ -62,7 +66,13 @@ def _validate_requested_scope(application):
         (institution_id, department_id, programme_id)
     """
     if application.institution_id is None:
-        raise RoleApprovalError("An institution is required for this role application.")
+        raise RoleApprovalError(
+            "An institution is required for this role application."
+        )
+
+    institution = application.institution
+    if institution is None or not institution.is_active:
+        raise RoleApprovalError("Requested institution is invalid or inactive.")
 
     role = application.requested_role
 
@@ -91,7 +101,6 @@ def _validate_requested_scope(application):
 
         return institution_id, None, None
 
-    # Departmental coordinator must have a department.
     if department_id is None:
         raise RoleApprovalError(
             "A Departmental SIWES Coordinator application must include a department."
@@ -130,6 +139,37 @@ def _validate_requested_scope(application):
     return institution_id, department_id, programme_id
 
 
+def _require_reviewer_authorization(application, reviewer_user):
+    """
+    Enforce explicit permission + institution scope for the requested role.
+
+    Platform administrators can satisfy this through a global approved assignment.
+    Institution administrators can satisfy coordinator review permission only
+    inside the institution to which their assignment is scoped.
+    """
+    role = application.requested_role
+    if role is None:
+        raise RoleApprovalError("Requested role does not exist.")
+
+    permission_slug = REVIEW_PERMISSION_BY_ROLE.get(role.slug)
+
+    if permission_slug is None:
+        raise RoleApprovalError(
+            f"Role '{role.slug}' has no administrative review workflow."
+        )
+
+    allowed = user_has_permission(
+        reviewer_user,
+        permission_slug,
+        institution_id=application.institution_id,
+    )
+
+    if not allowed:
+        raise RoleApprovalError(
+            "Reviewer is not authorized to approve this application."
+        )
+
+
 def _find_existing_assignment(
     application,
     institution_id,
@@ -166,13 +206,8 @@ def approve_role_application(
         UserRoleAssignment
 
     Raises:
-        RoleApprovalError on invalid state, user, role, scope, or duplicate grant.
-
-    Notes:
-    - This function does not decide whether the reviewer is authorized to review
-      this application. Route/service authorization must check that before calling
-      this function.
-    - No commit is performed until all validation succeeds.
+        RoleApprovalError on invalid state, user, role, scope, reviewer authority,
+        or duplicate grant.
     """
     if application is None or getattr(application, "id", None) is None:
         raise RoleApprovalError("Role application is required.")
@@ -194,6 +229,8 @@ def approve_role_application(
     institution_id, department_id, programme_id = _validate_requested_scope(
         application
     )
+
+    _require_reviewer_authorization(application, reviewer_user)
 
     existing = _find_existing_assignment(
         application,
