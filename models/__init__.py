@@ -8,12 +8,20 @@ from .student import StudentProfile
 from .organization import Organization
 from .application import SavedOrganization, PlacementApplication
 from .guide import GuideTopic
+from .academic import Institution, AcademicUnit, Department, Programme, SIWESConfiguration
+from .user import User
 
 __all__ = [
+    'User',
     'db',
     'StudentProfile',
     'Organization',
     'SavedOrganization',
     'PlacementApplication',
-    'GuideTopic'
+    'GuideTopic',
+    'Institution',
+    'AcademicUnit',
+    'Department',
+    'Programme',
+    'SIWESConfiguration'
 ]

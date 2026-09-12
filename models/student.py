@@ -10,6 +10,20 @@ class StudentProfile(db.Model):
     __tablename__ = 'student_profiles'
 
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+    db.Integer,
+    db.ForeignKey('users.id'),
+    nullable=True,
+    unique=True
+)
+    programme_id = db.Column(
+    db.Integer,
+    db.ForeignKey('programmes.id'),
+    nullable=True
+)
+    level = db.Column(db.String(50), nullable=True)
+
+    siwes_session = db.Column(db.String(100), nullable=True)
     full_name = db.Column(db.String(120), nullable=False)
     matric_no = db.Column(db.String(50), unique=True, nullable=False, index=True)
     department = db.Column(db.String(120), nullable=False, default='Computer Engineering')
@@ -35,7 +49,14 @@ class StudentProfile(db.Model):
     # Relationships
     saved_organizations = db.relationship('SavedOrganization', backref='student', lazy='dynamic', cascade='all, delete-orphan')
     applications = db.relationship('PlacementApplication', backref='student', lazy='dynamic', cascade='all, delete-orphan')
-
+    user = db.relationship(
+    'User',
+    backref=db.backref('student_profile', uselist=False)
+)
+    programme = db.relationship(
+    'Programme',
+    backref=db.backref('student_profiles', lazy=True)
+)
     def __repr__(self):
         return f"<StudentProfile {self.matric_no} - {self.full_name}>"
 

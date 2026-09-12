@@ -10,10 +10,20 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 from flask import Flask, session
+from flask_migrate import Migrate
 from config import config_by_name
 from models.db import db
-from models.student import StudentProfile
+from models import (
+    User,
+    StudentProfile,
+    Institution,
+    AcademicUnit,
+    Department,
+    Programme,
+    SIWESConfiguration
+)
 from routes import main_bp, student_bp, placement_bp, admin_bp
+migrate = Migrate()
 
 # Load environment variables from .env file
 load_dotenv()
@@ -34,6 +44,7 @@ def create_app(config_name=None):
 
     # Initialize SQLAlchemy database extension
     db.init_app(app)
+    migrate.init_app(app, db)
 
     # Register Blueprints for modular routes
     app.register_blueprint(main_bp)
