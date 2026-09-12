@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account | Departmental SIWES Assistant{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+
+                    <div class="text-center mb-4">
+                        <h2 class="fw-bold mb-2">Create Your DSA Account</h2>
+                        <p class="text-muted mb-0">
+                            Register to access personalized SIWES support.
+                        </p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('auth.register') }}">
+
+                        <div class="mb-3">
+                            <label for="full_name" class="form-label">
+                                Full Name
+                            </label>
+                            <input type="text" class="form-control" id="full_name" name="full_name"
+                                value="{{ request.form.get('full_name', '') }}" autocomplete="name" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">
+                                Email Address
+                            </label>
+                            <input type="email" class="form-control" id="email" name="email"
+                                value="{{ request.form.get('email', '') }}" autocomplete="email" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">
+                                Phone Number
+                            </label>
+                            <input type="tel" class="form-control" id="phone" name="phone"
+                                value="{{ request.form.get('phone', '') }}" autocomplete="tel">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">
+                                Password
+                            </label>
+                            <input type="password" class="form-control" id="password" name="password"
+                                autocomplete="new-password" minlength="8" required>
+                            <div class="form-text">
+                                Use at least 8 characters.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">
+                                Confirm Password
+                            </label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password"
+                                autocomplete="new-password" minlength="8" required>
+                        </div>
+
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="show_passwords">
+                            <label class="form-check-label" for="show_passwords">
+                                Show passwords
+                            </label>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                Create Account
+                            </button>
+                        </div>
+
+                    </form>
+
+                    <hr class="my-4">
+
+                    <p class="text-center text-muted mb-0">
+                        Already have a DSA account?
+                        <a href="{{ url_for('auth.login') }}">
+                            Sign in
+                        </a>
+                    </p>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const showPasswords = document.getElementById("show_passwords");
+        const password = document.getElementById("password");
+        const confirmPassword = document.getElementById("confirm_password");
+
+        showPasswords.addEventListener("change", function () {
+            const inputType = this.checked ? "text" : "password";
+
+            password.type = inputType;
+            confirmPassword.type = inputType;
+        });
+    });
+</script>
+{% endblock %}

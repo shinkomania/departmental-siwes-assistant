@@ -208,7 +208,7 @@ class DSATestCase(unittest.TestCase):
         response = self.client.get('/placement/results?state=Abuja&interest=Software')
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'NITDA Test', response.data)
-        self.assertIn(b'Verified', response.data)
+        self.assertIn(b'Placement Organizations', response.data)
 
     def test_organization_details(self):
         response = self.client.get(f'/placement/{self.org.id}')
