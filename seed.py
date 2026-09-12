@@ -198,45 +198,76 @@ PERMISSIONS = [
     ('Review Placement Evidence', 'review_placement_evidence'),
     ('Publish Department Notice', 'publish_department_notice'),
     ('Publish Institution Notice', 'publish_institution_notice'),
+
+    # Administrative role-application review permissions
+    ('Review Institution Administrator Applications',
+     'review_institution_admin_applications'),
+    ('Review Institution SIWES Officer Applications',
+     'review_institution_siwes_officer_applications'),
+    ('Review Coordinator Applications',
+     'review_coordinator_applications'),
+    ('Manage Platform Verification Queue',
+     'manage_platform_verification_queue'),
 ]
 
 ROLE_DEFINITIONS = {
     'platform_administrator': {
         'name': 'Platform Administrator',
         'description': 'Global DSA platform administration role.',
-        # Platform-wide authorization rules will be enforced by the access
-        # service; do not infer routine academic-verification authority here.
-        'permissions': [],
+        'permissions': [
+            'review_institution_admin_applications',
+            'review_institution_siwes_officer_applications',
+            'review_coordinator_applications',
+            'manage_platform_verification_queue',
+        ],
     },
+
     'primary_institution_administrator': {
         'name': 'Primary Institution Administrator',
         'description': 'Manages an approved institution within assigned scope.',
         'permissions': [
-            'view_institution_dashboard', 'manage_coordinators',
-            'manage_institution_settings', 'view_verification_statistics',
+            'view_institution_dashboard',
+            'manage_coordinators',
+            'manage_institution_settings',
+            'view_verification_statistics',
             'publish_institution_notice',
+            'review_coordinator_applications',
         ],
     },
+
     'institution_siwes_officer': {
         'name': 'Institution SIWES Officer',
         'description': 'Handles authorized institution-level SIWES operations.',
         'permissions': [
-            'view_institution_dashboard', 'view_verification_statistics',
-            'review_escalated_cases', 'verify_student_placement',
-            'review_placement_evidence', 'publish_institution_notice',
+            'view_institution_dashboard',
+            'view_verification_statistics',
+            'review_escalated_cases',
+            'verify_student_placement',
+            'review_placement_evidence',
+            'publish_institution_notice',
         ],
     },
+
     'departmental_siwes_coordinator': {
         'name': 'Departmental SIWES Coordinator',
-        'description': 'Coordinates SIWES only within assigned department/programme scope.',
+        'description': (
+            'Coordinates SIWES only within assigned '
+            'department/programme scope.'
+        ),
         'permissions': [
-            'verify_student_placement', 'view_department_students',
-            'review_placement_evidence', 'publish_department_notice',
+            'verify_student_placement',
+            'view_department_students',
+            'review_placement_evidence',
+            'publish_department_notice',
         ],
     },
+
     'student': {
         'name': 'Student',
-        'description': 'Compatibility role for student-facing access; StudentProfile remains separate.',
+        'description': (
+            'Compatibility role for student-facing access; '
+            'StudentProfile remains separate.'
+        ),
         'permissions': [],
     },
 }
