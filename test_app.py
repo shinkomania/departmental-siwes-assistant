@@ -217,74 +217,348 @@ class DSATestCase(unittest.TestCase):
         self.assertIn(b'Application Tracker', response.data)
 
     def test_student_profile_create_and_dashboard(self):
+        user = User(
+            full_name="Musa Danladi",
+            email="musa.student@example.com",
+            phone="08000000001",
+            account_status="Active",
+        )
+        user.set_password("student-password-123")
+
+        db.session.add(user)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = user.id
+
         post_data = {
-            'full_name': 'Musa Danladi',
-            'matric_no': 'ENG/2022/9999',
-            'department': 'Computer Engineering',
-            'faculty': 'Faculty of Engineering',
-            'university': 'Ahmadu Bello University',
-            'preferred_state': 'Kaduna',
-            'preferred_city': 'Zaria',
-            'area_of_interest': 'Software Development',
-            'preferred_org_type': 'Technology company',
-            'skills': 'Python, SQL',
-            'bio': 'Test bio'
+            "full_name": "Musa Danladi",
+            "matric_no": "ENG/2022/9999",
+            "department": "Computer Engineering",
+            "faculty": "Faculty of Engineering",
+            "university": "Ahmadu Bello University",
+            "preferred_state": "Kaduna",
+            "preferred_city": "Zaria",
+            "area_of_interest": "Software Development",
+            "preferred_org_type": "Technology company",
+            "skills": "Python, SQL",
+            "bio": "Test bio",
         }
-        response = self.client.post('/profile', data=post_data, follow_redirects=True)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Musa Danladi', response.data)
-        self.assertIn(b'ENG/2022/9999', response.data)
-        self.assertIsNotNone(
-            StudentProfile.query.filter_by(matric_no='ENG/2022/9999').first()
+
+        response = self.client.post(
+            "/profile",
+            data=post_data,
+            follow_redirects=True,
         )
 
-    def test_bookmark_and_track_application(self):
-        student = StudentProfile(
-            full_name='Test Student',
-            matric_no='ENG/TEST/1',
-            department='Computer Engineering',
-            faculty='Engineering',
-            university='University of Lagos',
-            preferred_state='Lagos',
-            preferred_city='Yaba',
-            area_of_interest='Software Development',
-            preferred_org_type='Technology company'
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Musa Danladi", response.data)
+        self.assertIn(b"ENG/2022/9999", response.data)
+
+        student = StudentProfile.query.filter_by(
+            matric_no="ENG/2022/9999"
+        ).first()
+
+        self.assertIsNotNone(student)
+        self.assertEqual(student.user_id, user.id)
+
+        dashboard_response = self.client.get(
+            "/dashboard",
+            follow_redirects=True,
         )
+
+        self.assertEqual(dashboard_response.status_code, 200)
+        self.assertIn(b"Musa Danladi", dashboard_response.data)
+        self.assertIn(b"ENG/2022/9999", dashboard_response.data)
+
+
+    def test_bookmark_and_track_application(self):
+        user = User(
+            full_name="Test Student",
+            email="placement.student@example.com",
+            phone="08000000002",
+            account_status="Active",
+        )
+        user.set_password("student-password-123")
+
+        db.session.add(user)
+        db.session.flush()
+
+        student = StudentProfile(
+            user_id=user.id,
+            full_name="Test Student",
+            matric_no="ENG/TEST/1",
+            department="Computer Engineering",
+            faculty="Engineering",
+            university="University of Lagos",
+            preferred_state="Lagos",
+            preferred_city="Yaba",
+            area_of_interest="Software Development",
+            preferred_org_type="Technology company",
+            skills="Python",
+        )
+
         db.session.add(student)
         db.session.commit()
 
         with self.client.session_transaction() as sess:
-            sess['student_id'] = student.id
+            sess["user_id"] = user.id
 
         save_resp = self.client.post(
-            f'/placement/save/{self.org.id}',
-            follow_redirects=True
-        )
-        self.assertEqual(save_resp.status_code, 200)
-        self.assertIsNotNone(
-            SavedOrganization.query.filter_by(
-                student_id=student.id,
-                organization_id=self.org.id
-            ).first()
+            f"/placement/save/{self.org.id}",
+            follow_redirects=True,
         )
 
+        self.assertEqual(save_resp.status_code, 200)
+
+        saved = SavedOrganization.query.filter_by(
+            student_id=student.id,
+            organization_id=self.org.id,
+        ).first()
+
+        self.assertIsNotNone(saved)
+
         track_resp = self.client.post(
-            f'/placement/track/{self.org.id}',
+            f"/placement/track/{self.org.id}",
             data={
-                'status': 'Application Submitted',
-                'notes': 'Sent formal request letter to IT desk',
-                'applied_date': '2026-08-31'
+                "status": "Application Submitted",
+                "notes": "Submitted SIWES application.",
             },
-            follow_redirects=True
+            follow_redirects=True,
         )
+
         self.assertEqual(track_resp.status_code, 200)
 
         app = PlacementApplication.query.filter_by(
             student_id=student.id,
-            organization_id=self.org.id
+            organization_id=self.org.id,
         ).first()
+
         self.assertIsNotNone(app)
-        self.assertEqual(app.status, 'Application Submitted')
+        self.assertEqual(
+            app.status,
+            "Application Submitted",
+        )
+
+    def test_legacy_student_id_cannot_switch_authenticated_profile(self):
+        owner = User(
+            full_name="Profile Owner",
+            email="owner@example.com",
+            account_status="Active",
+        )
+        owner.set_password("owner-password-123")
+
+        attacker = User(
+            full_name="Other Student",
+            email="other@example.com",
+            account_status="Active",
+        )
+        attacker.set_password("other-password-123")
+
+        db.session.add_all([owner, attacker])
+        db.session.flush()
+
+        owner_profile = StudentProfile(
+            user_id=owner.id,
+            full_name="Profile Owner",
+            matric_no="SEC/OWNER/001",
+            department="Computer Engineering",
+            faculty="Engineering",
+            university="Ahmadu Bello University",
+            preferred_state="Kaduna",
+            preferred_city="Zaria",
+            area_of_interest="Software Development",
+            preferred_org_type="Technology company",
+        )
+
+        attacker_profile = StudentProfile(
+            user_id=attacker.id,
+            full_name="Other Student",
+            matric_no="SEC/OTHER/002",
+            department="Computer Engineering",
+            faculty="Engineering",
+            university="Ahmadu Bello University",
+            preferred_state="Kaduna",
+            preferred_city="Zaria",
+            area_of_interest="Software Development",
+            preferred_org_type="Technology company",
+        )
+
+        db.session.add_all([owner_profile, attacker_profile])
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = attacker.id
+
+            # Simulate the old insecure technique:
+            # manually place somebody else's profile ID in the session.
+            sess["student_id"] = owner_profile.id
+
+        response = self.client.post(
+            f"/placement/save/{self.org.id}",
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        owner_saved = SavedOrganization.query.filter_by(
+            student_id=owner_profile.id,
+            organization_id=self.org.id,
+        ).first()
+
+        attacker_saved = SavedOrganization.query.filter_by(
+            student_id=attacker_profile.id,
+            organization_id=self.org.id,
+        ).first()
+
+        self.assertIsNone(owner_saved)
+        self.assertIsNotNone(attacker_saved)
+
+
+    def test_dashboard_does_not_fallback_to_another_students_profile(self):
+        profile_owner = User(
+            full_name="Existing Student",
+            email="existing.student@example.com",
+            account_status="Active",
+        )
+        profile_owner.set_password("existing-password-123")
+
+        account_without_profile = User(
+            full_name="New Account",
+            email="new.account@example.com",
+            account_status="Active",
+        )
+        account_without_profile.set_password("new-password-123")
+
+        db.session.add_all(
+            [
+                profile_owner,
+                account_without_profile,
+            ]
+        )
+        db.session.flush()
+
+        existing_profile = StudentProfile(
+            user_id=profile_owner.id,
+            full_name="Existing Student",
+            matric_no="SEC/EXISTING/001",
+            department="Computer Engineering",
+            faculty="Engineering",
+            university="Ahmadu Bello University",
+            preferred_state="Kaduna",
+            preferred_city="Zaria",
+            area_of_interest="Software Development",
+            preferred_org_type="Technology company",
+        )
+
+        db.session.add(existing_profile)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = account_without_profile.id
+
+        response = self.client.get(
+            "/dashboard",
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        # User without a profile must be sent to profile creation,
+        # not shown another student's dashboard.
+        self.assertNotIn(
+            b"SEC/EXISTING/001",
+            response.data,
+        )
+
+        self.assertIn(
+            b"Please complete your student profile",
+            response.data,
+        )
+
+
+    def test_user_cannot_claim_another_profiles_matric_number(self):
+        original_user = User(
+            full_name="Original Student",
+            email="original.student@example.com",
+            account_status="Active",
+        )
+        original_user.set_password("original-password-123")
+
+        second_user = User(
+            full_name="Second Student",
+            email="second.student@example.com",
+            account_status="Active",
+        )
+        second_user.set_password("second-password-123")
+
+        db.session.add_all(
+            [
+                original_user,
+                second_user,
+            ]
+        )
+        db.session.flush()
+
+        original_profile = StudentProfile(
+            user_id=original_user.id,
+            full_name="Original Student",
+            matric_no="SEC/CLAIM/001",
+            department="Computer Engineering",
+            faculty="Engineering",
+            university="Ahmadu Bello University",
+            preferred_state="Kaduna",
+            preferred_city="Zaria",
+            area_of_interest="Software Development",
+            preferred_org_type="Technology company",
+        )
+
+        db.session.add(original_profile)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = second_user.id
+
+        response = self.client.post(
+            "/profile",
+            data={
+                "full_name": "Second Student",
+                "matric_no": "SEC/CLAIM/001",
+                "department": "Computer Engineering",
+                "faculty": "Engineering",
+                "university": "Ahmadu Bello University",
+                "preferred_state": "Kaduna",
+                "preferred_city": "Zaria",
+                "area_of_interest": "Software Development",
+                "preferred_org_type": "Technology company",
+                "skills": "",
+                "bio": "",
+            },
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        second_profile = StudentProfile.query.filter_by(
+            user_id=second_user.id
+        ).first()
+
+        self.assertIsNone(second_profile)
+
+        self.assertIn(
+            b"already registered to another student profile",
+            response.data,
+        )
+
+        original_profile = db.session.get(
+            StudentProfile,
+            original_profile.id,
+        )
+
+        self.assertEqual(
+            original_profile.user_id,
+            original_user.id,
+        )
 
     def test_admin_authentication_and_dashboard(self):
         resp_unauth = self.client.get('/admin/', follow_redirects=True)
