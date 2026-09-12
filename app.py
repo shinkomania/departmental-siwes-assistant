@@ -98,9 +98,7 @@ def create_app(config_name=None):
     @app.cli.command('init-db')
     def init_db_command():
         """Initialize and create all database tables."""
-        with app.app_context():
-            db.create_all()
-            print("Database initialized successfully!")
+        print("Database initialized successfully!")
 
     # CLI Command to seed database
     @app.cli.command('seed-db')

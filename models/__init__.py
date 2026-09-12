@@ -10,6 +10,7 @@ from .application import SavedOrganization, PlacementApplication
 from .guide import GuideTopic
 from .academic import Institution, AcademicUnit, Department, Programme, SIWESConfiguration
 from .user import User
+from .access import Role, Permission, UserRoleAssignment, role_permissions
 
 __all__ = [
     'User',
@@ -24,4 +25,8 @@ __all__ = [
     'Department',
     'Programme',
     'SIWESConfiguration'
+    'Role',
+    'Permission',
+    'UserRoleAssignment',
+    'role_permissions'
 ]
