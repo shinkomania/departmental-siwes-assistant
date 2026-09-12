@@ -8,13 +8,21 @@ from .student import StudentProfile
 from .organization import Organization
 from .application import SavedOrganization, PlacementApplication
 from .guide import GuideTopic
-from .academic import Institution, AcademicUnit, Department, Programme, SIWESConfiguration
+from .academic import (
+    Institution,
+    AcademicUnit,
+    Department,
+    Programme,
+    SIWESConfiguration,
+)
 from .user import User
 from .access import Role, Permission, UserRoleAssignment, role_permissions
+from .role_application import RoleApplication
+
 
 __all__ = [
-    'User',
     'db',
+    'User',
     'StudentProfile',
     'Organization',
     'SavedOrganization',
@@ -24,9 +32,10 @@ __all__ = [
     'AcademicUnit',
     'Department',
     'Programme',
-    'SIWESConfiguration'
+    'SIWESConfiguration',
     'Role',
     'Permission',
     'UserRoleAssignment',
-    'role_permissions'
+    'role_permissions',
+    'RoleApplication',
 ]
