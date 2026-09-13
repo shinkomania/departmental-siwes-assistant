@@ -20,7 +20,11 @@ from models.guide import GuideTopic
 from models.organization import Organization
 from models.student import StudentProfile
 from models.application import SavedOrganization, PlacementApplication
-from models.access import Role, Permission
+import os
+from datetime import datetime
+
+from models.access import Role, Permission, UserRoleAssignment
+from models.user import User
 
 GUIDE_TOPICS = [
     {
@@ -305,6 +309,140 @@ def seed_access_control():
             permission_by_slug[p]
             for p in definition['permissions']
         ]
+
+def bootstrap_platform_administrator():
+    """
+    Optionally provision the first Platform Administrator.
+
+    This bootstrap runs only when BOTH environment variables are present:
+
+        PLATFORM_ADMIN_EMAIL
+        PLATFORM_ADMIN_PASSWORD
+
+    No administrator password is stored in source control.
+
+    Existing suspended/revoked accounts or assignments are NOT silently
+    reactivated by the seed process.
+    """
+    admin_email = os.getenv(
+        "PLATFORM_ADMIN_EMAIL",
+        "",
+    ).strip().lower()
+
+    admin_password = os.getenv(
+        "PLATFORM_ADMIN_PASSWORD",
+        "",
+    )
+
+    admin_name = os.getenv(
+        "PLATFORM_ADMIN_NAME",
+        "DSA Platform Administrator",
+    ).strip()
+
+    # Bootstrap is intentionally optional.
+    if not admin_email and not admin_password:
+        print(
+            "  - Platform Administrator bootstrap skipped "
+            "(credentials not configured)."
+        )
+        return
+
+    if not admin_email or not admin_password:
+        raise RuntimeError(
+            "Both PLATFORM_ADMIN_EMAIL and "
+            "PLATFORM_ADMIN_PASSWORD must be configured together."
+        )
+
+    if len(admin_password) < 12:
+        raise RuntimeError(
+            "PLATFORM_ADMIN_PASSWORD must contain at least 12 characters."
+        )
+
+    role = Role.query.filter_by(
+        slug="platform_administrator"
+    ).first()
+
+    if not role:
+        raise RuntimeError(
+            "Platform Administrator role does not exist. "
+            "Run seed_access_control() before bootstrapping the administrator."
+        )
+
+    if not role.is_active:
+        raise RuntimeError(
+            "Platform Administrator role is inactive."
+        )
+
+    user = User.query.filter_by(
+        email=admin_email
+    ).first()
+
+    if not user:
+        user = User(
+            full_name=admin_name,
+            email=admin_email,
+            account_status="Active",
+            email_verified=True,
+        )
+        user.set_password(admin_password)
+
+        db.session.add(user)
+        db.session.flush()
+
+        print(
+            f"  + Created Platform Administrator account: {admin_email}"
+        )
+
+    else:
+        if user.account_status != "Active":
+            raise RuntimeError(
+                "The configured Platform Administrator account exists "
+                "but is not Active. The seed process will not reactivate it."
+            )
+
+        print(
+            f"  * Platform Administrator account already exists: "
+            f"{admin_email}"
+        )
+
+    assignment = UserRoleAssignment.query.filter_by(
+        user_id=user.id,
+        role_id=role.id,
+        institution_id=None,
+        department_id=None,
+        programme_id=None,
+    ).first()
+
+    if assignment:
+        if assignment.status != "Approved":
+            raise RuntimeError(
+                "A global Platform Administrator assignment already exists "
+                f"for {admin_email}, but its status is "
+                f"'{assignment.status}'. The seed process will not "
+                "silently reactivate or approve it."
+            )
+
+        print(
+            "  * Global Platform Administrator role assignment "
+            "already exists."
+        )
+        return
+
+    assignment = UserRoleAssignment(
+        user_id=user.id,
+        role_id=role.id,
+        institution_id=None,
+        department_id=None,
+        programme_id=None,
+        status="Approved",
+        approved_at=datetime.utcnow(),
+    )
+
+    db.session.add(assignment)
+
+    print(
+        "  + Granted global Platform Administrator role."
+    )
 
 STARTER_ORGANIZATIONS = [
     {
@@ -619,7 +757,11 @@ def seed_database(app=None):
 
     # 0. Seed access-control catalogue
     seed_access_control()
-    
+
+    # 0b. Optionally bootstrap the first Platform Administrator
+    bootstrap_platform_administrator()
+
+
     # 1. Seed Guide Topics
     for g_data in GUIDE_TOPICS:
         existing = GuideTopic.query.filter_by(slug=g_data['slug']).first()
