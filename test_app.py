@@ -411,6 +411,56 @@ class DSATestCase(unittest.TestCase):
         self.assertIsNone(owner_saved)
         self.assertIsNotNone(attacker_saved)
 
+    def test_inactive_user_stale_session_cannot_save_placement(self):
+        """
+        A stale authenticated session must not give an inactive user
+        access to StudentProfile-based placement actions.
+        """
+        suspended_user = User(
+            full_name="Suspended Student",
+            email="suspended.student@example.com",
+            account_status="Suspended",
+        )
+        suspended_user.set_password("suspended-password-123")
+
+        db.session.add(suspended_user)
+        db.session.flush()
+
+        suspended_profile = StudentProfile(
+            user_id=suspended_user.id,
+            full_name="Suspended Student",
+            matric_no="SEC/SUSPENDED/001",
+            department="Computer Engineering",
+            faculty="Engineering",
+            university="Ahmadu Bello University",
+            preferred_state="Kaduna",
+            preferred_city="Zaria",
+            area_of_interest="Software Development",
+            preferred_org_type="Technology company",
+        )
+
+        db.session.add(suspended_profile)
+        db.session.commit()
+
+        # Simulate stale session data that remained after the account
+        # was suspended.
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = suspended_user.id
+            sess["student_id"] = suspended_profile.id
+
+        response = self.client.post(
+            f"/placement/save/{self.org.id}",
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        saved = SavedOrganization.query.filter_by(
+            student_id=suspended_profile.id,
+            organization_id=self.org.id,
+        ).first()
+
+        self.assertIsNone(saved)
 
     def test_dashboard_does_not_fallback_to_another_students_profile(self):
         profile_owner = User(

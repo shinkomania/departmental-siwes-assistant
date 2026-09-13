@@ -21,6 +21,7 @@ from flask import (
 )
 
 from models.db import db
+from models.user import User
 from models.organization import Organization
 from models.student import StudentProfile
 from models.application import SavedOrganization, PlacementApplication
@@ -39,25 +40,38 @@ search_service = PlacementSearchService()
 
 def _current_student():
     """
-    Return the StudentProfile owned by the authenticated User.
+    Return the StudentProfile owned by the authenticated active User.
 
+    Authentication authority is session['user_id'] only.
     session['student_id'] is intentionally ignored.
+
+    If the User no longer exists or their account is not Active,
+    no StudentProfile is returned.
     """
     user_id = session.get("user_id")
 
     if not user_id:
         return None
 
+    user = db.session.get(User, user_id)
+
+    if user is None:
+        return None
+
+    if user.account_status != "Active":
+        return None
+
     return StudentProfile.query.filter_by(
-        user_id=user_id
+        user_id=user.id
     ).first()
 
 
 def _require_student_profile():
     """
-    Resolve the authenticated user's StudentProfile.
+    Resolve the authenticated active user's StudentProfile.
 
-    Returns None when the user is logged out or has not created a profile.
+    Returns None when the user is logged out, inactive,
+    missing, or has not created a profile.
     """
     return _current_student()
 
