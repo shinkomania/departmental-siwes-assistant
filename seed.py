@@ -203,22 +203,38 @@ PERMISSIONS = [
     ('Publish Department Notice', 'publish_department_notice'),
     ('Publish Institution Notice', 'publish_institution_notice'),
 
+    # Platform administration
+    (
+        'Access Platform Administration Panel',
+        'access_platform_admin_panel',
+    ),
+
     # Administrative role-application review permissions
-    ('Review Institution Administrator Applications',
-     'review_institution_admin_applications'),
-    ('Review Institution SIWES Officer Applications',
-     'review_institution_siwes_officer_applications'),
-    ('Review Coordinator Applications',
-     'review_coordinator_applications'),
-    ('Manage Platform Verification Queue',
-     'manage_platform_verification_queue'),
+    (
+        'Review Institution Administrator Applications',
+        'review_institution_admin_applications',
+    ),
+    (
+        'Review Institution SIWES Officer Applications',
+        'review_institution_siwes_officer_applications',
+    ),
+    (
+        'Review Coordinator Applications',
+        'review_coordinator_applications',
+    ),
+    (
+        'Manage Platform Verification Queue',
+        'manage_platform_verification_queue',
+    ),
 ]
+
 
 ROLE_DEFINITIONS = {
     'platform_administrator': {
         'name': 'Platform Administrator',
         'description': 'Global DSA platform administration role.',
         'permissions': [
+            'access_platform_admin_panel',
             'review_institution_admin_applications',
             'review_institution_siwes_officer_applications',
             'review_coordinator_applications',
@@ -228,7 +244,9 @@ ROLE_DEFINITIONS = {
 
     'primary_institution_administrator': {
         'name': 'Primary Institution Administrator',
-        'description': 'Manages an approved institution within assigned scope.',
+        'description': (
+            'Manages an approved institution within assigned scope.'
+        ),
         'permissions': [
             'view_institution_dashboard',
             'manage_coordinators',
@@ -241,7 +259,9 @@ ROLE_DEFINITIONS = {
 
     'institution_siwes_officer': {
         'name': 'Institution SIWES Officer',
-        'description': 'Handles authorized institution-level SIWES operations.',
+        'description': (
+            'Handles authorized institution-level SIWES operations.'
+        ),
         'permissions': [
             'view_institution_dashboard',
             'view_verification_statistics',
