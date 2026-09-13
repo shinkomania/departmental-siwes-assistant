@@ -3,106 +3,206 @@
 {% block title %}Admin Dashboard | Departmental SIWES Assistant{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+<div
+    style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
     <div>
         <div class="hero-badge">
             <span>🛡️</span>
             <span>Administration Panel</span>
         </div>
-        <h1 style="font-size: 2.25rem;">SIWES Management Console</h1>
+
+        <h1 style="font-size: 2.25rem;">
+            SIWES Management Console
+        </h1>
+
         <p style="color: var(--text-muted);">
             Manage placement organizations, review student contributions, and maintain guide topics.
         </p>
     </div>
 
-    <div style="display: flex; gap: 0.5rem;">
-        <a href="{{ url_for('admin.organizations') }}" class="btn btn-outline">Manage Organizations</a>
-        <a href="{{ url_for('admin.guides') }}" class="btn btn-outline">Manage Guides</a>
-        <a href="{{ url_for('admin.logout') }}" class="btn btn-danger btn-sm">Logout</a>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{{ url_for('admin.organizations') }}" class="btn btn-outline">
+            Manage Organizations
+        </a>
+
+        <a href="{{ url_for('admin.guides') }}" class="btn btn-outline">
+            Manage Guides
+        </a>
+
+        <form action="{{ url_for('auth.logout') }}" method="POST" style="margin: 0;">
+            <button type="submit" class="btn btn-danger btn-sm">
+                Logout
+            </button>
+        </form>
     </div>
 </div>
 
 <!-- Admin Key Metrics -->
 <div class="stats-grid">
+
     <div class="stat-card">
-        <span class="stat-label">Total Organizations</span>
-        <span class="stat-value">{{ total_orgs }}</span>
-        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">In SQLite database</span>
+        <span class="stat-label">
+            Total Organizations
+        </span>
+
+        <span class="stat-value">
+            {{ total_orgs }}
+        </span>
+
+        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+            In SQLite database
+        </span>
     </div>
+
     <div class="stat-card">
-        <span class="stat-label">Verified Organizations</span>
-        <span class="stat-value" style="color: var(--success);">{{ verified_orgs }}</span>
-        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Formally approved</span>
+        <span class="stat-label">
+            Verified Organizations
+        </span>
+
+        <span class="stat-value" style="color: var(--success);">
+            {{ verified_orgs }}
+        </span>
+
+        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+            Formally approved
+        </span>
     </div>
+
     <div class="stat-card">
-        <span class="stat-label">Student Submissions</span>
-        <span class="stat-value" style="color: var(--warning);">{{ pending_submissions }}</span>
-        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Awaiting verification</span>
+        <span class="stat-label">
+            Student Submissions
+        </span>
+
+        <span class="stat-value" style="color: var(--warning);">
+            {{ pending_submissions }}
+        </span>
+
+        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+            Awaiting verification
+        </span>
     </div>
+
     <div class="stat-card">
-        <span class="stat-label">Registered Students</span>
-        <span class="stat-value" style="color: var(--primary);">{{ total_students }}</span>
-        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Active profiles</span>
+        <span class="stat-label">
+            Registered Students
+        </span>
+
+        <span class="stat-value" style="color: var(--primary);">
+            {{ total_students }}
+        </span>
+
+        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+            Active profiles
+        </span>
     </div>
+
 </div>
 
 <!-- Admin Management Sections -->
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
+
     <!-- Recent Student Submissions Review -->
     <div class="form-card">
+
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h3 style="font-size: 1.15rem;">📥 Recent Student Submissions</h3>
-            <a href="{{ url_for('admin.organizations', status='Student Submitted') }}" class="btn btn-outline btn-sm">View All</a>
+            <h3 style="font-size: 1.15rem;">
+                📥 Recent Student Submissions
+            </h3>
+
+            <a href="{{ url_for('admin.organizations', status='Student Submitted') }}" class="btn btn-outline btn-sm">
+                View All
+            </a>
         </div>
 
         {% if recent_submissions %}
+
         <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+
             {% for sub in recent_submissions %}
-            <div style="background: var(--bg-subtle); padding: 0.85rem 1rem; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+
+            <div
+                style="background: var(--bg-subtle); padding: 0.85rem 1rem; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+
                 <div>
-                    <strong>{{ sub.name }}</strong>
+                    <strong>
+                        {{ sub.name }}
+                    </strong>
+
                     <div style="font-size: 0.8rem; color: var(--text-muted);">
                         📍 {{ sub.city }}, {{ sub.state }} • {{ sub.industry }}
                     </div>
                 </div>
+
                 <div style="display: flex; gap: 0.35rem;">
-                    <form action="{{ url_for('admin.verify_organization', org_id=sub.id) }}" method="POST" style="margin: 0;">
-                        <button type="submit" class="btn btn-primary btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+
+                    <form action="{{ url_for('admin.verify_organization', org_id=sub.id) }}" method="POST"
+                        style="margin: 0;">
+
+                        <button type="submit" class="btn btn-primary btn-sm"
+                            style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
                             ✓ Approve
                         </button>
+
                     </form>
-                    <a href="{{ url_for('admin.edit_organization', org_id=sub.id) }}" class="btn btn-outline btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+
+                    <a href="{{ url_for('admin.edit_organization', org_id=sub.id) }}" class="btn btn-outline btn-sm"
+                        style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
                         Edit
                     </a>
+
                 </div>
             </div>
+
             {% endfor %}
+
         </div>
+
         {% else %}
+
         <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 1.5rem;">
             No pending student submissions right now.
         </p>
+
         {% endif %}
+
     </div>
 
-    <!-- Quick Admin Actions & Guide Status -->
+    <!-- Quick Admin Actions -->
     <div class="form-card">
-        <h3 style="font-size: 1.15rem; margin-bottom: 1rem;">⚡ Quick Admin Actions</h3>
-        
+
+        <h3 style="font-size: 1.15rem; margin-bottom: 1rem;">
+            ⚡ Quick Admin Actions
+        </h3>
+
         <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-            <a href="{{ url_for('admin.new_organization') }}" class="btn btn-primary" style="justify-content: flex-start;">
-                <span>➕ Add New Verified Organization</span>
+
+            <a href="{{ url_for('admin.new_organization') }}" class="btn btn-primary"
+                style="justify-content: flex-start;">
+                <span>
+                    ➕ Add New Verified Organization
+                </span>
             </a>
+
             <a href="{{ url_for('admin.new_guide') }}" class="btn btn-outline" style="justify-content: flex-start;">
-                <span>📝 Add New SIWES Guide Topic</span>
+                <span>
+                    📝 Add New SIWES Guide Topic
+                </span>
             </a>
+
             <a href="{{ url_for('admin.organizations') }}" class="btn btn-outline" style="justify-content: flex-start;">
-                <span>🏢 Browse & Edit All Organizations</span>
+                <span>
+                    🏢 Browse & Edit All Organizations
+                </span>
             </a>
+
             <a href="{{ url_for('admin.guides') }}" class="btn btn-outline" style="justify-content: flex-start;">
-                <span>📖 Manage {{ guide_topics_count }} Guide Modules</span>
+                <span>
+                    📖 Manage {{ guide_topics_count }} Guide Modules
+                </span>
             </a>
+
         </div>
     </div>
+
 </div>
 {% endblock %}

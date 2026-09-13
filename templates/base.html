@@ -116,7 +116,7 @@
                 {% endif %}
 
                 <!-- Temporary Legacy Admin Access -->
-                {% if is_admin %}
+                {% if can_access_platform_admin %}
                 <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary btn-sm">
                     Admin
                 </a>
@@ -297,11 +297,13 @@
                         {% endif %}
 
                         <!-- Legacy admin entry retained temporarily -->
+                        {% if can_access_platform_admin %}
                         <li>
-                            <a href="{{ url_for('admin.login') }}">
+                            <a href="{{ url_for('admin.dashboard') }}">
                                 Administration
                             </a>
                         </li>
+                        {% endif %}
 
                     </ul>
 

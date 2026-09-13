@@ -33,6 +33,8 @@ from routes import (
     auth_bp,
 )
 
+from services.authorization import user_has_permission
+
 migrate = Migrate()
 
 # Load environment variables from .env file
@@ -67,23 +69,28 @@ def create_app(config_name=None):
     app.register_blueprint(admin_bp)
     app.register_blueprint(auth_bp)
 
-    # Context processor
+        # Context processor
     @app.context_processor
     def inject_global_context():
         """
-        Provides common application metadata and authenticated
+        Provide common application metadata and authenticated
         user/student information to templates.
 
         Student identity is resolved only through:
 
             authenticated User -> StudentProfile
 
-        Legacy session['student_id'] is not trusted.
+        Platform administration visibility is derived from the
+        explicit access_platform_admin_panel permission.
+
+        Legacy session flags such as session['student_id'] and
+        session['is_admin'] are not trusted.
         """
         user_id = session.get("user_id")
 
         current_user = None
         current_student = None
+        can_access_platform_admin = False
 
         if user_id:
             current_user = db.session.get(User, user_id)
@@ -99,6 +106,11 @@ def create_app(config_name=None):
                 user_id=current_user.id
             ).first()
 
+            can_access_platform_admin = user_has_permission(
+                current_user,
+                "access_platform_admin_panel",
+            )
+
         return {
             "app_name": app.config.get(
                 "APP_NAME",
@@ -111,11 +123,9 @@ def create_app(config_name=None):
             "current_year": datetime.utcnow().year,
             "current_user": current_user,
             "current_student": current_student,
-
-            # Legacy administrator authentication remains temporarily
-            # until the admin routes are migrated to role-based access.
-            "is_admin": session.get("is_admin", False),
+            "can_access_platform_admin": can_access_platform_admin,
         }
+
     # Markdown rendering
     import markdown as md_parser
 

@@ -24,9 +24,6 @@ from services.authorization import user_has_permission
 class DSATestCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app('testing')
-        self.app.config['ADMIN_USERNAME'] = 'admin'
-        self.app.config['ADMIN_PASSWORD'] = 'test-password'
-
         self.client = self.app.test_client()
         self.app_context = self.app.app_context()
         self.app_context.push()
@@ -561,16 +558,99 @@ class DSATestCase(unittest.TestCase):
         )
 
     def test_admin_authentication_and_dashboard(self):
-        resp_unauth = self.client.get('/admin/', follow_redirects=True)
-        self.assertIn(b'Administrator Access', resp_unauth.data)
+        # 1. Unauthenticated visitors must be sent to normal account login.
+        response = self.client.get('/admin/')
 
-        login_resp = self.client.post(
-            '/admin/login',
-            data={'username': 'admin', 'password': 'test-password'},
-            follow_redirects=True
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/auth/login', response.location)
+
+        # 2. Legacy session['is_admin'] alone must grant nothing.
+        with self.client.session_transaction() as sess:
+            sess['is_admin'] = True
+
+        response = self.client.get('/admin/')
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/auth/login', response.location)
+
+        # Clear the legacy session before testing a real account.
+        with self.client.session_transaction() as sess:
+            sess.clear()
+
+        # 3. An ordinary authenticated user must not access platform admin.
+        ordinary_user = User(
+            full_name='Ordinary User',
+            email='ordinary@example.com',
+            account_status='Active',
         )
-        self.assertEqual(login_resp.status_code, 200)
-        self.assertIn(b'SIWES Management Console', login_resp.data)
+        ordinary_user.set_password('ordinary-password')
+
+        db.session.add(ordinary_user)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = ordinary_user.id
+
+        response = self.client.get('/admin/')
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.location.endswith('/'))
+
+        # 4. Create the explicit platform administration permission.
+        admin_permission = Permission(
+            name='Access Platform Administration Panel',
+            slug='access_platform_admin_panel',
+        )
+
+        platform_role = Role(
+            name='Platform Administrator',
+            slug='platform_administrator',
+            description='Global DSA platform administration role.',
+            is_active=True,
+        )
+
+        platform_role.permissions.append(admin_permission)
+
+        platform_admin = User(
+            full_name='Platform Admin',
+            email='platform-admin@example.com',
+            account_status='Active',
+        )
+        platform_admin.set_password('platform-admin-password')
+
+        db.session.add_all([
+            admin_permission,
+            platform_role,
+            platform_admin,
+        ])
+        db.session.flush()
+
+        assignment = UserRoleAssignment(
+            user_id=platform_admin.id,
+            role_id=platform_role.id,
+            institution_id=None,
+            department_id=None,
+            programme_id=None,
+            status='Approved',
+            approved_at=datetime.utcnow(),
+        )
+
+        db.session.add(assignment)
+        db.session.commit()
+
+        # Replace the ordinary user's authenticated session.
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess['user_id'] = platform_admin.id
+
+        # 5. Approved global Platform Administrator must be allowed.
+        response = self.client.get('/admin/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            b'SIWES Management Console',
+            response.data,
+        )
 
     def test_authorization_allows_approved_department_scope(self):
         data = self._create_authorization_fixture()

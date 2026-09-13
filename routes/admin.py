@@ -4,57 +4,133 @@ Admin Routes Blueprint
 Provides a secure administrative interface to manage organizations,
 verify student submissions, edit SIWES guide topics, and inspect student placement metrics.
 """
+
+
 from functools import wraps
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
+
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    session,
+)
+
 from models.db import db
+from models.user import User
 from models.organization import Organization
 from models.guide import GuideTopic
 from models.student import StudentProfile
 from models.application import PlacementApplication
-from routes.student import AREAS_OF_INTEREST, ORGANIZATION_TYPES, NIGERIAN_STATES
 
-admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+from routes.student import (
+    AREAS_OF_INTEREST,
+    ORGANIZATION_TYPES,
+    NIGERIAN_STATES,
+)
+
+from services.authorization import user_has_permission
+
+
+admin_bp = Blueprint(
+    'admin',
+    __name__,
+    url_prefix='/admin',
+)
+
+
+PLATFORM_ADMIN_PERMISSION = 'access_platform_admin_panel'
+
+
+def _current_user():
+    """
+    Resolve the currently authenticated active user.
+
+    Authentication authority is session['user_id'] only.
+    Legacy session['is_admin'] is not trusted.
+    """
+    user_id = session.get('user_id')
+
+    if not user_id:
+        return None
+
+    user = db.session.get(User, user_id)
+
+    if user is None:
+        return None
+
+    if user.account_status != 'Active':
+        return None
+
+    return user
+
+
+def _current_platform_administrator():
+    """
+    Return the authenticated user only when they have the explicit,
+    globally-scoped Platform Administration Panel permission.
+    """
+    user = _current_user()
+
+    if user is None:
+        return None
+
+    if not user_has_permission(
+        user,
+        PLATFORM_ADMIN_PERMISSION,
+    ):
+        return None
+
+    return user
+
 
 def admin_required(f):
-    """Decorator to enforce admin authentication on admin views."""
+    """
+    Require authenticated platform-administration permission.
+
+    Access is based on:
+
+        User
+        -> Approved current role assignment
+        -> Explicit permission
+        -> Global scope
+
+    Legacy session['is_admin'] is ignored.
+    """
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get('is_admin'):
-            flash('Please log in with administrator credentials to access this area.', 'warning')
-            return redirect(url_for('admin.login', next=request.url))
+        user = _current_user()
+
+        if user is None:
+            flash(
+                'Please sign in to access the administration area.',
+                'warning',
+            )
+
+            return redirect(
+                url_for(
+                    'auth.login',
+                    next=request.url,
+                )
+            )
+
+        if _current_platform_administrator() is None:
+            flash(
+                'Your account does not have permission to access '
+                'the platform administration area.',
+                'danger',
+            )
+
+            return redirect(
+                url_for('main.index')
+            )
+
         return f(*args, **kwargs)
+
     return decorated_function
-
-
-@admin_bp.route('/login', methods=['GET', 'POST'])
-def login():
-    """Simple and secure session-based admin login."""
-    if session.get('is_admin'):
-        return redirect(url_for('admin.dashboard'))
-
-    if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '').strip()
-
-        admin_user = current_app.config.get('ADMIN_USERNAME', 'admin')
-        admin_pass = current_app.config.get('ADMIN_PASSWORD')
-        if username == admin_user and password == admin_pass:
-            session['is_admin'] = True
-            flash('Welcome to the SIWES Assistant Administration Panel.', 'success')
-            next_page = request.args.get('next')
-            return redirect(next_page or url_for('admin.dashboard'))
-        else:
-            flash('Invalid username or password. Please try again.', 'danger')
-
-    return render_template('admin/login.html')
-
-
-@admin_bp.route('/logout')
-def logout():
-    """Logs out admin user."""
-    session.pop('is_admin', None)
-    flash('Logged out of admin panel.', 'info')
-    return redirect(url_for('main.index'))
 
 
 @admin_bp.route('/')
