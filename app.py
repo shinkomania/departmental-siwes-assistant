@@ -13,6 +13,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from flask import Flask, session
 from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
 
 from config import config_by_name
 from models.db import db
@@ -36,6 +37,7 @@ from routes import (
 from services.authorization import user_has_permission
 
 migrate = Migrate()
+csrf = CSRFProtect()
 
 # Load environment variables from .env file
 load_dotenv()
@@ -61,6 +63,7 @@ def create_app(config_name=None):
     # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
+    csrf.init_app(app)
 
     # Register blueprints
     app.register_blueprint(main_bp)

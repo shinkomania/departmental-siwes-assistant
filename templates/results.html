@@ -12,7 +12,7 @@
             </div>
             <h1 style="font-size: 2.25rem; margin-bottom: 0.25rem;">Placement Organizations</h1>
             <p style="color: var(--text-muted); font-size: 0.95rem;">
-                Showing matches for: 
+                Showing matches for:
                 <strong>{{ query_params.state or 'All States' }}</strong>
                 {% if query_params.city %} • City: <strong>{{ query_params.city }}</strong>{% endif %}
                 {% if query_params.interest %} • Field: <strong>{{ query_params.interest }}</strong>{% endif %}
@@ -54,7 +54,10 @@
 
             <!-- Save / Bookmark Button -->
             <form action="{{ url_for('placement.toggle_save', org_id=org.id) }}" method="POST" style="margin: 0;">
-                <button type="submit" class="btn btn-outline btn-sm" title="{% if org.id in saved_org_ids %}Remove Bookmark{% else %}Save Organization{% endif %}" style="padding: 0.2rem 0.5rem; font-size: 0.85rem;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline btn-sm"
+                    title="{% if org.id in saved_org_ids %}Remove Bookmark{% else %}Save Organization{% endif %}"
+                    style="padding: 0.2rem 0.5rem; font-size: 0.85rem;">
                     {% if org.id in saved_org_ids %}⭐ Saved{% else %}☆ Save{% endif %}
                 </button>
             </form>
@@ -76,7 +79,8 @@
 
         <!-- Relevance Reason Callout -->
         {% if org.why_relevant %}
-        <div style="background: var(--bg-subtle); padding: 0.6rem 0.85rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-main); margin-bottom: 1rem; border-left: 2px solid var(--primary);">
+        <div
+            style="background: var(--bg-subtle); padding: 0.6rem 0.85rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-main); margin-bottom: 1rem; border-left: 2px solid var(--primary);">
             <strong>Why it's relevant:</strong> {{ org.why_relevant }}
         </div>
         {% endif %}
@@ -84,7 +88,8 @@
         <!-- Relevance tags -->
         <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 1rem;">
             {% for tag in org.relevance_areas %}
-            <span style="font-size: 0.75rem; padding: 0.15rem 0.45rem; background: var(--bg-subtle); border-radius: var(--radius-sm); color: var(--text-muted);">
+            <span
+                style="font-size: 0.75rem; padding: 0.15rem 0.45rem; background: var(--bg-subtle); border-radius: var(--radius-sm); color: var(--text-muted);">
                 {{ tag }}
             </span>
             {% endfor %}
@@ -92,7 +97,8 @@
 
         <div class="card-footer">
             {% if org.website %}
-            <a href="{{ org.website }}" target="_blank" rel="noopener noreferrer" style="font-size: 0.85rem; color: var(--text-muted);">
+            <a href="{{ org.website }}" target="_blank" rel="noopener noreferrer"
+                style="font-size: 0.85rem; color: var(--text-muted);">
                 🌐 Website &nearr;
             </a>
             {% else %}
@@ -111,7 +117,8 @@
     <div style="font-size: 2.5rem; margin-bottom: 1rem;">🔍</div>
     <h3 style="margin-bottom: 0.5rem;">No Organizations Match Your Exact Search</h3>
     <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto 1.5rem;">
-        Try broadening your search criteria (e.g. selecting "All Nigerian States" or "All Engineering Disciplines"), or submit a new company.
+        Try broadening your search criteria (e.g. selecting "All Nigerian States" or "All Engineering Disciplines"), or
+        submit a new company.
     </p>
     <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
         <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary">Try Another Search</a>

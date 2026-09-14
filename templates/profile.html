@@ -26,6 +26,7 @@
 
     <div class="form-card">
         <form action="{{ url_for('student.profile') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <h3 style="
                 font-size: 1.2rem;

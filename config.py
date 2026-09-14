@@ -64,6 +64,7 @@ class TestingConfig(Config):
     """Testing configuration with in-memory database."""
 
     TESTING = True
+    WTF_CSRF_ENABLED = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
 
 

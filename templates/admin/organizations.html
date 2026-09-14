@@ -70,11 +70,13 @@
                     <div style="display: flex; gap: 0.35rem;">
                         {% if org.verification_status != 'Verified' %}
                         <form action="{{ url_for('admin.verify_organization', org_id=org.id) }}" method="POST" style="margin:0;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-primary" title="Mark as Verified">✓ Verify</button>
                         </form>
                         {% endif %}
                         <a href="{{ url_for('admin.edit_organization', org_id=org.id) }}" class="btn btn-sm btn-outline">Edit</a>
                         <form action="{{ url_for('admin.delete_organization', org_id=org.id) }}" method="POST" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete {{ org.name }}?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-outline" style="color: var(--danger);">✕</button>
                         </form>
                     </div>
