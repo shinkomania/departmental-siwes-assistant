@@ -462,6 +462,120 @@ class DSATestCase(unittest.TestCase):
 
         self.assertIsNone(saved)
 
+    def test_logged_out_user_cannot_submit_organization(self):
+        """
+        Anonymous visitors must not be able to create organization records.
+        """
+        before_count = Organization.query.count()
+
+        response = self.client.post(
+            "/placement/submit-org",
+            data={
+                "name": "Anonymous Submission Ltd",
+                "state": "Kaduna",
+                "city": "Zaria",
+                "industry": "Technology",
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/auth/login", response.location)
+
+        after_count = Organization.query.count()
+
+        self.assertEqual(before_count, after_count)
+
+    def test_inactive_user_cannot_submit_organization(self):
+        """
+        A stale session belonging to an inactive account must not allow
+        organization submissions.
+        """
+        suspended_user = User(
+            full_name="Suspended Contributor",
+            email="suspended.contributor@example.com",
+            account_status="Suspended",
+        )
+        suspended_user.set_password("suspended-password-123")
+
+        db.session.add(suspended_user)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = suspended_user.id
+
+        before_count = Organization.query.count()
+
+        response = self.client.post(
+            "/placement/submit-org",
+            data={
+                "name": "Suspended Submission Ltd",
+                "state": "Kaduna",
+                "city": "Zaria",
+                "industry": "Technology",
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/auth/login", response.location)
+
+        after_count = Organization.query.count()
+
+        self.assertEqual(before_count, after_count)
+
+    def test_active_user_without_student_profile_can_submit_organization(self):
+        """
+        An authenticated active User may suggest an organization even when
+        they do not have a StudentProfile.
+        """
+        contributor = User(
+            full_name="Community Contributor",
+            email="community.contributor@example.com",
+            account_status="Active",
+        )
+        contributor.set_password("contributor-password-123")
+
+        db.session.add(contributor)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = contributor.id
+
+        response = self.client.post(
+            "/placement/submit-org",
+            data={
+                "name": "Community SIWES Company",
+                "description": "Test community contribution",
+                "address": "1 Test Road",
+                "state": "Kaduna",
+                "city": "Zaria",
+                "industry": "Technology",
+                "relevance_areas": "Software Development",
+                "website": "https://example.com",
+                "contact_email": "contact@example.com",
+                "contact_phone": "08000000000",
+                "why_relevant": "Known to accept SIWES students.",
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        organization = Organization.query.filter_by(
+            name="Community SIWES Company",
+        ).first()
+
+        self.assertIsNotNone(organization)
+        self.assertEqual(
+            organization.verification_status,
+            "Student Submitted",
+        )
+        self.assertEqual(
+            organization.source,
+            "Student Submission",
+        )
+
     def test_dashboard_does_not_fallback_to_another_students_profile(self):
         profile_owner = User(
             full_name="Existing Student",

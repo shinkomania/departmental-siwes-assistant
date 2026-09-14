@@ -37,6 +37,27 @@ placement_bp = Blueprint("placement", __name__)
 
 search_service = PlacementSearchService()
 
+def _current_user():
+    """
+    Return the authenticated active User.
+
+    Authentication authority is session['user_id'] only.
+    Inactive, deleted, or unauthenticated users return None.
+    """
+    user_id = session.get("user_id")
+
+    if not user_id:
+        return None
+
+    user = db.session.get(User, user_id)
+
+    if user is None:
+        return None
+
+    if user.account_status != "Active":
+        return None
+
+    return user
 
 def _current_student():
     """
@@ -374,7 +395,27 @@ def submit_organization():
     Legacy organization contribution route.
 
     Organization provenance/review workflow will be migrated separately.
+
+    Only authenticated active DSA users may contribute organizations.
+    A StudentProfile is intentionally not required because future
+    contributors may include students, staff, coordinators, alumni,
+    employers, and other verified community users.
     """
+    user = _current_user()
+
+    if user is None:
+        flash(
+            "Please sign in before suggesting a SIWES organization.",
+            "warning",
+        )
+
+        return redirect(
+            url_for(
+                "auth.login",
+                next=request.url,
+            )
+        )
+
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         description = request.form.get("description", "").strip()
