@@ -118,14 +118,10 @@ def admin_required(f):
             )
 
         if _current_platform_administrator() is None:
-            flash(
-                'Your account does not have permission to access '
-                'the platform administration area.',
-                'danger',
-            )
-
-            return redirect(
-                url_for('main.index')
+            return (
+                'Forbidden: your account does not have permission '
+                'to access the platform administration area.',
+                403,
             )
 
         return f(*args, **kwargs)

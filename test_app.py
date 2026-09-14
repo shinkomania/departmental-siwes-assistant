@@ -643,8 +643,11 @@ class DSATestCase(unittest.TestCase):
 
         response = self.client.get('/admin/')
 
-        self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.location.endswith('/'))
+        self.assertEqual(response.status_code, 403)
+        self.assertIn(
+            b'Forbidden',
+            response.data,
+        )
 
         # 4. Create the explicit platform administration permission.
         admin_permission = Permission(
