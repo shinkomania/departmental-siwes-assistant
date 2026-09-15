@@ -1,228 +1,367 @@
 {% extends "base.html" %}
 
-{% block title %}Student Profile | Departmental SIWES Assistant{% endblock %}
+{% block title %}
+{% if student %}Edit Student Profile{% else %}Create Student Profile{% endif %} | Departmental SIWES Assistant
+{% endblock %}
 
 {% block content %}
-<div class="container-narrow">
-    <div style="margin-bottom: 2rem;">
-        <div class="hero-badge">
-            <span>&#128100;</span>
-            <span>SIWES Student Profile</span>
-        </div>
+<section class="student-profile-page">
+    <div class="container">
 
-        <h1 style="font-size: 2.25rem; margin-bottom: 0.5rem;">
+        <header class="profile-page-header">
+            <div class="profile-header-copy">
+                <div class="section-eyebrow">
+                    <span class="section-eyebrow-dot"></span>
+                    SIWES STUDENT PROFILE
+                </div>
+
+                <h1>
+                    {% if student %}
+                    Keep your SIWES profile up to date
+                    {% else %}
+                    Set up your SIWES profile
+                    {% endif %}
+                </h1>
+
+                <p>
+                    Your academic details and placement preferences help DSA
+                    personalize your SIWES experience and surface more relevant
+                    opportunities.
+                </p>
+            </div>
+
             {% if student %}
-            Edit Student Profile
-            {% else %}
-            Create Student Profile
+            <a href="{{ url_for('student.dashboard') }}" class="btn btn-outline profile-dashboard-link">
+                Back to Dashboard
+            </a>
             {% endif %}
-        </h1>
+        </header>
 
-        <p style="color: var(--text-muted);">
-            Save your institution details, placement preferences, interests,
-            and skills to personalize your SIWES experience.
-        </p>
-    </div>
-
-    <div class="form-card">
-        <form action="{{ url_for('student.profile') }}" method="POST">
+        <form action="{{ url_for('student.profile') }}" method="POST" class="profile-workspace">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-            <h3 style="
-                font-size: 1.2rem;
-                margin-bottom: 1.25rem;
-                padding-bottom: 0.5rem;
-                border-bottom: 1px solid var(--border);
-            ">
-                1. Academic & Personal Information
-            </h3>
+            <main class="profile-form-column">
 
-            <div class="form-grid">
+                <section class="profile-section-card">
+                    <div class="profile-section-heading">
+                        <div class="profile-section-number">01</div>
 
-                <div class="form-group">
-                    <label class="form-label">
-                        Full Name *
-                    </label>
+                        <div>
+                            <span class="profile-section-label">ACADEMIC DETAILS</span>
+                            <h2>Tell us about your institution</h2>
+                            <p>
+                                These details identify your academic context within DSA.
+                            </p>
+                        </div>
+                    </div>
 
-                    <input type="text" name="full_name" class="form-control" placeholder="e.g. Amina Ibrahim"
-                        value="{{ student.full_name if student else '' }}" required>
-                </div>
+                    <div class="profile-form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="fullName">
+                                Full Name <span class="required-mark">*</span>
+                            </label>
 
-                <div class="form-group">
-                    <label class="form-label">
-                        Matriculation / Student Number *
-                    </label>
+                            <input type="text" id="fullName" name="full_name" class="form-control"
+                                placeholder="e.g. Amina Ibrahim" value="{{ student.full_name if student else '' }}"
+                                autocomplete="name" required>
+                        </div>
 
-                    <input type="text" name="matric_no" class="form-control" placeholder="e.g. U25CE1234"
-                        value="{{ student.matric_no if student else '' }}" required>
+                        <div class="form-group">
+                            <label class="form-label" for="matricNumber">
+                                Matriculation / Student Number
+                                <span class="required-mark">*</span>
+                            </label>
 
-                    <span class="form-hint">
-                        This number is linked to your account and cannot be
-                        used to access another student's profile.
-                    </span>
-                </div>
+                            <input type="text" id="matricNumber" name="matric_no" class="form-control"
+                                placeholder="e.g. U25CE1234" value="{{ student.matric_no if student else '' }}"
+                                required>
 
-                <div class="form-group">
-                    <label class="form-label">
-                        Department *
-                    </label>
+                            <span class="form-hint">
+                                Your student number belongs only to your profile and
+                                cannot be used to access another student's account.
+                            </span>
+                        </div>
 
-                    <input type="text" name="department" class="form-control" placeholder="e.g. Computer Engineering"
-                        value="{{ student.department if student else '' }}" required>
-                </div>
+                        <div class="form-group">
+                            <label class="form-label" for="department">
+                                Department <span class="required-mark">*</span>
+                            </label>
 
-                <div class="form-group">
-                    <label class="form-label">
-                        Faculty / College / School *
-                    </label>
+                            <input type="text" id="department" name="department" class="form-control"
+                                placeholder="e.g. Computer Engineering"
+                                value="{{ student.department if student else '' }}" required>
+                        </div>
 
-                    <input type="text" name="faculty" class="form-control" placeholder="e.g. Faculty of Engineering"
-                        value="{{ student.faculty if student else '' }}" required>
-                </div>
+                        <div class="form-group">
+                            <label class="form-label" for="faculty">
+                                Faculty / College / School
+                                <span class="required-mark">*</span>
+                            </label>
 
-                <div class="form-group full-width">
-                    <label class="form-label">
-                        University / Institution *
-                    </label>
+                            <input type="text" id="faculty" name="faculty" class="form-control"
+                                placeholder="e.g. Faculty of Engineering"
+                                value="{{ student.faculty if student else '' }}" required>
+                        </div>
 
-                    <input type="text" name="university" class="form-control"
-                        placeholder="e.g. Ahmadu Bello University, Zaria"
-                        value="{{ student.university if student else '' }}" required>
-                </div>
+                        <div class="form-group profile-field-full">
+                            <label class="form-label" for="university">
+                                University / Institution
+                                <span class="required-mark">*</span>
+                            </label>
 
-            </div>
+                            <input type="text" id="university" name="university" class="form-control"
+                                placeholder="e.g. Ahmadu Bello University, Zaria"
+                                value="{{ student.university if student else '' }}" required>
 
-            <h3 style="
-                font-size: 1.2rem;
-                margin: 2rem 0 1.25rem;
-                padding-bottom: 0.5rem;
-                border-bottom: 1px solid var(--border);
-            ">
-                2. SIWES Placement Preferences
-            </h3>
+                            <span class="form-hint">
+                                Institution selection will become more structured as
+                                verified institutional support is expanded on DSA.
+                            </span>
+                        </div>
+                    </div>
+                </section>
 
-            <div class="form-grid">
+                <section class="profile-section-card">
+                    <div class="profile-section-heading">
+                        <div class="profile-section-number">02</div>
 
-                <div class="form-group">
-                    <label class="form-label">
-                        Preferred Nigerian State *
-                    </label>
+                        <div>
+                            <span class="profile-section-label">PLACEMENT PREFERENCES</span>
+                            <h2>Shape your placement search</h2>
+                            <p>
+                                Tell DSA where you would prefer to train and the kind
+                                of experience you are looking for.
+                            </p>
+                        </div>
+                    </div>
 
-                    <select name="preferred_state" id="stateSelect" class="form-control" required>
-                        <option value="">
-                            Select State
-                        </option>
+                    <div class="profile-form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="stateSelect">
+                                Preferred Nigerian State
+                                <span class="required-mark">*</span>
+                            </label>
 
-                        {% for st in states %}
-                        <option value="{{ st }}" {% if student and student.preferred_state==st %} selected {% endif %}>
-                            {{ st }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
+                            <select name="preferred_state" id="stateSelect" class="form-control" required>
+                                <option value="">Select State</option>
 
-                <div class="form-group">
-                    <label class="form-label">
-                        Preferred City / Town *
-                    </label>
+                                {% for st in states %}
+                                <option value="{{ st }}" {% if student and student.preferred_state==st %}selected{%
+                                    endif %}>
+                                    {{ st }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
 
-                    <input type="text" name="preferred_city" id="cityInput" list="cityList" class="form-control"
-                        placeholder="e.g. Zaria or Ikeja" value="{{ student.preferred_city if student else '' }}"
-                        required>
+                        <div class="form-group">
+                            <label class="form-label" for="cityInput">
+                                Preferred City / Town
+                                <span class="required-mark">*</span>
+                            </label>
 
-                    <datalist id="cityList"></datalist>
-                </div>
+                            <input type="text" name="preferred_city" id="cityInput" list="cityList" class="form-control"
+                                placeholder="e.g. Zaria or Ikeja"
+                                value="{{ student.preferred_city if student else '' }}" required>
 
-                <div class="form-group">
-                    <label class="form-label">
-                        Primary Area of Interest *
-                    </label>
+                            <datalist id="cityList"></datalist>
+                        </div>
 
-                    <select name="area_of_interest" class="form-control" required>
-                        <option value="">
-                            Select Area of Interest
-                        </option>
+                        <div class="form-group">
+                            <label class="form-label" for="areaOfInterest">
+                                Primary Area of Interest
+                                <span class="required-mark">*</span>
+                            </label>
 
-                        {% for int_opt in interests %}
-                        <option value="{{ int_opt }}" {% if student and student.area_of_interest==int_opt %} selected {%
-                            endif %}>
-                            {{ int_opt }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
+                            <select name="area_of_interest" id="areaOfInterest" class="form-control" required>
+                                <option value="">Select Area of Interest</option>
 
-                <div class="form-group">
-                    <label class="form-label">
-                        Preferred Organization Type *
-                    </label>
+                                {% for int_opt in interests %}
+                                <option value="{{ int_opt }}" {% if student and student.area_of_interest==int_opt
+                                    %}selected{% endif %}>
+                                    {{ int_opt }}
+                                </option>
+                                {% endfor %}
+                            </select>
 
-                    <select name="preferred_org_type" class="form-control" required>
-                        <option value="">
-                            Select Organization Type
-                        </option>
+                            <span class="form-hint">
+                                Choose the area that best reflects the kind of SIWES
+                                experience you currently want.
+                            </span>
+                        </div>
 
-                        {% for org_opt in org_types %}
-                        <option value="{{ org_opt }}" {% if student and student.preferred_org_type==org_opt %} selected
-                            {% endif %}>
-                            {{ org_opt }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
+                        <div class="form-group">
+                            <label class="form-label" for="organizationType">
+                                Preferred Organization Type
+                                <span class="required-mark">*</span>
+                            </label>
 
-                <div class="form-group full-width">
-                    <label class="form-label">
-                        Skills
-                    </label>
+                            <select name="preferred_org_type" id="organizationType" class="form-control" required>
+                                <option value="">Select Organization Type</option>
 
-                    <input type="text" name="skills" class="form-control"
-                        placeholder="e.g. Python, Excel, Laboratory Analysis, AutoCAD, Communication"
-                        value="{{ student.skills if student else '' }}">
+                                {% for org_opt in org_types %}
+                                <option value="{{ org_opt }}" {% if student and student.preferred_org_type==org_opt
+                                    %}selected{% endif %}>
+                                    {{ org_opt }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </section>
 
-                    <span class="form-hint">
-                        Separate multiple skills with commas.
-                    </span>
-                </div>
+                <section class="profile-section-card">
+                    <div class="profile-section-heading">
+                        <div class="profile-section-number">03</div>
 
-                <div class="form-group full-width">
-                    <label class="form-label">
-                        Student Bio / Placement Objectives
-                    </label>
+                        <div>
+                            <span class="profile-section-label">SKILLS & OBJECTIVES</span>
+                            <h2>What do you bring to your SIWES journey?</h2>
+                            <p>
+                                Add useful skills and a short objective to give more
+                                context to your placement preferences.
+                            </p>
+                        </div>
+                    </div>
 
-                    <textarea name="bio" class="form-control"
-                        placeholder="Briefly describe what you hope to learn or gain during your SIWES placement.">{{ student.bio if student else '' }}</textarea>
-                </div>
+                    <div class="profile-form-grid">
+                        <div class="form-group profile-field-full">
+                            <label class="form-label" for="skills">
+                                Skills
+                            </label>
 
-            </div>
+                            <input type="text" id="skills" name="skills" class="form-control"
+                                placeholder="e.g. Python, Excel, AutoCAD, Communication"
+                                value="{{ student.skills if student else '' }}">
 
-            <div style="
-                margin-top: 2rem;
-                display: flex;
-                justify-content: flex-end;
-                gap: 1rem;
-                flex-wrap: wrap;
-            ">
-                {% if student %}
-                <a href="{{ url_for('student.dashboard') }}" class="btn btn-outline">
-                    Cancel
-                </a>
-                {% else %}
-                <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline">
-                    Cancel
-                </a>
-                {% endif %}
+                            <span class="form-hint">
+                                Separate multiple skills with commas.
+                            </span>
+                        </div>
 
-                <button type="submit" class="btn btn-primary btn-lg">
+                        <div class="form-group profile-field-full">
+                            <label class="form-label" for="studentBio">
+                                Student Bio / Placement Objectives
+                            </label>
+
+                            <textarea id="studentBio" name="bio" class="form-control profile-bio-field"
+                                placeholder="Briefly describe what you hope to learn, practise, or gain during your SIWES placement.">{{ student.bio if student else '' }}</textarea>
+
+                            <span class="form-hint">
+                                Keep this focused on the experience, skills, or
+                                exposure you hope to gain during SIWES.
+                            </span>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="profile-form-actions">
                     {% if student %}
-                    Update Profile & Open Dashboard
+                    <a href="{{ url_for('student.dashboard') }}" class="btn btn-outline">
+                        Cancel
+                    </a>
                     {% else %}
-                    Save Profile & Continue
+                    <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline">
+                        Cancel
+                    </a>
                     {% endif %}
-                </button>
-            </div>
 
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        {% if student %}
+                        Save Changes
+                        {% else %}
+                        Save Profile & Continue
+                        {% endif %}
+                    </button>
+                </div>
+            </main>
+
+            <aside class="profile-sidebar">
+                <div class="profile-sidebar-card profile-sidebar-primary">
+                    <div class="profile-sidebar-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path
+                                d="M12 13.5C15.0376 13.5 17.5 11.0376 17.5 8C17.5 4.96243 15.0376 2.5 12 2.5C8.96243 2.5 6.5 4.96243 6.5 8C6.5 11.0376 8.96243 13.5 12 13.5Z"
+                                stroke="currentColor" stroke-width="1.7" />
+                            <path d="M3.5 21C4.35 17.55 7.45 15.25 12 15.25C16.55 15.25 19.65 17.55 20.5 21"
+                                stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                        </svg>
+                    </div>
+
+                    <span class="profile-sidebar-eyebrow">YOUR PROFILE</span>
+
+                    <h3>
+                        Better context, more relevant SIWES support.
+                    </h3>
+
+                    <p>
+                        Your profile helps DSA understand your academic background,
+                        preferred location, interests, and skills.
+                    </p>
+                </div>
+
+                <div class="profile-sidebar-card">
+                    <span class="profile-sidebar-eyebrow">WHY THIS MATTERS</span>
+
+                    <div class="profile-guidance-list">
+                        <div class="profile-guidance-item">
+                            <span class="profile-guidance-marker">01</span>
+                            <div>
+                                <strong>Academic context</strong>
+                                <p>
+                                    Your institution and department help provide the
+                                    right context for SIWES guidance.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="profile-guidance-item">
+                            <span class="profile-guidance-marker">02</span>
+                            <div>
+                                <strong>Placement preferences</strong>
+                                <p>
+                                    Location and interest information can make your
+                                    placement search more relevant.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="profile-guidance-item">
+                            <span class="profile-guidance-marker">03</span>
+                            <div>
+                                <strong>Your skills</strong>
+                                <p>
+                                    Skills and objectives add useful context when
+                                    exploring suitable SIWES opportunities.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-privacy-note">
+                    <div class="profile-privacy-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M7.5 10V7.5C7.5 5.01472 9.51472 3 12 3C14.4853 3 16.5 5.01472 16.5 7.5V10"
+                                stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                            <rect x="5" y="10" width="14" height="11" rx="2.5" stroke="currentColor"
+                                stroke-width="1.7" />
+                            <path d="M12 14V17" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                        </svg>
+                    </div>
+
+                    <div>
+                        <strong>Account-linked profile</strong>
+                        <p>
+                            Your student profile is linked to your signed-in DSA
+                            account. Keep your information accurate and avoid sharing
+                            your account credentials.
+                        </p>
+                    </div>
+                </div>
+            </aside>
         </form>
+
     </div>
-</div>
+</section>
 {% endblock %}
