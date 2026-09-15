@@ -211,7 +211,7 @@ class DSATestCase(unittest.TestCase):
         response = self.client.get(f'/placement/{self.org.id}')
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'NITDA Test', response.data)
-        self.assertIn(b'Application Tracker', response.data)
+        self.assertIn(b'Personal application tracker', response.data)
 
     def test_student_profile_create_and_dashboard(self):
         user = User(

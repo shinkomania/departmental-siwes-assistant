@@ -1,165 +1,560 @@
 {% extends "base.html" %}
 
-{% block title %}{{ org.name }} | SIWES Placement Details{% endblock %}
+{% block title %}{{ org.name }} | Placement Details{% endblock %}
 
 {% block content %}
-<div class="container-narrow">
-    <div style="margin-bottom: 1.5rem;">
-        <a href="{{ url_for('placement.search_results') }}"
-            style="font-size: 0.85rem; color: var(--text-muted); display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 1rem;">
-            &larr; Back to Search Results
-        </a>
+<section class="organization-detail-page">
 
-        <div
-            style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-            <div>
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                    <span class="badge {{ org.verification_status | badge_class }}">
-                        {{ org.verification_status }}
+    <!-- Back navigation -->
+    <a href="{{ url_for('placement.search_results') }}" class="organization-back-link">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                stroke-linejoin="round" />
+        </svg>
+        Back to placement results
+    </a>
+
+
+    <!-- Organization hero -->
+    <div class="organization-hero">
+        <div class="organization-hero__main">
+
+            <div class="organization-hero__mark" aria-hidden="true">
+                {{ org.name[:1]|upper }}
+            </div>
+
+            <div class="organization-hero__copy">
+                <span class="section-eyebrow">ORGANIZATION RECORD</span>
+
+                <h1>{{ org.name }}</h1>
+
+                <div class="organization-hero__meta">
+                    {% if org.city or org.state %}
+                    <span>
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M12 21s6-5.1 6-11a6 6 0 1 0-12 0c0 5.9 6 11 6 11Z" stroke="currentColor"
+                                stroke-width="1.7" />
+                            <circle cx="12" cy="10" r="2" stroke="currentColor" stroke-width="1.7" />
+                        </svg>
+
+                        {% if org.city and org.state %}
+                        {{ org.city }}, {{ org.state }}
+                        {% elif org.state %}
+                        {{ org.state }}
+                        {% else %}
+                        {{ org.city }}
+                        {% endif %}
                     </span>
-                    <span style="font-size: 0.8rem; color: var(--text-light);">
-                        Source: {{ org.source }}
+                    {% endif %}
+
+                    {% if org.industry %}
+                    <span>
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <rect x="4" y="7" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.7" />
+                            <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7" stroke="currentColor"
+                                stroke-width="1.7" />
+                        </svg>
+
+                        {{ org.industry }}
                     </span>
+                    {% endif %}
                 </div>
-                <h1 style="font-size: 2.25rem;">{{ org.name }}</h1>
-                <p style="color: var(--secondary-dark); font-weight: 600; font-size: 1.05rem; margin-top: 0.25rem;">
-                    📍 {{ org.city }}, {{ org.state }} • {{ org.industry }}
-                </p>
             </div>
-
-            <!-- Save Bookmark Button -->
-            <form action="{{ url_for('placement.toggle_save', org_id=org.id) }}" method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn {% if is_saved %}btn-secondary{% else %}btn-outline{% endif %}">
-                    <span>{% if is_saved %}⭐ Saved in Dashboard{% else %}☆ Save Organization{% endif %}</span>
-                </button>
-            </form>
         </div>
+
+
+        <!-- Bookmark -->
+        <form action="{{ url_for('placement.toggle_save', org_id=org.id) }}" method="POST"
+            class="organization-save-form">
+
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <button type="submit" class="organization-save-btn {% if is_saved %}is-saved{% endif %}">
+
+                <svg viewBox="0 0 24 24" fill="{% if is_saved %}currentColor{% else %}none{% endif %}"
+                    aria-hidden="true">
+                    <path d="M7 4.5A1.5 1.5 0 0 1 8.5 3h7A1.5 1.5 0 0 1 17 4.5V21l-5-3-5 3V4.5Z" stroke="currentColor"
+                        stroke-width="1.7" stroke-linejoin="round" />
+                </svg>
+
+                {% if is_saved %}
+                Saved to dashboard
+                {% else %}
+                Save organization
+                {% endif %}
+            </button>
+        </form>
     </div>
 
-    <!-- Main Organization Info Card -->
-    <div class="form-card" style="margin-bottom: 2rem;">
-        <h3
-            style="font-size: 1.25rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
-            Organization Overview
-        </h3>
 
-        <p style="font-size: 1rem; line-height: 1.7; color: var(--text-main); margin-bottom: 1.5rem;">
-            {{ org.description }}
-        </p>
+    <!-- Evidence summary -->
+    <div class="organization-evidence-grid">
 
-        {% if org.why_relevant %}
-        <div
-            style="background: var(--bg-subtle); padding: 1rem 1.25rem; border-radius: var(--radius-md); border-left: 3px solid var(--primary); margin-bottom: 1.5rem;">
-            <strong style="color: var(--primary-dark); font-size: 0.95rem;">Why this organization is relevant for
-                SIWES:</strong>
-            <p style="font-size: 0.9rem; margin-top: 0.25rem; color: var(--text-main);">{{ org.why_relevant }}</p>
-        </div>
-        {% endif %}
-
-        <h4 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--text-muted);">Engineering Focus & Relevance
-            Areas:</h4>
-        <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.75rem;">
-            {% for area in org.relevance_list %}
-            <span
-                style="background: var(--primary-light); color: var(--primary-dark); padding: 0.3rem 0.65rem; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 500;">
-                {{ area }}
+        <div class="organization-evidence-card">
+            <span class="organization-evidence-label">
+                RECORD SOURCE
             </span>
-            {% endfor %}
-        </div>
 
-        <h3
-            style="font-size: 1.25rem; margin: 1.5rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
-            Contact & Location Information
-        </h3>
+            <strong>
+                {{ org.source_name or org.source_type or 'Source not recorded' }}
+            </strong>
 
-        <div
-            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; font-size: 0.95rem;">
-            <div>
-                <strong style="color: var(--text-muted); font-size: 0.85rem; display: block;">Physical Address:</strong>
-                <span>{{ org.address or 'Address not specified' }}</span>
-            </div>
-            <div>
-                <strong style="color: var(--text-muted); font-size: 0.85rem; display: block;">Official Website:</strong>
-                {% if org.website %}
-                <a href="{{ org.website }}" target="_blank" rel="noopener noreferrer">{{ org.website }} &nearr;</a>
-                {% else %}
-                <span style="color: var(--text-light);">Not publicly listed</span>
-                {% endif %}
-            </div>
-            <div>
-                <strong style="color: var(--text-muted); font-size: 0.85rem; display: block;">Email Contact:</strong>
-                {% if org.contact_email %}
-                <a href="mailto:{{ org.contact_email }}">{{ org.contact_email }}</a>
-                {% else %}
-                <span style="color: var(--text-light);">Not publicly listed</span>
-                {% endif %}
-            </div>
-            <div>
-                <strong style="color: var(--text-muted); font-size: 0.85rem; display: block;">Phone Line:</strong>
-                <span>{{ org.contact_phone or 'Not publicly listed' }}</span>
-            </div>
-        </div>
+            {% if org.source_type and org.source_name %}
+            <p>{{ org.source_type }}</p>
+            {% else %}
+            <p>
+                This identifies the recorded origin of the directory information.
+            </p>
+            {% endif %}
 
-        <div
-            style="margin-top: 1.5rem; font-size: 0.8rem; color: var(--text-light); border-top: 1px solid var(--border); padding-top: 0.75rem;">
-            Record updated: {{ org.updated_at.strftime('%B %d, %Y') if org.updated_at else 'Recent' }}
-        </div>
-    </div>
+            {% if org.source_reference %}
+            <p>
+                Reference: {{ org.source_reference }}
+            </p>
+            {% endif %}
 
-    <!-- Application Tracker Card -->
-    <div class="form-card" style="border: 2px solid var(--primary-light);">
-        <div
-            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
-            <h3 style="font-size: 1.25rem;">
-                📋 Application Tracker for this Placement
-            </h3>
-            {% if application %}
-            <span class="badge {{ application.status | badge_class }}">
-                Current Status: {{ application.status }}
-            </span>
+            {% if org.source_last_checked %}
+            <small>
+                Last checked {{ org.source_last_checked.strftime('%B %d, %Y') }}
+            </small>
             {% endif %}
         </div>
 
-        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.25rem;">
-            Keep track of your SIWES application progress (e.g. when you submitted your introductory letter, interview
-            dates, or acceptance).
-        </p>
 
-        <form action="{{ url_for('placement.track_application', org_id=org.id) }}" method="POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label">Application Status</label>
-                    <select name="status" class="form-control" required>
-                        {% for choice in status_choices %}
-                        <option value="{{ choice }}" {% if application and application.status==choice %}selected{% endif
-                            %}>
-                            {{ choice }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
+        <div class="organization-evidence-card">
+            <span class="organization-evidence-label">
+                DSA REVIEW
+            </span>
 
-                <div class="form-group">
-                    <label class="form-label">Date of Action / Submission</label>
-                    <input type="date" name="applied_date" class="form-control"
-                        value="{{ application.applied_date if application and application.applied_date else '' }}">
-                </div>
+            <strong>
+                {{ org.review_status or 'Pending' }}
+            </strong>
 
-                <div class="form-group full-width">
-                    <label class="form-label">Notes & Follow-up Details</label>
-                    <textarea name="notes" class="form-control"
-                        placeholder="e.g. Sent SIWES request letter to HR. Follow up next Tuesday via phone or visit...">{{ application.notes if application else '' }}</textarea>
-                </div>
-            </div>
+            <p>
+                This describes DSA's review state for the directory record,
+                not current placement availability.
+            </p>
 
-            <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
-                <button type="submit" class="btn btn-primary">
-                    {% if application %}Update Application Tracking{% else %}Track This Application{% endif %}
-                </button>
-            </div>
-        </form>
+            {% if org.reviewed_at %}
+            <small>
+                Reviewed {{ org.reviewed_at.strftime('%B %d, %Y') }}
+            </small>
+            {% endif %}
+        </div>
+
+
+        <div class="organization-evidence-card organization-evidence-card--intake">
+            <span class="organization-evidence-label">
+                SIWES INTAKE
+            </span>
+
+            <strong>
+                {{ org.acceptance_status or 'Unknown' }}
+            </strong>
+
+            {% if org.acceptance_source_name %}
+            <p>
+                Evidence: {{ org.acceptance_source_name }}
+            </p>
+            {% elif org.acceptance_status == 'Currently Accepting' %}
+            <p>
+                Current intake evidence is not recorded on this directory entry.
+            </p>
+            {% else %}
+            <p>
+                Confirm current SIWES availability directly with the organization.
+            </p>
+            {% endif %}
+
+            {% if org.acceptance_last_checked %}
+            <small>
+                Last checked {{ org.acceptance_last_checked.strftime('%B %d, %Y') }}
+            </small>
+            {% endif %}
+        </div>
+
     </div>
-</div>
+
+
+    <!-- Intake warning -->
+    <div class="organization-intake-notice">
+        <span class="organization-intake-notice__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7" />
+                <path d="M12 10.5v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                <circle cx="12" cy="7.5" r="1" fill="currentColor" />
+            </svg>
+        </span>
+
+        <div>
+            <strong>Listing is not current intake</strong>
+            <p>
+                Being listed in the DSA directory does not by itself mean this
+                organization is currently accepting SIWES students. Check the
+                intake information above and confirm current opportunities
+                directly before applying.
+            </p>
+        </div>
+    </div>
+
+
+    <div class="organization-detail-layout">
+
+        <!-- Main information -->
+        <div class="organization-detail-main">
+
+            <!-- Overview -->
+            <section class="organization-detail-card">
+                <div class="organization-card-heading">
+                    <span class="section-eyebrow">ABOUT THE ORGANIZATION</span>
+                    <h2>Organization overview</h2>
+                </div>
+
+                {% if org.description %}
+                <p class="organization-description">
+                    {{ org.description }}
+                </p>
+                {% else %}
+                <p class="organization-description organization-muted">
+                    A detailed description has not yet been added to this
+                    directory record.
+                </p>
+                {% endif %}
+
+
+                {% if org.relevance_list %}
+                <div class="organization-relevance-section">
+                    <h3>Fields and relevance areas</h3>
+
+                    <p>
+                        These areas help DSA organize and match directory records.
+                        They should not be interpreted as confirmation that every
+                        related programme is currently accepted for SIWES.
+                    </p>
+
+                    <div class="organization-relevance-tags">
+                        {% for area in org.relevance_list %}
+                        <span>{{ area }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </section>
+
+
+            <!-- Contact -->
+            <section class="organization-detail-card">
+                <div class="organization-card-heading">
+                    <span class="section-eyebrow">CONTACT & LOCATION</span>
+                    <h2>How to reach the organization</h2>
+
+                    <p>
+                        Use official contact channels where available and confirm
+                        SIWES requirements before submitting documents or making
+                        a physical visit.
+                    </p>
+                </div>
+
+
+                <div class="organization-contact-grid">
+
+                    <div class="organization-contact-item">
+                        <span class="organization-contact-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="M12 21s6-5.1 6-11a6 6 0 1 0-12 0c0 5.9 6 11 6 11Z" stroke="currentColor"
+                                    stroke-width="1.7" />
+                                <circle cx="12" cy="10" r="2" stroke="currentColor" stroke-width="1.7" />
+                            </svg>
+                        </span>
+
+                        <div>
+                            <span class="organization-contact-label">
+                                ADDRESS
+                            </span>
+
+                            <strong>
+                                {{ org.address or 'Address not publicly listed' }}
+                            </strong>
+                        </div>
+                    </div>
+
+
+                    <div class="organization-contact-item">
+                        <span class="organization-contact-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7" />
+                                <path
+                                    d="M3.5 12h17M12 3c2.2 2.5 3.3 5.5 3.3 9S14.2 18.5 12 21M12 3c-2.2 2.5-3.3 5.5-3.3 9S9.8 18.5 12 21"
+                                    stroke="currentColor" stroke-width="1.5" />
+                            </svg>
+                        </span>
+
+                        <div>
+                            <span class="organization-contact-label">
+                                WEBSITE
+                            </span>
+
+                            {% if org.website %}
+                            <a href="{{ org.website }}" target="_blank" rel="noopener noreferrer">
+                                Visit official website
+                            </a>
+                            {% else %}
+                            <strong>Not publicly listed</strong>
+                            {% endif %}
+                        </div>
+                    </div>
+
+
+                    <div class="organization-contact-item">
+                        <span class="organization-contact-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <rect x="3.5" y="5" width="17" height="14" rx="2" stroke="currentColor"
+                                    stroke-width="1.7" />
+                                <path d="m5 7 7 5 7-5" stroke="currentColor" stroke-width="1.7"
+                                    stroke-linejoin="round" />
+                            </svg>
+                        </span>
+
+                        <div>
+                            <span class="organization-contact-label">
+                                EMAIL
+                            </span>
+
+                            {% if org.contact_email %}
+                            <a href="mailto:{{ org.contact_email }}">
+                                {{ org.contact_email }}
+                            </a>
+                            {% else %}
+                            <strong>Not publicly listed</strong>
+                            {% endif %}
+                        </div>
+                    </div>
+
+
+                    <div class="organization-contact-item">
+                        <span class="organization-contact-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path
+                                    d="M7 4h3l1.2 4-2 1.5a14 14 0 0 0 5.3 5.3l1.5-2L20 14v3c0 1.1-.9 2-2 2C10.8 19 5 13.2 5 6c0-1.1.9-2 2-2Z"
+                                    stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+                            </svg>
+                        </span>
+
+                        <div>
+                            <span class="organization-contact-label">
+                                PHONE
+                            </span>
+
+                            <strong>
+                                {{ org.contact_phone or 'Not publicly listed' }}
+                            </strong>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="organization-record-updated">
+                    Record last updated:
+                    <strong>
+                        {{ org.updated_at.strftime('%B %d, %Y') if org.updated_at else 'Date not recorded' }}
+                    </strong>
+                </div>
+            </section>
+
+
+            <!-- Personal application tracker -->
+            <section class="organization-tracker-card">
+
+                <div class="organization-tracker-heading">
+                    <div>
+                        <span class="section-eyebrow">YOUR APPLICATION</span>
+                        <h2>Personal application tracker</h2>
+                    </div>
+
+                    {% if application %}
+                    <span class="organization-tracker-status">
+                        {{ application.status }}
+                    </span>
+                    {% endif %}
+                </div>
+
+
+                <p class="organization-tracker-intro">
+                    Record where you currently are in your application journey
+                    with this organization, including contact attempts,
+                    submissions, interviews and follow-up notes.
+                </p>
+
+
+                <div class="organization-tracker-notice">
+                    <span aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7" />
+                            <path d="M12 10.5v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                            <circle cx="12" cy="7.5" r="1" fill="currentColor" />
+                        </svg>
+                    </span>
+
+                    <p>
+                        <strong>This is your personal tracking record.</strong>
+                        Statuses entered here, including Accepted or Rejected,
+                        are not institutional verification of a placement.
+                    </p>
+                </div>
+
+
+                <form action="{{ url_for('placement.track_application', org_id=org.id) }}" method="POST"
+                    class="organization-tracker-form">
+
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="organization-tracker-grid">
+
+                        <div class="form-group">
+                            <label class="form-label" for="application-status">
+                                Application status
+                            </label>
+
+                            <select id="application-status" name="status" class="form-control" required>
+
+                                {% for choice in status_choices %}
+                                <option value="{{ choice }}" {% if application and application.status==choice
+                                    %}selected{% endif %}>
+                                    {{ choice }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+
+                        <div class="form-group">
+                            <label class="form-label" for="application-date">
+                                Date of action or submission
+                            </label>
+
+                            <input id="application-date" type="date" name="applied_date" class="form-control"
+                                value="{{ application.applied_date if application and application.applied_date else '' }}">
+                        </div>
+
+
+                        <div class="form-group organization-tracker-notes">
+                            <label class="form-label" for="application-notes">
+                                Notes and follow-up
+                            </label>
+
+                            <textarea id="application-notes" name="notes" class="form-control" rows="5"
+                                placeholder="Example: Submitted SIWES introduction letter to HR. Follow up by phone next Tuesday.">{{ application.notes if application else '' }}</textarea>
+                        </div>
+
+                    </div>
+
+
+                    <div class="organization-tracker-footer">
+                        <p>
+                            Keep private or sensitive documents out of the notes
+                            field. Evidence handling will use a dedicated
+                            verification workflow.
+                        </p>
+
+                        <button type="submit" class="btn btn-primary">
+                            {% if application %}
+                            Update tracking
+                            {% else %}
+                            Start tracking
+                            {% endif %}
+                        </button>
+                    </div>
+
+                </form>
+            </section>
+
+        </div>
+
+
+        <!-- Sidebar -->
+        <aside class="organization-detail-sidebar">
+
+            <div class="organization-side-card organization-side-card--important">
+                <span class="organization-side-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M12 3 4.5 6.5v5c0 4.5 3 7.8 7.5 9.5 4.5-1.7 7.5-5 7.5-9.5v-5L12 3Z"
+                            stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+                        <path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </span>
+
+                <span class="organization-side-kicker">
+                    BEFORE YOU APPLY
+                </span>
+
+                <h3>Confirm the opportunity</h3>
+
+                <p>
+                    Contact the organization through an official channel to
+                    confirm whether SIWES students are currently being accepted,
+                    which fields are eligible, and what documents are required.
+                </p>
+            </div>
+
+
+            <div class="organization-side-card">
+                <span class="organization-side-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M6 4h12v16H6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+                        <path d="M9 8h6M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.7"
+                            stroke-linecap="round" />
+                    </svg>
+                </span>
+
+                <span class="organization-side-kicker">
+                    CHECK YOUR REQUIREMENTS
+                </span>
+
+                <h3>Follow your programme guidance</h3>
+
+                <p>
+                    SIWES requirements may differ by institution, department and
+                    programme. Confirm the guidance that applies to you before
+                    submitting an application.
+                </p>
+
+                <a href="{{ url_for('main.siwes_guide') }}" class="organization-side-link">
+                    Open SIWES Guide
+                    <span aria-hidden="true">&rarr;</span>
+                </a>
+            </div>
+
+
+            <div class="organization-side-card">
+                <span class="organization-side-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                    </svg>
+                </span>
+
+                <span class="organization-side-kicker">
+                    HELP IMPROVE DSA
+                </span>
+
+                <h3>Know another organization?</h3>
+
+                <p>
+                    Suggest an organization that may accept SIWES students.
+                    Contributions are submitted for review before they should be
+                    treated as reviewed directory records.
+                </p>
+
+                <a href="{{ url_for('placement.submit_organization') }}" class="organization-side-link">
+                    Suggest an organization
+                    <span aria-hidden="true">&rarr;</span>
+                </a>
+            </div>
+
+        </aside>
+
+    </div>
+
+</section>
 {% endblock %}
