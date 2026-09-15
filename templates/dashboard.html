@@ -3,268 +3,671 @@
 {% block title %}Student Dashboard | Departmental SIWES Assistant{% endblock %}
 
 {% block content %}
-<!-- Dashboard Header -->
-<div
-    style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-    <div>
-        <div class="hero-badge">
-            <span>⚡</span>
-            <span>Student Command Center</span>
-        </div>
-        <h1 style="font-size: 2.25rem;">Welcome, {{ student.full_name }}</h1>
-        <p style="color: var(--text-muted); font-size: 0.95rem;">
-            Matric: <strong>{{ student.matric_no }}</strong> • {{ student.department }}, {{ student.university }}
-        </p>
-    </div>
 
-    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary">
-            <span>🔍 Find Placements</span>
-        </a>
-        <a href="{{ url_for('student.profile') }}" class="btn btn-outline">
-            <span>✏️ Edit Profile</span>
-        </a>
-    </div>
-</div>
+<section class="student-dashboard">
 
-<!-- Key Performance / Application Stats Cards -->
-<div class="stats-grid">
-    <div class="stat-card">
-        <span class="stat-label">Saved Organizations</span>
-        <span class="stat-value">{{ total_saved }}</span>
-        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Bookmarked for review</span>
-    </div>
-    <div class="stat-card">
-        <span class="stat-label">Tracked Applications</span>
-        <span class="stat-value">{{ total_applied }}</span>
-        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Companies in your
-            pipeline</span>
-    </div>
-    <div class="stat-card">
-        <span class="stat-label">Interviews / Assessments</span>
-        <span class="stat-value" style="color: #86198f;">{{ status_counts.get('Interview', 0) }}</span>
-        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Upcoming or completed</span>
-    </div>
-    <div class="stat-card">
-        <span class="stat-label">Offers / Accepted</span>
-        <span class="stat-value" style="color: var(--success);">{{ status_counts.get('Accepted', 0) }}</span>
-        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Placements secured</span>
-    </div>
-</div>
+    <!-- ============================================================
+         DASHBOARD INTRO
+         ============================================================ -->
+    <header class="dashboard-welcome">
+        <div class="dashboard-welcome-copy">
+            <span class="dashboard-eyebrow">
+                Your SIWES workspace
+            </span>
 
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: start;">
-    <!-- Left Column: Active Applications Pipeline -->
-    <div>
-        <div class="form-card" style="margin-bottom: 2rem;">
-            <div
-                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
-                <h3 style="font-size: 1.25rem;">📋 My Application Pipeline</h3>
-                <span style="font-size: 0.85rem; color: var(--text-muted);">{{ applications | length }} Active
-                    Applications</span>
-            </div>
+            <h1>
+                Welcome,
+                <span>{{ student.full_name.split()[0] }}</span>
+            </h1>
 
-            {% if applications %}
-            <div class="table-container">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Organization</th>
-                            <th>Status</th>
-                            <th>Date</th>
-                            <th>Notes</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for app in applications %}
-                        <tr>
-                            <td>
-                                <strong>
-                                    <a
-                                        href="{{ url_for('placement.organization_detail', org_id=app.organization_id) }}">
-                                        {{ app.organization.name }}
-                                    </a>
-                                </strong>
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">
-                                    📍 {{ app.organization.city }}, {{ app.organization.state }}
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge {{ app.status | badge_class }}">
-                                    {{ app.status }}
-                                </span>
-                            </td>
-                            <td style="font-size: 0.85rem; color: var(--text-muted); white-space: nowrap;">
-                                {{ app.applied_date.strftime('%d %b %Y') if app.applied_date else 'Recent' }}
-                            </td>
-                            <td style="font-size: 0.85rem; max-width: 200px;">
-                                {{ app.notes or 'No notes added yet.' }}
-                            </td>
-                            <td>
-                                <a href="{{ url_for('placement.organization_detail', org_id=app.organization_id) }}"
-                                    class="btn btn-outline btn-sm">
-                                    Update
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div
-                style="text-align: center; padding: 2rem; background: var(--bg-subtle); border-radius: var(--radius-md);">
-                <p style="color: var(--text-muted); margin-bottom: 1rem;">You haven't tracked any placement applications
-                    yet.</p>
-                <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary btn-sm">Browse Organizations &
-                    Track</a>
-            </div>
-            {% endif %}
-        </div>
+            <p class="dashboard-welcome-text">
+                Keep your placement search, applications and SIWES
+                information organized in one place.
+            </p>
 
-        <!-- Saved Organizations Section -->
-        <div class="form-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-                <h3 style="font-size: 1.25rem;">⭐ Saved / Bookmarked Organizations</h3>
-                <span style="font-size: 0.85rem; color: var(--text-muted);">{{ saved_entries | length }} Saved</span>
-            </div>
+            <div class="dashboard-student-meta">
+                <span>{{ student.matric_no }}</span>
 
-            {% if saved_entries %}
-            <div class="grid-cards" style="grid-template-columns: 1fr;">
-                {% for entry in saved_entries %}
-                <div class="card" style="padding: 1.25rem;">
-                    <div class="card-header">
-                        <div>
-                            <span class="badge {{ entry.organization.verification_status | badge_class }}">
-                                {{ entry.organization.verification_status }}
-                            </span>
-                            <h4 style="font-size: 1.1rem; margin-top: 0.35rem;">
-                                <a href="{{ url_for('placement.organization_detail', org_id=entry.organization.id) }}">
-                                    {{ entry.organization.name }}
-                                </a>
-                            </h4>
-                        </div>
+                {% if student.department %}
+                <span class="dashboard-meta-divider"></span>
+                <span>{{ student.department }}</span>
+                {% endif %}
 
-                        <!-- Remove Bookmark -->
-                        <form action="{{ url_for('placement.toggle_save', org_id=entry.organization.id) }}"
-                            method="POST">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger);"
-                                title="Remove Bookmark">
-                                ✕
-                            </button>
-                        </form>
-                    </div>
-
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-                        📍 {{ entry.organization.city }}, {{ entry.organization.state }} • {{
-                        entry.organization.industry }}
-                    </p>
-
-                    <div class="card-footer" style="padding-top: 0.75rem;">
-                        <span style="font-size: 0.75rem; color: var(--text-light);">
-                            Saved on: {{ entry.saved_at.strftime('%d %b %Y') }}
-                        </span>
-                        <a href="{{ url_for('placement.organization_detail', org_id=entry.organization.id) }}"
-                            class="btn btn-primary btn-sm">
-                            Manage Application &rarr;
-                        </a>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div
-                style="text-align: center; padding: 2rem; background: var(--bg-subtle); border-radius: var(--radius-md);">
-                <p style="color: var(--text-muted); margin-bottom: 1rem;">No saved organizations yet. Bookmark companies
-                    during your search to compare them here.</p>
-                <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline btn-sm">Find Organizations to
-                    Save</a>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Right Column: Student Profile Summary Card & Fast Helpers -->
-    <div>
-        <div class="form-card" style="margin-bottom: 1.5rem;">
-            <h3
-                style="font-size: 1.15rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
-                Student Profile Summary
-            </h3>
-
-            <div style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.9rem;">
-                <div>
-                    <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Full Name:</span>
-                    <strong>{{ student.full_name }}</strong>
-                </div>
-                <div>
-                    <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Matriculation
-                        Number:</span>
-                    <strong>{{ student.matric_no }}</strong>
-                </div>
-                <div>
-                    <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Department &
-                        Faculty:</span>
-                    <span>{{ student.department }} ({{ student.faculty }})</span>
-                </div>
-                <div>
-                    <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">University:</span>
-                    <span>{{ student.university }}</span>
-                </div>
-                <div>
-                    <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Preferred
-                        Location:</span>
-                    <strong>📍 {{ student.preferred_city }}, {{ student.preferred_state }}</strong>
-                </div>
-                <div>
-                    <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Engineering Focus:</span>
-                    <span class="badge badge-online" style="margin-top: 0.2rem;">{{ student.area_of_interest }}</span>
-                </div>
-                <div>
-                    <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Preferred Org
-                        Type:</span>
-                    <span>{{ student.preferred_org_type }}</span>
-                </div>
-                {% if student.skills %}
-                <div>
-                    <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Declared Skills:</span>
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.25rem;">
-                        {% for sk in student.to_dict()['skills'] %}
-                        <span
-                            style="font-size: 0.75rem; background: var(--bg-subtle); padding: 0.15rem 0.45rem; border-radius: var(--radius-sm);">{{
-                            sk }}</span>
-                        {% endfor %}
-                    </div>
-                </div>
+                {% if student.university %}
+                <span class="dashboard-meta-divider"></span>
+                <span>{{ student.university }}</span>
                 {% endif %}
             </div>
+        </div>
 
-            <div style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
-                <a href="{{ url_for('student.profile') }}" class="btn btn-outline btn-sm" style="width: 100%;">
-                    Edit Full Profile
-                </a>
+        <div class="dashboard-welcome-actions">
+            <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary">
+                Find Placements
+                <span aria-hidden="true">&rarr;</span>
+            </a>
+
+            <a href="{{ url_for('student.profile') }}" class="btn btn-outline">
+                Update Profile
+            </a>
+        </div>
+    </header>
+
+
+    <!-- ============================================================
+         DASHBOARD METRICS
+         ============================================================ -->
+    <section class="dashboard-metrics" aria-label="Placement activity summary">
+        <article class="dashboard-metric-card">
+            <div class="dashboard-metric-top">
+                <span class="dashboard-metric-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M6 4.75h12a1.25 1.25 0 0 1
+                               1.25 1.25v14L12 16.2 4.75
+                               20V6A1.25 1.25 0 0 1 6 4.75Z" />
+                    </svg>
+                </span>
+
+                <span class="dashboard-metric-label">
+                    Saved
+                </span>
             </div>
-        </div>
 
-        <!-- Quick SIWES Checklist Card -->
-        <div
-            style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem;">
-            <h4 style="margin-bottom: 0.75rem; font-size: 1rem;">📋 Quick SIWES Checklist</h4>
-            <ul
-                style="list-style: none; font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.5rem;">
-                <li><a href="{{ url_for('main.guide_detail', slug='how-to-prepare-for-siwes') }}">✓ Collect Stamped IT
-                        Letter</a></li>
-                <li><a href="{{ url_for('main.guide_detail', slug='how-to-prepare-for-siwes') }}">✓ Fill & Return ITF
-                        Form 8</a></li>
-                <li><a href="{{ url_for('main.guide_detail', slug='siwes-logbook') }}">✓ Fill Daily Logbook Every
-                        Evening</a></li>
-                <li><a href="{{ url_for('main.guide_detail', slug='weekly-activities') }}">✓ Get Weekly Supervisor
-                        Sign-off</a></li>
-                <li><a href="{{ url_for('main.guide_detail', slug='siwes-report') }}">✓ Draft Technical Report
-                        Chapters</a></li>
-            </ul>
-        </div>
+            <strong class="dashboard-metric-value">
+                {{ total_saved }}
+            </strong>
+
+            <span class="dashboard-metric-caption">
+                Organizations bookmarked
+            </span>
+        </article>
+
+
+        <article class="dashboard-metric-card">
+            <div class="dashboard-metric-top">
+                <span class="dashboard-metric-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <rect x="4" y="5" width="16" height="15" rx="2" />
+                        <path d="M8 3v4M16 3v4M8 11h8M8 15h5" />
+                    </svg>
+                </span>
+
+                <span class="dashboard-metric-label">
+                    Applications
+                </span>
+            </div>
+
+            <strong class="dashboard-metric-value">
+                {{ total_applied }}
+            </strong>
+
+            <span class="dashboard-metric-caption">
+                Organizations in your pipeline
+            </span>
+        </article>
+
+
+        <article class="dashboard-metric-card">
+            <div class="dashboard-metric-top">
+                <span class="dashboard-metric-icon dashboard-metric-icon--accent" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <circle cx="12" cy="12" r="8.25" />
+                        <path d="M12 7.5V12l3 2" />
+                    </svg>
+                </span>
+
+                <span class="dashboard-metric-label">
+                    Interviews
+                </span>
+            </div>
+
+            <strong class="dashboard-metric-value">
+                {{ status_counts.get('Interview', 0) }}
+            </strong>
+
+            <span class="dashboard-metric-caption">
+                Interview-stage applications
+            </span>
+        </article>
+
+
+        <article class="dashboard-metric-card">
+            <div class="dashboard-metric-top">
+                <span class="dashboard-metric-icon dashboard-metric-icon--success" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <circle cx="12" cy="12" r="8.25" />
+                        <path d="m8.5 12 2.25 2.25L15.8 9.2" />
+                    </svg>
+                </span>
+
+                <span class="dashboard-metric-label">
+                    Accepted
+                </span>
+            </div>
+
+            <strong class="dashboard-metric-value">
+                {{ status_counts.get('Accepted', 0) }}
+            </strong>
+
+            <span class="dashboard-metric-caption">
+                Applications marked accepted
+            </span>
+        </article>
+    </section>
+
+
+    <!-- ============================================================
+         MAIN WORKSPACE
+         ============================================================ -->
+    <div class="dashboard-workspace">
+
+        <!-- ========================================================
+             PRIMARY COLUMN
+             ======================================================== -->
+        <main class="dashboard-main-column">
+
+            <!-- APPLICATION PIPELINE -->
+            <section class="dashboard-panel">
+                <div class="dashboard-panel-header">
+                    <div>
+                        <span class="dashboard-section-kicker">
+                            Placement journey
+                        </span>
+
+                        <h2>Your application pipeline</h2>
+
+                        <p>
+                            Track the organizations you are engaging with
+                            and where each application currently stands.
+                        </p>
+                    </div>
+
+                    <span class="dashboard-count-pill">
+                        {{ applications | length }}
+                        {% if applications | length == 1 %}
+                        application
+                        {% else %}
+                        applications
+                        {% endif %}
+                    </span>
+                </div>
+
+
+                {% if applications %}
+
+                <div class="dashboard-application-list">
+
+                    {% for app in applications %}
+                    <article class="dashboard-application-item">
+
+                        <div class="dashboard-application-org">
+                            <div class="dashboard-org-avatar" aria-hidden="true">
+                                {{ app.organization.name[:1] | upper }}
+                            </div>
+
+                            <div>
+                                <a href="{{ url_for(
+                                        'placement.organization_detail',
+                                        org_id=app.organization_id
+                                    ) }}" class="dashboard-org-name">
+                                    {{ app.organization.name }}
+                                </a>
+
+                                <div class="dashboard-org-meta">
+                                    {% if app.organization.city %}
+                                    <span>
+                                        {{ app.organization.city }}
+                                    </span>
+                                    {% endif %}
+
+                                    {% if app.organization.state %}
+                                    <span>
+                                        {{ app.organization.state }}
+                                    </span>
+                                    {% endif %}
+
+                                    {% if app.organization.industry %}
+                                    <span>
+                                        {{ app.organization.industry }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="dashboard-application-status">
+                            <span class="badge {{ app.status | badge_class }}">
+                                {{ app.status }}
+                            </span>
+                        </div>
+
+
+                        <div class="dashboard-application-date">
+                            <span>Added</span>
+
+                            <strong>
+                                {{ app.applied_date.strftime('%d %b %Y')
+                                if app.applied_date
+                                else 'Recently' }}
+                            </strong>
+                        </div>
+
+
+                        <div class="dashboard-application-action">
+                            <a href="{{ url_for(
+                                    'placement.organization_detail',
+                                    org_id=app.organization_id
+                                ) }}" class="dashboard-text-link">
+                                Manage
+                                <span aria-hidden="true">&rarr;</span>
+                            </a>
+                        </div>
+
+                    </article>
+                    {% endfor %}
+
+                </div>
+
+                {% else %}
+
+                <div class="dashboard-empty-state">
+                    <span class="dashboard-empty-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                            <path d="M5 6.5A1.5 1.5 0 0 1
+                                   6.5 5h11A1.5 1.5 0 0 1
+                                   19 6.5v12a1.5 1.5 0 0 1
+                                   -1.5 1.5h-11A1.5 1.5 0 0 1
+                                   5 18.5Z" />
+                            <path d="M8 9h8M8 13h5" />
+                        </svg>
+                    </span>
+
+                    <h3>No applications tracked yet</h3>
+
+                    <p>
+                        When you find an organization you want to pursue,
+                        add it to your application pipeline and track your
+                        progress here.
+                    </p>
+
+                    <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary btn-sm">
+                        Explore Placements
+                    </a>
+                </div>
+
+                {% endif %}
+            </section>
+
+
+            <!-- SAVED ORGANIZATIONS -->
+            <section class="dashboard-panel">
+                <div class="dashboard-panel-header">
+                    <div>
+                        <span class="dashboard-section-kicker">
+                            Your shortlist
+                        </span>
+
+                        <h2>Saved organizations</h2>
+
+                        <p>
+                            Keep promising placement options together while
+                            you compare opportunities and decide what to pursue.
+                        </p>
+                    </div>
+
+                    <span class="dashboard-count-pill">
+                        {{ saved_entries | length }}
+                        saved
+                    </span>
+                </div>
+
+
+                {% if saved_entries %}
+
+                <div class="dashboard-saved-list">
+
+                    {% for entry in saved_entries %}
+
+                    <article class="dashboard-saved-card">
+
+                        <div class="dashboard-saved-top">
+                            <div class="dashboard-application-org">
+                                <div class="dashboard-org-avatar" aria-hidden="true">
+                                    {{ entry.organization.name[:1] | upper }}
+                                </div>
+
+                                <div>
+                                    <a href="{{ url_for(
+                                            'placement.organization_detail',
+                                            org_id=entry.organization.id
+                                        ) }}" class="dashboard-org-name">
+                                        {{ entry.organization.name }}
+                                    </a>
+
+                                    <div class="dashboard-org-meta">
+                                        {% if entry.organization.city %}
+                                        <span>
+                                            {{ entry.organization.city }}
+                                        </span>
+                                        {% endif %}
+
+                                        {% if entry.organization.state %}
+                                        <span>
+                                            {{ entry.organization.state }}
+                                        </span>
+                                        {% endif %}
+
+                                        {% if entry.organization.industry %}
+                                        <span>
+                                            {{ entry.organization.industry }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <form action="{{ url_for(
+                                    'placement.toggle_save',
+                                    org_id=entry.organization.id
+                                ) }}" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                <button type="submit" class="dashboard-remove-save"
+                                    aria-label="Remove {{ entry.organization.name }} from saved organizations"
+                                    title="Remove from saved organizations">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                        aria-hidden="true">
+                                        <path d="M7 7l10 10M17 7 7 17" />
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+
+
+                        <div class="dashboard-source-block">
+                            <div class="dashboard-source-item">
+                                <span class="dashboard-source-label">
+                                    Record source
+                                </span>
+
+                                <strong>
+                                    {{ entry.organization.source_display }}
+                                </strong>
+                            </div>
+
+                            <div class="dashboard-source-item">
+                                <span class="dashboard-source-label">
+                                    Intake information
+                                </span>
+
+                                <strong>
+                                    {{ entry.organization.acceptance_status }}
+                                </strong>
+                            </div>
+                        </div>
+
+
+                        {% if entry.organization.acceptance_status
+                        == 'Currently Accepting'
+                        and not entry.organization.has_current_intake_evidence %}
+
+                        <p class="dashboard-evidence-note">
+                            Current intake is recorded, but supporting intake
+                            evidence is not yet available in DSA. Confirm with
+                            the organization before relying on this status.
+                        </p>
+
+                        {% elif entry.organization.has_current_intake_evidence %}
+
+                        <p class="dashboard-evidence-note dashboard-evidence-note--supported">
+                            Current intake information has a recorded
+                            supporting source.
+                        </p>
+
+                        {% endif %}
+
+
+                        <div class="dashboard-saved-footer">
+                            <span>
+                                Saved
+                                {{ entry.saved_at.strftime('%d %b %Y') }}
+                            </span>
+
+                            <a href="{{ url_for(
+                                    'placement.organization_detail',
+                                    org_id=entry.organization.id
+                                ) }}" class="dashboard-text-link">
+                                View organization
+                                <span aria-hidden="true">&rarr;</span>
+                            </a>
+                        </div>
+
+                    </article>
+
+                    {% endfor %}
+
+                </div>
+
+                {% else %}
+
+                <div class="dashboard-empty-state">
+                    <span class="dashboard-empty-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                            <path d="M6 4.75h12a1.25 1.25 0 0 1
+                                   1.25 1.25v14L12 16.2 4.75
+                                   20V6A1.25 1.25 0 0 1 6 4.75Z" />
+                        </svg>
+                    </span>
+
+                    <h3>Your shortlist is empty</h3>
+
+                    <p>
+                        Save organizations while browsing placements so
+                        you can return to promising options here.
+                    </p>
+
+                    <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline btn-sm">
+                        Find Organizations
+                    </a>
+                </div>
+
+                {% endif %}
+            </section>
+
+        </main>
+
+
+        <!-- ========================================================
+             SIDEBAR
+             ======================================================== -->
+        <aside class="dashboard-sidebar">
+
+            <!-- PROFILE SUMMARY -->
+            <section class="dashboard-side-card">
+                <div class="dashboard-side-heading">
+                    <span class="dashboard-section-kicker">
+                        Student profile
+                    </span>
+
+                    <h2>Your SIWES preferences</h2>
+
+                    <p>
+                        These details help DSA personalize your placement
+                        experience.
+                    </p>
+                </div>
+
+
+                <dl class="dashboard-profile-list">
+
+                    <div>
+                        <dt>Institution</dt>
+                        <dd>
+                            {{ student.university or 'Not provided' }}
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>Department</dt>
+                        <dd>
+                            {{ student.department or 'Not provided' }}
+                        </dd>
+                    </div>
+
+                    {% if student.faculty %}
+                    <div>
+                        <dt>Faculty / College / School</dt>
+                        <dd>{{ student.faculty }}</dd>
+                    </div>
+                    {% endif %}
+
+                    <div>
+                        <dt>Preferred location</dt>
+                        <dd>
+                            {% if student.preferred_city
+                            and student.preferred_state %}
+                            {{ student.preferred_city }},
+                            {{ student.preferred_state }}
+                            {% elif student.preferred_state %}
+                            {{ student.preferred_state }}
+                            {% else %}
+                            Not provided
+                            {% endif %}
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>Area of interest</dt>
+                        <dd>
+                            {{ student.area_of_interest or 'Not provided' }}
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>Organization preference</dt>
+                        <dd>
+                            {{ student.preferred_org_type or 'Not provided' }}
+                        </dd>
+                    </div>
+
+                </dl>
+
+
+                {% if student.skills %}
+
+                <div class="dashboard-skills">
+                    <span class="dashboard-source-label">
+                        Skills
+                    </span>
+
+                    <div class="dashboard-skill-list">
+                        {% for skill in student.to_dict()['skills'] %}
+                        <span>{{ skill }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {% endif %}
+
+
+                <a href="{{ url_for('student.profile') }}" class="btn btn-outline dashboard-full-button">
+                    Update Profile
+                </a>
+            </section>
+
+
+            <!-- SIWES RESOURCES -->
+            <section class="dashboard-side-card dashboard-resource-card">
+                <div class="dashboard-side-heading">
+                    <span class="dashboard-section-kicker">
+                        SIWES resources
+                    </span>
+
+                    <h2>Useful guidance</h2>
+
+                    <p>
+                        Quick access to guidance that can help during your
+                        training journey.
+                    </p>
+                </div>
+
+
+                <nav class="dashboard-resource-links" aria-label="SIWES resources">
+                    <a href="{{ url_for(
+                            'main.guide_detail',
+                            slug='how-to-prepare-for-siwes'
+                        ) }}">
+                        <span>
+                            Preparing for SIWES
+                        </span>
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
+
+                    <a href="{{ url_for(
+                            'main.guide_detail',
+                            slug='siwes-logbook'
+                        ) }}">
+                        <span>
+                            SIWES logbook guidance
+                        </span>
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
+
+                    <a href="{{ url_for(
+                            'main.guide_detail',
+                            slug='weekly-activities'
+                        ) }}">
+                        <span>
+                            Weekly activities
+                        </span>
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
+
+                    <a href="{{ url_for(
+                            'main.guide_detail',
+                            slug='siwes-report'
+                        ) }}">
+                        <span>
+                            SIWES report guidance
+                        </span>
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
+                </nav>
+
+
+                <a href="{{ url_for('main.siwes_guide') }}" class="dashboard-guide-link">
+                    Explore the SIWES Guide
+                    <span aria-hidden="true">&rarr;</span>
+                </a>
+            </section>
+
+
+            <!-- DATA CONTEXT -->
+            <section class="dashboard-context-card">
+                <div class="dashboard-context-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <circle cx="12" cy="12" r="8.5" />
+                        <path d="M12 10.5v5M12 7.5h.01" />
+                    </svg>
+                </div>
+
+                <div>
+                    <strong>About placement information</strong>
+
+                    <p>
+                        DSA keeps organization sources, internal review
+                        information and current intake evidence separate.
+                        Always confirm current placement availability with
+                        the organization before making decisions.
+                    </p>
+                </div>
+            </section>
+
+        </aside>
+
     </div>
-</div>
+
+</section>
+
 {% endblock %}
