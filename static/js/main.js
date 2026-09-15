@@ -376,4 +376,47 @@ document.addEventListener("DOMContentLoaded", () => {
             closeModal(activeModal);
         }
     });
+
+
+    /* ================================================================
+       Password visibility controls
+       ================================================================ */
+
+    const passwordToggles =
+        document.querySelectorAll("[data-password-toggle]");
+
+    passwordToggles.forEach((toggle) => {
+        toggle.addEventListener("click", () => {
+            const targetId =
+                toggle.getAttribute("data-password-toggle");
+
+            if (!targetId) return;
+
+            const passwordInput =
+                document.getElementById(targetId);
+
+            if (!passwordInput) return;
+
+            const isPassword =
+                passwordInput.type === "password";
+
+            passwordInput.type =
+                isPassword ? "text" : "password";
+
+            toggle.textContent =
+                isPassword ? "Hide" : "Show";
+
+            toggle.setAttribute(
+                "aria-pressed",
+                isPassword ? "true" : "false"
+            );
+
+            toggle.setAttribute(
+                "aria-label",
+                isPassword
+                    ? "Hide password"
+                    : "Show password"
+            );
+        });
+    });
 });

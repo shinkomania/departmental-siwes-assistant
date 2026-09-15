@@ -53,13 +53,13 @@ class AuthenticationTestCase(unittest.TestCase):
         response = self.client.get("/auth/register")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Create Your DSA Account", response.data)
+        self.assertIn(b"Create your account", response.data)
 
     def test_login_page_loads(self):
         response = self.client.get("/auth/login")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Welcome Back", response.data)
+        self.assertIn(b"Welcome back to", response.data)
 
     def test_registration_creates_user_and_logs_in(self):
         response = self.client.post(
