@@ -1,129 +1,474 @@
 {% extends "base.html" %}
 
-{% block title %}Search Results | Departmental SIWES Assistant{% endblock %}
+{% block title %}Placement Results | Departmental SIWES Assistant{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-        <div>
-            <div class="hero-badge">
-                <span>🎯</span>
-                <span>{{ total_count }} Match{{ 'es' if total_count != 1 else '' }} Found</span>
-            </div>
-            <h1 style="font-size: 2.25rem; margin-bottom: 0.25rem;">Placement Organizations</h1>
-            <p style="color: var(--text-muted); font-size: 0.95rem;">
-                Showing matches for:
-                <strong>{{ query_params.state or 'All States' }}</strong>
-                {% if query_params.city %} • City: <strong>{{ query_params.city }}</strong>{% endif %}
-                {% if query_params.interest %} • Field: <strong>{{ query_params.interest }}</strong>{% endif %}
-                {% if query_params.org_type %} • Type: <strong>{{ query_params.org_type }}</strong>{% endif %}
-                {% if query_params.keywords %} • Keyword: <strong>"{{ query_params.keywords }}"</strong>{% endif %}
+<section class="placement-results-page">
+
+    <!-- Results header -->
+    <div class="results-header">
+        <div class="results-header-copy">
+            <span class="section-eyebrow">PLACEMENT DISCOVERY</span>
+
+            <h1>
+                {% if results %}
+                Organizations matching your search
+                {% else %}
+                No matching organizations yet
+                {% endif %}
+            </h1>
+
+            <p>
+                Explore organization records that match your selected location,
+                field of interest, organization type, or keywords. Review each
+                organization's source and SIWES intake information before making
+                contact.
             </p>
         </div>
 
-        <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline">
-            <span>✏️ Refine Search</span>
+        <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline results-refine-btn">
+            Refine search
         </a>
     </div>
-</div>
 
-<!-- Live Web Research Transparency Status Banner -->
-<div class="notice-banner">
-    <div class="icon">ℹ️</div>
-    <div>
-        <strong>Search Transparency Notice:</strong>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
-            {{ live_search_status.message }}
-        </p>
-    </div>
-</div>
 
-{% if results %}
-<div class="grid-cards" style="margin-top: 1.5rem;">
-    {% for org in results %}
-    <div class="card">
-        <div class="card-header">
+    <!-- Active search criteria -->
+    <div class="results-query-summary">
+        <div class="results-query-summary__label">
+            <span class="results-query-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14Z" stroke="currentColor" stroke-width="1.8" />
+                    <path d="m16.2 16.2 3.8 3.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+            </span>
+
             <div>
-                <span class="badge {{ org.verification_status | badge_class }}">
-                    {{ org.verification_status }}
-                </span>
-                <span style="font-size: 0.75rem; color: var(--text-light); margin-left: 0.4rem;">
-                    Source: {{ org.source }}
+                <span class="results-query-kicker">YOUR SEARCH</span>
+                <strong>
+                    {{ results|length }}
+                    organization{{ '' if results|length == 1 else 's' }}
+                    in the DSA directory
+                </strong>
+            </div>
+        </div>
+
+        <div class="results-query-tags">
+            {% if query_params.state %}
+            <span class="results-query-tag">
+                State: {{ query_params.state }}
+            </span>
+            {% else %}
+            <span class="results-query-tag">
+                All states
+            </span>
+            {% endif %}
+
+            {% if query_params.city %}
+            <span class="results-query-tag">
+                City: {{ query_params.city }}
+            </span>
+            {% endif %}
+
+            {% if query_params.interest %}
+            <span class="results-query-tag">
+                Interest: {{ query_params.interest }}
+            </span>
+            {% endif %}
+
+            {% if query_params.org_type %}
+            <span class="results-query-tag">
+                Type: {{ query_params.org_type }}
+            </span>
+            {% endif %}
+
+            {% if query_params.keywords %}
+            <span class="results-query-tag">
+                Keyword: {{ query_params.keywords }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+
+    <!-- Directory / live research transparency -->
+    {% if live_search_status.message %}
+    <div class="results-transparency">
+        <span class="results-transparency__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7" />
+                <path d="M12 10.5v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                <circle cx="12" cy="7.4" r="1" fill="currentColor" />
+            </svg>
+        </span>
+
+        <div>
+            <strong>Search transparency</strong>
+            <p>{{ live_search_status.message }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+
+    {% if results %}
+
+    <div class="results-layout">
+
+        <!-- Main results -->
+        <div class="results-main">
+            <div class="results-section-heading">
+                <div>
+                    <span class="section-eyebrow">DIRECTORY RESULTS</span>
+                    <h2>Explore organizations</h2>
+                </div>
+
+                <span class="results-count">
+                    {{ results|length }}
+                    result{{ '' if results|length == 1 else 's' }}
                 </span>
             </div>
 
-            <!-- Save / Bookmark Button -->
-            <form action="{{ url_for('placement.toggle_save', org_id=org.id) }}" method="POST" style="margin: 0;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-outline btn-sm"
-                    title="{% if org.id in saved_org_ids %}Remove Bookmark{% else %}Save Organization{% endif %}"
-                    style="padding: 0.2rem 0.5rem; font-size: 0.85rem;">
-                    {% if org.id in saved_org_ids %}⭐ Saved{% else %}☆ Save{% endif %}
-                </button>
-            </form>
+
+            <div class="placement-result-list">
+                {% for org in results %}
+                <article class="placement-result-card">
+
+                    <div class="placement-result-card__top">
+                        <div class="placement-result-card__identity">
+                            <div class="placement-result-card__mark" aria-hidden="true">
+                                {{ org.name[:1]|upper }}
+                            </div>
+
+                            <div>
+                                <h3>
+                                    <a href="{{ url_for('placement.organization_detail', org_id=org.id) }}">
+                                        {{ org.name }}
+                                    </a>
+                                </h3>
+
+                                <div class="placement-result-meta">
+                                    {% if org.city or org.state %}
+                                    <span>
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <path d="M12 21s6-5.1 6-11a6 6 0 1 0-12 0c0 5.9 6 11 6 11Z"
+                                                stroke="currentColor" stroke-width="1.7" />
+                                            <circle cx="12" cy="10" r="2" stroke="currentColor" stroke-width="1.7" />
+                                        </svg>
+
+                                        {% if org.city and org.state %}
+                                        {{ org.city }}, {{ org.state }}
+                                        {% elif org.state %}
+                                        {{ org.state }}
+                                        {% else %}
+                                        {{ org.city }}
+                                        {% endif %}
+                                    </span>
+                                    {% endif %}
+
+                                    {% if org.industry %}
+                                    <span>
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <rect x="4" y="7" width="16" height="12" rx="2" stroke="currentColor"
+                                                stroke-width="1.7" />
+                                            <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"
+                                                stroke="currentColor" stroke-width="1.7" />
+                                        </svg>
+                                        {{ org.industry }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- Bookmark -->
+                        <form action="{{ url_for('placement.toggle_save', org_id=org.id) }}" method="POST"
+                            class="placement-save-form">
+
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                            <button type="submit"
+                                class="placement-save-btn {% if org.id in saved_org_ids %}is-saved{% endif %}"
+                                aria-label="{% if org.id in saved_org_ids %}Remove {{ org.name }} from saved organizations{% else %}Save {{ org.name }}{% endif %}">
+
+                                <svg viewBox="0 0 24 24"
+                                    fill="{% if org.id in saved_org_ids %}currentColor{% else %}none{% endif %}"
+                                    aria-hidden="true">
+                                    <path d="M7 4.5A1.5 1.5 0 0 1 8.5 3h7A1.5 1.5 0 0 1 17 4.5V21l-5-3-5 3V4.5Z"
+                                        stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+                                </svg>
+
+                                <span>
+                                    {% if org.id in saved_org_ids %}
+                                    Saved
+                                    {% else %}
+                                    Save
+                                    {% endif %}
+                                </span>
+                            </button>
+                        </form>
+                    </div>
+
+
+                    {% if org.description %}
+                    <p class="placement-result-description">
+                        {{ org.description|truncate(190) }}
+                    </p>
+                    {% endif %}
+
+
+                    <!-- Matching context -->
+                    {% if org.why_relevant %}
+                    <div class="placement-match-context">
+                        <span class="placement-match-context__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="M5 12.5 9.2 17 19 7" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </span>
+
+                        <div>
+                            <strong>Why this matched your search</strong>
+                            <p>{{ org.why_relevant }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+
+                    <!-- Relevance areas -->
+                    {% if org.relevance_areas %}
+                    <div class="placement-result-tags">
+                        {% for tag in org.relevance_areas %}
+                        <span>{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+
+                    <!-- Evidence / provenance -->
+                    <div class="placement-evidence-grid">
+
+                        <div class="placement-evidence-item">
+                            <span class="placement-evidence-label">
+                                RECORD SOURCE
+                            </span>
+
+                            <strong>
+                                {{ org.source_name or org.source_type or 'Source not recorded' }}
+                            </strong>
+
+                            {% if org.source_type and org.source_name %}
+                            <small>{{ org.source_type }}</small>
+                            {% endif %}
+
+                            {% if org.source_last_checked %}
+                            <small>
+                                Last checked {{ org.source_last_checked }}
+                            </small>
+                            {% endif %}
+                        </div>
+
+
+                        <div class="placement-evidence-item">
+                            <span class="placement-evidence-label">
+                                DSA REVIEW
+                            </span>
+
+                            <strong>
+                                {{ org.review_status or 'Pending' }}
+                            </strong>
+
+                            <small>
+                                Review status describes DSA's handling of this
+                                directory record.
+                            </small>
+                        </div>
+
+
+                        <div class="placement-evidence-item placement-evidence-item--intake">
+                            <span class="placement-evidence-label">
+                                SIWES INTAKE
+                            </span>
+
+                            <strong>
+                                {{ org.acceptance_status or 'Unknown' }}
+                            </strong>
+
+                            {% if org.acceptance_source_name %}
+                            <small>
+                                Evidence: {{ org.acceptance_source_name }}
+                            </small>
+                            {% elif org.acceptance_status == 'Currently Accepting' %}
+                            <small>
+                                Current intake evidence is not recorded in this
+                                directory entry.
+                            </small>
+                            {% else %}
+                            <small>
+                                Confirm current SIWES availability directly with
+                                the organization.
+                            </small>
+                            {% endif %}
+
+                            {% if org.acceptance_last_checked %}
+                            <small>
+                                Last checked {{ org.acceptance_last_checked }}
+                            </small>
+                            {% endif %}
+                        </div>
+
+                    </div>
+
+
+                    <div class="placement-result-card__footer">
+                        <div class="placement-result-source-note">
+                            Directory information should be confirmed before
+                            applying.
+                        </div>
+
+                        <div class="placement-result-actions">
+                            {% if org.website %}
+                            <a href="{{ org.website }}" target="_blank" rel="noopener noreferrer"
+                                class="btn btn-outline btn-sm">
+                                Visit website
+                            </a>
+                            {% endif %}
+
+                            <a href="{{ url_for('placement.organization_detail', org_id=org.id) }}"
+                                class="btn btn-primary btn-sm">
+                                View details
+                            </a>
+                        </div>
+                    </div>
+
+                </article>
+                {% endfor %}
+            </div>
         </div>
 
-        <h3 class="card-title" style="margin-bottom: 0.35rem;">
-            <a href="{{ url_for('placement.organization_detail', org_id=org.id) }}">
-                {{ org.name }}
-            </a>
-        </h3>
 
-        <div style="font-size: 0.85rem; color: var(--secondary-dark); font-weight: 600; margin-bottom: 0.75rem;">
-            📍 {{ org.city }}, {{ org.state }} • {{ org.industry }}
+        <!-- Results information sidebar -->
+        <aside class="results-sidebar">
+
+            <div class="results-info-card results-info-card--important">
+                <span class="results-info-card__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7" />
+                        <path d="M12 10.5v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                        <circle cx="12" cy="7.5" r="1" fill="currentColor" />
+                    </svg>
+                </span>
+
+                <span class="results-info-kicker">IMPORTANT</span>
+                <h3>Listing is not current intake</h3>
+
+                <p>
+                    An organization appearing in the DSA directory does not by
+                    itself mean that it is currently accepting SIWES students.
+                </p>
+
+                <p>
+                    Check the intake information shown on the record and confirm
+                    current opportunities directly with the organization before
+                    applying.
+                </p>
+            </div>
+
+
+            <div class="results-info-card">
+                <span class="results-info-card__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M12 3 4.5 6.5v5c0 4.5 3 7.8 7.5 9.5 4.5-1.7 7.5-5 7.5-9.5v-5L12 3Z"
+                            stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+                        <path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </span>
+
+                <span class="results-info-kicker">UNDERSTAND THE RECORD</span>
+                <h3>Source and review are different</h3>
+
+                <p>
+                    <strong>Record source</strong> tells you where the
+                    organization information came from.
+                </p>
+
+                <p>
+                    <strong>DSA review</strong> describes how the directory
+                    record has been handled internally. It is not a guarantee
+                    of placement availability.
+                </p>
+            </div>
+
+
+            <div class="results-info-card">
+                <span class="results-info-card__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path
+                            d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7A2.5 2.5 0 0 1 16.5 16H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5v-7h1Z"
+                            stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+                    </svg>
+                </span>
+
+                <span class="results-info-kicker">COMMUNITY DIRECTORY</span>
+                <h3>Know another SIWES organization?</h3>
+
+                <p>
+                    Students, staff, alumni and other contributors can suggest
+                    organizations for DSA review. Suggestions should not be
+                    treated as approved records until reviewed.
+                </p>
+
+                <a href="{{ url_for('placement.submit_organization') }}" class="results-text-link">
+                    Suggest a SIWES organization
+                    <span aria-hidden="true">&rarr;</span>
+                </a>
+            </div>
+
+        </aside>
+
+    </div>
+
+
+    {% else %}
+
+    <!-- Empty state -->
+    <div class="placement-results-empty">
+        <div class="placement-results-empty__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.7" />
+                <path d="m15.5 15.5 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                <path d="M8.5 10.5h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+            </svg>
         </div>
 
-        <p class="card-body" style="font-size: 0.9rem; margin-bottom: 0.75rem;">
-            {{ org.description | truncate(140) }}
+        <span class="section-eyebrow">NO DIRECTORY MATCHES</span>
+
+        <h2>Try a broader placement search</h2>
+
+        <p>
+            DSA could not find an organization in the current directory that
+            matches these exact filters. Try removing a city, organization
+            type, interest or keyword to broaden your search.
         </p>
 
-        <!-- Relevance Reason Callout -->
-        {% if org.why_relevant %}
-        <div
-            style="background: var(--bg-subtle); padding: 0.6rem 0.85rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-main); margin-bottom: 1rem; border-left: 2px solid var(--primary);">
-            <strong>Why it's relevant:</strong> {{ org.why_relevant }}
-        </div>
-        {% endif %}
-
-        <!-- Relevance tags -->
-        <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 1rem;">
-            {% for tag in org.relevance_areas %}
-            <span
-                style="font-size: 0.75rem; padding: 0.15rem 0.45rem; background: var(--bg-subtle); border-radius: var(--radius-sm); color: var(--text-muted);">
-                {{ tag }}
-            </span>
-            {% endfor %}
-        </div>
-
-        <div class="card-footer">
-            {% if org.website %}
-            <a href="{{ org.website }}" target="_blank" rel="noopener noreferrer"
-                style="font-size: 0.85rem; color: var(--text-muted);">
-                🌐 Website &nearr;
+        <div class="placement-results-empty__actions">
+            <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary">
+                Refine search
             </a>
-            {% else %}
-            <span></span>
-            {% endif %}
 
-            <a href="{{ url_for('placement.organization_detail', org_id=org.id) }}" class="btn btn-primary btn-sm">
-                View Details &rarr;
+            <a href="{{ url_for('placement.submit_organization') }}" class="btn btn-outline">
+                Suggest an organization
             </a>
         </div>
+
+        <div class="placement-results-empty__note">
+            <strong>Know a possible SIWES organization?</strong>
+            Suggestions are submitted for review and do not automatically
+            become approved directory records.
+        </div>
     </div>
-    {% endfor %}
-</div>
-{% else %}
-<div class="form-card" style="text-align: center; padding: 3.5rem 1.5rem;">
-    <div style="font-size: 2.5rem; margin-bottom: 1rem;">🔍</div>
-    <h3 style="margin-bottom: 0.5rem;">No Organizations Match Your Exact Search</h3>
-    <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto 1.5rem;">
-        Try broadening your search criteria (e.g. selecting "All Nigerian States" or "All Engineering Disciplines"), or
-        submit a new company.
-    </p>
-    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-        <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary">Try Another Search</a>
-        <a href="{{ url_for('placement.submit_organization') }}" class="btn btn-outline">Submit Organization</a>
-    </div>
-</div>
-{% endif %}
+
+    {% endif %}
+
+</section>
 {% endblock %}

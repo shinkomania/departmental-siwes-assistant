@@ -145,7 +145,7 @@ class PlacementSearchService:
                 'provider': 'None',
                 'message': (
                     "Live web research is not currently configured. "
-                    "You can browse verified organizations in our database or configure a search API."
+                    "You can browse organization records in the DSA directory or configure a search API."
                 ),
                 'results': []
             }
@@ -195,6 +195,6 @@ class PlacementSearchService:
             relevance_parts.append(f"Located in your preferred state ({org.state})")
             
         if relevance_parts:
-            return " • ".join(relevance_parts) + f". Specializes in {org.industry}."
+            return " â€¢ ".join(relevance_parts) + f". Specializes in {org.industry}."
         
         return f"Engages in {org.relevance_areas} in {org.city}, {org.state}."
