@@ -8,12 +8,14 @@
     <title>{% block title %}Departmental SIWES Assistant{% endblock %} | DSA</title>
 
     <meta name="description"
-        content="{% block meta_description %}Departmental SIWES Assistant (DSA) helps students across Nigerian tertiary institutions navigate SIWES, discover placement opportunities, access guidance, and manage their industrial training journey.{% endblock %}">
+        content="{% block meta_description %}Departmental SIWES Assistant (DSA) helps students and institutions across Nigeria navigate SIWES, discover placement opportunities, access relevant guidance, and manage the industrial training journey.{% endblock %}">
 
-    <meta name="theme-color" content="#0B2D5B">
+    <meta name="theme-color" content="#0B2347">
+    <meta name="color-scheme" content="light">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap"
         rel="stylesheet">
@@ -25,13 +27,19 @@
 
 <body>
 
+    <!-- ================================================================
+         GLOBAL HEADER
+         ================================================================ -->
     <header class="site-header">
         <div class="container nav-container">
 
-            <a href="{{ url_for('main.index') }}" class="brand" aria-label="DSA home">
+            <!-- Product identity -->
+            <a href="{{ url_for('main.index') }}" class="brand" aria-label="Departmental SIWES Assistant home">
+
                 <span class="brand-wordmark" aria-hidden="true">
-                    <span class="brand-letter brand-letter-d">D</span><span
-                        class="brand-letter brand-letter-s">S</span><span class="brand-letter brand-letter-a">A</span>
+                    <span class="brand-letter brand-letter-d">D</span>
+                    <span class="brand-letter brand-letter-s">S</span>
+                    <span class="brand-letter brand-letter-a">A</span>
                 </span>
 
                 <span class="brand-divider" aria-hidden="true"></span>
@@ -40,137 +48,337 @@
                     <span class="brand-full-name">Departmental</span>
                     <span class="brand-full-name">SIWES Assistant</span>
                 </span>
+
             </a>
 
-            <nav class="desktop-navigation" aria-label="Primary navigation">
+
+            <!-- Primary navigation
+                 Kept outside a hidden desktop-only wrapper so that the
+                 same navigation can become the mobile menu responsively. -->
+            <nav id="primary-navigation" aria-label="Primary navigation">
                 <ul class="nav-menu">
-                    <li><a href="{{ url_for('main.index') }}"
-                            class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}">Home</a></li>
-                    <li><a href="{{ url_for('main.siwes_guide') }}"
-                            class="nav-link {% if request.endpoint and 'guide' in request.endpoint %}active{% endif %}">SIWES
-                            Guide</a></li>
-                    <li><a href="{{ url_for('placement.search_form') }}"
-                            class="nav-link {% if request.endpoint and 'placement' in request.endpoint and request.endpoint != 'placement.submit_organization' %}active{% endif %}">Find
-                            Placement</a></li>
+
+                    <li>
+                        <a href="{{ url_for('main.index') }}"
+                            class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}" {% if
+                            request.endpoint=='main.index' %}aria-current="page" {% endif %}>
+                            Home
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="{{ url_for('main.siwes_guide') }}"
+                            class="nav-link {% if request.endpoint and 'guide' in request.endpoint %}active{% endif %}"
+                            {% if request.endpoint and 'guide' in request.endpoint %}aria-current="page" {% endif %}>
+                            SIWES Guide
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="{{ url_for('placement.search_form') }}"
+                            class="nav-link {% if request.endpoint and 'placement' in request.endpoint and request.endpoint != 'placement.submit_organization' %}active{% endif %}"
+                            {% if request.endpoint and 'placement' in request.endpoint and request.endpoint
+                            !='placement.submit_organization' %}aria-current="page" {% endif %}>
+                            Find Placement
+                        </a>
+                    </li>
+
                     {% if current_user %}
-                    <li><a href="{{ url_for('student.dashboard') }}"
-                            class="nav-link {% if request.endpoint == 'student.dashboard' %}active{% endif %}">Dashboard</a>
+
+                    <li>
+                        <a href="{{ url_for('student.dashboard') }}"
+                            class="nav-link {% if request.endpoint == 'student.dashboard' %}active{% endif %}" {% if
+                            request.endpoint=='student.dashboard' %}aria-current="page" {% endif %}>
+                            Dashboard
+                        </a>
                     </li>
-                    <li><a href="{{ url_for('student.profile') }}"
-                            class="nav-link {% if request.endpoint == 'student.profile' %}active{% endif %}">Profile</a>
+
+                    <li>
+                        <a href="{{ url_for('student.profile') }}"
+                            class="nav-link {% if request.endpoint == 'student.profile' %}active{% endif %}" {% if
+                            request.endpoint=='student.profile' %}aria-current="page" {% endif %}>
+                            Profile
+                        </a>
                     </li>
+
                     {% endif %}
-                    <li><a href="{{ url_for('main.about') }}"
-                            class="nav-link {% if request.endpoint == 'main.about' %}active{% endif %}">About</a></li>
+
+                    <li>
+                        <a href="{{ url_for('main.about') }}"
+                            class="nav-link {% if request.endpoint == 'main.about' %}active{% endif %}" {% if
+                            request.endpoint=='main.about' %}aria-current="page" {% endif %}>
+                            About
+                        </a>
+                    </li>
+
                 </ul>
             </nav>
 
+
+            <!-- Account actions -->
             <div class="nav-actions">
+
                 {% if current_user %}
+
                 <span class="user-tag" title="Signed in as {{ current_user.full_name }}">
-                    <span class="user-avatar" aria-hidden="true">{{ current_user.full_name[:1] | upper }}</span>
-                    <span class="user-name">{{ current_user.full_name.split(' ')[0] }}</span>
+                    <span class="user-avatar" aria-hidden="true">
+                        {{ current_user.full_name[:1] | upper }}
+                    </span>
+
+                    <span class="user-name">
+                        {{ current_user.full_name.split(' ')[0] }}
+                    </span>
                 </span>
 
                 {% if can_access_platform_admin %}
-                <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary btn-sm">Admin</a>
+                <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary btn-sm">
+                    Admin
+                </a>
                 {% endif %}
 
                 <form method="POST" action="{{ url_for('auth.logout') }}" class="nav-logout-form">
+
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-outline btn-sm">Sign Out</button>
+
+                    <button type="submit" class="btn btn-outline btn-sm">
+                        Sign Out
+                    </button>
+
                 </form>
+
                 {% else %}
-                <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-sm">Sign In</a>
-                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm">Create Account</a>
+
+                <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-sm">
+                    Sign In
+                </a>
+
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm">
+                    Create Account
+                </a>
+
                 {% endif %}
+
             </div>
 
-            <button class="mobile-toggle" type="button" aria-label="Toggle navigation menu" aria-expanded="false">
-                <span></span><span></span><span></span>
+
+            <!-- Mobile navigation control -->
+            <button class="mobile-toggle" type="button" aria-label="Open navigation menu"
+                aria-controls="primary-navigation" aria-expanded="false">
+
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+
             </button>
 
         </div>
     </header>
 
-    <main class="main-content">
+
+    <!-- ================================================================
+         MAIN APPLICATION CONTENT
+         ================================================================ -->
+    <main class="main-content" id="main-content">
+
         <div class="container">
+
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-            <div class="flash-container" aria-live="polite">
+
+            <div class="flash-container" aria-live="polite" aria-atomic="true">
+
                 {% for category, message in messages %}
-                <div class="alert alert-{{ category }}"><span>{{ message }}</span></div>
+
+                <div class="alert alert-{{ category }}"
+                    role="{% if category in ['danger', 'error'] %}alert{% else %}status{% endif %}">
+
+                    <span>{{ message }}</span>
+
+                </div>
+
                 {% endfor %}
+
             </div>
+
             {% endif %}
             {% endwith %}
 
+
             {% block content %}{% endblock %}
+
         </div>
+
     </main>
 
+
+    <!-- ================================================================
+         GLOBAL FOOTER
+         ================================================================ -->
     <footer class="site-footer">
+
         <div class="container">
+
             <div class="footer-grid">
 
+                <!-- Product -->
                 <div class="footer-brand-column">
-                    <a href="{{ url_for('main.index') }}" class="brand footer-brand" aria-label="DSA home">
+
+                    <a href="{{ url_for('main.index') }}" class="brand footer-brand"
+                        aria-label="Departmental SIWES Assistant home">
+
                         <span class="brand-wordmark" aria-hidden="true">
-                            <span class="brand-letter brand-letter-d">D</span><span
-                                class="brand-letter brand-letter-s">S</span><span
-                                class="brand-letter brand-letter-a">A</span>
+
+                            <span class="brand-letter brand-letter-d">D</span>
+                            <span class="brand-letter brand-letter-s">S</span>
+                            <span class="brand-letter brand-letter-a">A</span>
+
                         </span>
 
                         <span class="brand-divider" aria-hidden="true"></span>
 
                         <span class="brand-copy">
-                            <span class="brand-full-name">Departmental</span>
-                            <span class="brand-full-name">SIWES Assistant</span>
+
+                            <span class="brand-full-name">
+                                Departmental
+                            </span>
+
+                            <span class="brand-full-name">
+                                SIWES Assistant
+                            </span>
+
                         </span>
+
                     </a>
 
-                    <p class="footer-description">Smarter SIWES support for students and institutions across Nigeria.
+
+                    <p class="footer-description">
+                        Smarter SIWES support for students and institutions
+                        across Nigeria.
                     </p>
-                    <p class="powered-by">Powered by <strong>ShinkomaniaPlug</strong></p>
+
+                    <p class="powered-by">
+                        Powered by <strong>ShinkomaniaPlug</strong>
+                    </p>
+
                 </div>
 
+
+                <!-- Explore -->
                 <div>
-                    <h4 class="footer-heading">Explore</h4>
+
+                    <h2 class="footer-heading">
+                        Explore
+                    </h2>
+
                     <ul class="footer-links">
-                        <li><a href="{{ url_for('main.siwes_guide') }}">SIWES Guide</a></li>
-                        <li><a href="{{ url_for('placement.search_form') }}">Find Placement</a></li>
-                        <li><a href="{{ url_for('placement.submit_organization') }}">Suggest an Organization</a></li>
-                        <li><a href="{{ url_for('main.about') }}">About DSA</a></li>
+
+                        <li>
+                            <a href="{{ url_for('main.siwes_guide') }}">
+                                SIWES Guide
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('placement.search_form') }}">
+                                Find Placement
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('placement.submit_organization') }}">
+                                Suggest an Organization
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('main.about') }}">
+                                About DSA
+                            </a>
+                        </li>
+
                     </ul>
+
                 </div>
 
+
+                <!-- Account -->
                 <div>
-                    <h4 class="footer-heading">Your DSA</h4>
+
+                    <h2 class="footer-heading">
+                        Your DSA
+                    </h2>
+
                     <ul class="footer-links">
+
                         {% if current_user %}
-                        <li><a href="{{ url_for('student.dashboard') }}">Dashboard</a></li>
-                        <li><a href="{{ url_for('student.profile') }}">Profile</a></li>
+
+                        <li>
+                            <a href="{{ url_for('student.dashboard') }}">
+                                Dashboard
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('student.profile') }}">
+                                Profile
+                            </a>
+                        </li>
+
                         {% if can_access_platform_admin %}
-                        <li><a href="{{ url_for('admin.dashboard') }}">Platform Administration</a></li>
+
+                        <li>
+                            <a href="{{ url_for('admin.dashboard') }}">
+                                Platform Administration
+                            </a>
+                        </li>
+
                         {% endif %}
+
                         {% else %}
-                        <li><a href="{{ url_for('auth.login') }}">Sign In</a></li>
-                        <li><a href="{{ url_for('auth.register') }}">Create Account</a></li>
+
+                        <li>
+                            <a href="{{ url_for('auth.login') }}">
+                                Sign In
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('auth.register') }}">
+                                Create Account
+                            </a>
+                        </li>
+
                         {% endif %}
+
                     </ul>
+
                 </div>
 
             </div>
+
 
             <div class="footer-bottom">
-                <p>&copy; {{ current_year }} Departmental SIWES Assistant.</p>
-                <p class="footer-product-note">Built for a clearer, more organized SIWES experience.</p>
+
+                <p>
+                    &copy; {{ current_year }}
+                    Departmental SIWES Assistant.
+                </p>
+
+                <p class="footer-product-note">
+                    Built for a clearer, more organized SIWES experience.
+                </p>
+
             </div>
+
         </div>
+
     </footer>
 
+
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
     {% block extra_scripts %}{% endblock %}
+
 </body>
 
 </html>

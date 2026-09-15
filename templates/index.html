@@ -1,203 +1,758 @@
 {% extends "base.html" %}
 
-{% block title %}Home - Departmental SIWES Assistant{% endblock %}
+{% block title %}Smarter SIWES Support{% endblock %}
+
+{% block meta_description %}Departmental SIWES Assistant (DSA) helps students and institutions across Nigeria understand
+SIWES requirements, discover placement opportunities, access relevant guidance, and organize the industrial training
+journey.{% endblock %}
+
 
 {% block content %}
-<!-- Hero Section -->
-<section class="hero" style="margin: -2rem -1.5rem 3rem -1.5rem; padding: 4rem 1.5rem;">
-    <div class="container">
-        <div class="hero-grid">
-            <div>
-                <div class="hero-badge">
-                    <span>🇳🇬</span>
-                    <span>For Computer Engineering & Tech Students</span>
-                </div>
-                <h1 class="hero-title">
-                    Departmental <span class="gradient-text">SIWES Assistant</span>
-                </h1>
-                <p class="hero-subtitle">
-                    Your comprehensive guide to SIWES information, verified industrial training placements across Nigeria, logbook guidance, and application management.
-                </p>
-                <div class="hero-cta">
-                    <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary btn-lg">
-                        <span>🔍 Find Placement</span>
-                    </a>
-                    <a href="{{ url_for('main.siwes_guide') }}" class="btn btn-outline btn-lg">
-                        <span>📖 Read SIWES Guide</span>
-                    </a>
-                    {% if not current_student %}
-                    <a href="{{ url_for('student.profile') }}" class="btn btn-secondary btn-lg">
-                        <span>👤 Create Profile</span>
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
 
-            <!-- Hero Quick Search Widget -->
-            <div class="hero-card">
-                <h3 style="margin-bottom: 0.5rem; font-size: 1.25rem;">Quick Placement Search</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
-                    Filter verified Nigerian tech organizations by state and engineering focus.
-                </p>
-                <form action="{{ url_for('placement.search_results') }}" method="GET">
-                    <div class="form-group" style="margin-bottom: 0.75rem;">
-                        <label class="form-label" style="font-size: 0.8rem;">Preferred State</label>
-                        <select name="state" class="form-control" style="padding: 0.5rem 0.75rem; font-size: 0.9rem;">
-                            <option value="">All Nigerian States</option>
-                            <option value="FCT Abuja">FCT Abuja</option>
-                            <option value="Lagos">Lagos</option>
-                            <option value="Kaduna">Kaduna</option>
-                            <option value="Kano">Kano</option>
-                            <option value="Rivers">Rivers</option>
-                            <option value="Enugu">Enugu</option>
-                            <option value="Oyo">Oyo</option>
-                        </select>
-                    </div>
+<!-- ======================================================================
+     HERO
+     ====================================================================== -->
+<section class="hero">
 
-                    <div class="form-group" style="margin-bottom: 1rem;">
-                        <label class="form-label" style="font-size: 0.8rem;">Area of Interest</label>
-                        <select name="interest" class="form-control" style="padding: 0.5rem 0.75rem; font-size: 0.9rem;">
-                            <option value="">All Engineering Disciplines</option>
-                            <option value="Software Development">Software Development</option>
-                            <option value="Artificial Intelligence">Artificial Intelligence & ML</option>
-                            <option value="Networking & Telecommunications">Networking & Telecom</option>
-                            <option value="Cybersecurity">Cybersecurity</option>
-                            <option value="Embedded Systems & IoT">Embedded Systems & IoT</option>
-                            <option value="Cloud Computing & DevOps">Cloud & DevOps</option>
-                        </select>
-                    </div>
+    <div class="hero-grid">
 
-                    <button type="submit" class="btn btn-primary" style="width: 100%;">
-                        Search Verified Placements
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Quick Stats Section -->
-<section style="margin-bottom: 3.5rem;">
-    <div class="stats-grid">
-        <div class="stat-card">
-            <span class="stat-label">Verified Organizations</span>
-            <span class="stat-value">{{ verified_orgs_count }}+</span>
-            <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Across Lagos, Abuja, Kaduna, Kano, Enugu & more</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-label">Curated Guide Modules</span>
-            <span class="stat-value">{{ guide_topics_count }}</span>
-            <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">From ITF Form 8 to Final Technical Defense</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-label">Programme Duration</span>
-            <span class="stat-value">6 Months</span>
-            <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Standard 400L University Engineering SIWES</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-label">Data Transparency</span>
-            <span class="stat-value">100%</span>
-            <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Zero fabricated companies; verified sources only</span>
-        </div>
-    </div>
-</section>
-
-<!-- Core SIWES Journey Steps -->
-<section style="margin-bottom: 4rem;">
-    <div style="text-align: center; max-width: 650px; margin: 0 auto 2.5rem;">
-        <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">The SIWES Success Pathway</h2>
-        <p style="color: var(--text-muted);">Four structured phases to help you maximize your 6-month industrial work experience.</p>
-    </div>
-
-    <div class="grid-cards">
-        <div class="card">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">1️⃣</div>
-            <h3 class="card-title" style="margin-bottom: 0.5rem;">Discover & Apply</h3>
-            <p class="card-body">
-                Search verified organizations aligning with your computer engineering interests (Software, Hardware, Telecom, AI). Track submission dates and responses.
-            </p>
-            <div class="card-footer">
-                <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline btn-sm">Find Companies &rarr;</a>
-            </div>
-        </div>
-
-        <div class="card">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">2️⃣</div>
-            <h3 class="card-title" style="margin-bottom: 0.5rem;">Documentation & ITF Form 8</h3>
-            <p class="card-body">
-                Obtain your introductory letter, secure an acceptance endorsement, and submit your ITF Form 8 to your university coordinator and nearest ITF area office.
-            </p>
-            <div class="card-footer">
-                <a href="{{ url_for('main.guide_detail', slug='how-to-prepare-for-siwes') }}" class="btn btn-outline btn-sm">Checklist &rarr;</a>
-            </div>
-        </div>
-
-        <div class="card">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">3️⃣</div>
-            <h3 class="card-title" style="margin-bottom: 0.5rem;">Logbook & Weekly Records</h3>
-            <p class="card-body">
-                Record technical daily activities, circuit diagrams, code structures, and get weekly supervisor endorsements to ensure complete compliance.
-            </p>
-            <div class="card-footer">
-                <a href="{{ url_for('main.guide_detail', slug='siwes-logbook') }}" class="btn btn-outline btn-sm">Logbook Rules &rarr;</a>
-            </div>
-        </div>
-
-        <div class="card">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">4️⃣</div>
-            <h3 class="card-title" style="margin-bottom: 0.5rem;">Report Writing & Defense</h3>
-            <p class="card-body">
-                Format your final technical report according to departmental standards and prepare high-impact presentation slides for your oral defense.
-            </p>
-            <div class="card-footer">
-                <a href="{{ url_for('main.guide_detail', slug='siwes-report') }}" class="btn btn-outline btn-sm">Report Guide &rarr;</a>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Featured SIWES Guide Modules -->
-<section style="margin-bottom: 4rem;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;">
+        <!-- Hero message -->
         <div>
-            <h2 style="font-size: 1.8rem; margin-bottom: 0.25rem;">SIWES Essential Guidance</h2>
-            <p style="color: var(--text-muted);">Practical guidelines curated for engineering and technology trainees.</p>
+
+            <div class="hero-badge">
+                <span aria-hidden="true">DSA</span>
+                <span>Built for Nigeria's SIWES journey</span>
+            </div>
+
+            <h1 class="hero-title">
+                Your SIWES journey,
+                <span class="gradient-text">made clearer.</span>
+            </h1>
+
+            <p class="hero-subtitle">
+                Understand what to do, discover placement opportunities,
+                organize your applications, and access practical SIWES
+                guidance in one place.
+            </p>
+
+            <div class="hero-cta">
+
+                <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary btn-lg">
+                    Explore Placements
+                    <span aria-hidden="true">&rarr;</span>
+                </a>
+
+                <a href="{{ url_for('main.siwes_guide') }}" class="btn btn-outline btn-lg">
+                    Explore SIWES Guide
+                </a>
+
+                {% if current_user and not current_student %}
+
+                <a href="{{ url_for('student.profile') }}" class="btn btn-secondary btn-lg">
+                    Complete Your Profile
+                </a>
+
+                {% elif not current_user %}
+
+                <a href="{{ url_for('auth.register') }}" class="btn btn-secondary btn-lg">
+                    Get Started
+                </a>
+
+                {% endif %}
+
+            </div>
+
         </div>
-        <a href="{{ url_for('main.siwes_guide') }}" class="btn btn-outline">View All Topics &rarr;</a>
+
+
+        <!-- Journey panel -->
+        <aside class="hero-card" aria-label="What you can do with DSA">
+
+            <div class="section-eyebrow">
+                Your SIWES workspace
+            </div>
+
+            <h2 style="font-size: 1.65rem; margin-bottom: 0.65rem;">
+                Start with what you need today.
+            </h2>
+
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                DSA brings the important parts of your industrial training
+                journey together without assuming every institution or
+                programme follows the same process.
+            </p>
+
+
+            <div class="home-action-list">
+
+                <a href="{{ url_for('placement.search_form') }}" class="home-action-item">
+
+                    <span class="home-action-icon" aria-hidden="true">
+                        01
+                    </span>
+
+                    <span class="home-action-copy">
+
+                        <strong>
+                            Discover placements
+                        </strong>
+
+                        <small>
+                            Search organizations and explore available
+                            placement information.
+                        </small>
+
+                    </span>
+
+                    <span class="home-action-arrow" aria-hidden="true">
+                        &rarr;
+                    </span>
+
+                </a>
+
+
+                <a href="{{ url_for('main.siwes_guide') }}" class="home-action-item">
+
+                    <span class="home-action-icon" aria-hidden="true">
+                        02
+                    </span>
+
+                    <span class="home-action-copy">
+
+                        <strong>
+                            Understand SIWES
+                        </strong>
+
+                        <small>
+                            Find practical guidance for preparation,
+                            documentation and training.
+                        </small>
+
+                    </span>
+
+                    <span class="home-action-arrow" aria-hidden="true">
+                        &rarr;
+                    </span>
+
+                </a>
+
+
+                {% if current_user %}
+
+                <a href="{{ url_for('student.dashboard') }}" class="home-action-item">
+
+                    <span class="home-action-icon" aria-hidden="true">
+                        03
+                    </span>
+
+                    <span class="home-action-copy">
+
+                        <strong>
+                            Open your workspace
+                        </strong>
+
+                        <small>
+                            Manage saved organizations and your
+                            placement activity.
+                        </small>
+
+                    </span>
+
+                    <span class="home-action-arrow" aria-hidden="true">
+                        &rarr;
+                    </span>
+
+                </a>
+
+                {% else %}
+
+                <a href="{{ url_for('auth.register') }}" class="home-action-item">
+
+                    <span class="home-action-icon" aria-hidden="true">
+                        03
+                    </span>
+
+                    <span class="home-action-copy">
+
+                        <strong>
+                            Build your workspace
+                        </strong>
+
+                        <small>
+                            Create an account and organize your
+                            SIWES journey.
+                        </small>
+
+                    </span>
+
+                    <span class="home-action-arrow" aria-hidden="true">
+                        &rarr;
+                    </span>
+
+                </a>
+
+                {% endif %}
+
+            </div>
+
+        </aside>
+
     </div>
 
-    <div class="grid-cards">
-        {% for guide in featured_guides %}
-        <div class="card">
-            <div class="card-header">
-                <span class="badge badge-online">{{ guide.category }}</span>
-                <span style="font-size: 0.8rem; color: var(--text-light);">Topic #{{ guide.order_num }}</span>
-            </div>
-            <h3 class="card-title" style="font-size: 1.15rem; margin-bottom: 0.5rem;">
-                <a href="{{ url_for('main.guide_detail', slug=guide.slug) }}">{{ guide.title }}</a>
+</section>
+
+
+<!-- ======================================================================
+     PRODUCT TRUST STRIP
+     ====================================================================== -->
+<section class="home-trust-strip" aria-label="DSA principles">
+
+    <div class="home-trust-item">
+
+        <span class="home-trust-marker" aria-hidden="true"></span>
+
+        <div>
+            <strong>Programme-aware</strong>
+            <span>
+                Built for different SIWES pathways and disciplines.
+            </span>
+        </div>
+
+    </div>
+
+
+    <div class="home-trust-item">
+
+        <span class="home-trust-marker" aria-hidden="true"></span>
+
+        <div>
+            <strong>Source-conscious</strong>
+            <span>
+                Placement information is designed around clear provenance.
+            </span>
+        </div>
+
+    </div>
+
+
+    <div class="home-trust-item">
+
+        <span class="home-trust-marker" aria-hidden="true"></span>
+
+        <div>
+            <strong>Student-focused</strong>
+            <span>
+                Practical tools for navigating the SIWES journey.
+            </span>
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ======================================================================
+     CORE PRODUCT VALUE
+     ====================================================================== -->
+<section class="section">
+
+    <div class="section-header-centered">
+
+        <span class="section-eyebrow">
+            One journey. One workspace.
+        </span>
+
+        <h2 class="section-title">
+            Everything important, easier to find.
+        </h2>
+
+        <p class="section-description">
+            DSA is designed to reduce the confusion around SIWES by bringing
+            guidance, placement discovery and student workflow into a
+            clearer experience.
+        </p>
+
+    </div>
+
+
+    <div class="home-feature-grid">
+
+        <article class="card feature-card">
+
+            <span class="feature-number" aria-hidden="true">
+                01
+            </span>
+
+            <h3 class="card-title">
+                Understand your SIWES
             </h3>
-            <p class="card-body" style="font-size: 0.9rem;">
+
+            <p class="card-body">
+                Access practical guidance for preparing, documenting and
+                completing your industrial training while keeping room for
+                institution and programme-specific requirements.
+            </p>
+
+            <div class="card-footer">
+
+                <a href="{{ url_for('main.siwes_guide') }}">
+                    Browse guidance
+                    <span aria-hidden="true">&rarr;</span>
+                </a>
+
+            </div>
+
+        </article>
+
+
+        <article class="card feature-card">
+
+            <span class="feature-number" aria-hidden="true">
+                02
+            </span>
+
+            <h3 class="card-title">
+                Discover opportunities
+            </h3>
+
+            <p class="card-body">
+                Explore organizations relevant to industrial training and
+                make better placement decisions using available source and
+                organization information.
+            </p>
+
+            <div class="card-footer">
+
+                <a href="{{ url_for('placement.search_form') }}">
+                    Find placements
+                    <span aria-hidden="true">&rarr;</span>
+                </a>
+
+            </div>
+
+        </article>
+
+
+        <article class="card feature-card">
+
+            <span class="feature-number" aria-hidden="true">
+                03
+            </span>
+
+            <h3 class="card-title">
+                Organize your applications
+            </h3>
+
+            <p class="card-body">
+                Save organizations and keep track of your placement journey
+                from initial interest through the stages that follow.
+            </p>
+
+            <div class="card-footer">
+
+                {% if current_user %}
+
+                <a href="{{ url_for('student.dashboard') }}">
+                    Open dashboard
+                    <span aria-hidden="true">&rarr;</span>
+                </a>
+
+                {% else %}
+
+                <a href="{{ url_for('auth.register') }}">
+                    Create your account
+                    <span aria-hidden="true">&rarr;</span>
+                </a>
+
+                {% endif %}
+
+            </div>
+
+        </article>
+
+
+        <article class="card feature-card">
+
+            <span class="feature-number" aria-hidden="true">
+                04
+            </span>
+
+            <h3 class="card-title">
+                Get relevant support
+            </h3>
+
+            <p class="card-body">
+                DSA is being built around institutions, departments and
+                programmes so students can eventually receive guidance
+                relevant to their actual SIWES structure.
+            </p>
+
+            <div class="card-footer">
+
+                <a href="{{ url_for('main.about') }}">
+                    How DSA works
+                    <span aria-hidden="true">&rarr;</span>
+                </a>
+
+            </div>
+
+        </article>
+
+    </div>
+
+</section>
+
+
+<!-- ======================================================================
+     SIWES JOURNEY
+     ====================================================================== -->
+<section class="section home-journey-section">
+
+    <div class="home-section-split">
+
+        <div class="section-header">
+
+            <span class="section-eyebrow">
+                From preparation to completion
+            </span>
+
+            <h2 class="section-title">
+                A clearer view of your SIWES journey.
+            </h2>
+
+            <p class="section-description">
+                Your exact requirements may depend on your institution and
+                programme, but DSA helps you keep the major parts of the
+                journey organized.
+            </p>
+
+        </div>
+
+
+        <a href="{{ url_for('main.siwes_guide') }}" class="btn btn-outline">
+            View SIWES Guide
+        </a>
+
+    </div>
+
+
+    <div class="home-journey-grid">
+
+        <article class="home-journey-item">
+
+            <div class="home-journey-number">
+                1
+            </div>
+
+            <div>
+
+                <h3>
+                    Prepare
+                </h3>
+
+                <p>
+                    Understand the requirements that apply to you and get
+                    ready for your placement search.
+                </p>
+
+            </div>
+
+        </article>
+
+
+        <article class="home-journey-item">
+
+            <div class="home-journey-number">
+                2
+            </div>
+
+            <div>
+
+                <h3>
+                    Find a placement
+                </h3>
+
+                <p>
+                    Discover organizations and identify opportunities
+                    relevant to your field and preferred location.
+                </p>
+
+            </div>
+
+        </article>
+
+
+        <article class="home-journey-item">
+
+            <div class="home-journey-number">
+                3
+            </div>
+
+            <div>
+
+                <h3>
+                    Complete your training
+                </h3>
+
+                <p>
+                    Keep your records organized and follow the guidance
+                    required during your industrial experience.
+                </p>
+
+            </div>
+
+        </article>
+
+
+        <article class="home-journey-item">
+
+            <div class="home-journey-number">
+                4
+            </div>
+
+            <div>
+
+                <h3>
+                    Wrap up properly
+                </h3>
+
+                <p>
+                    Prepare the documentation, report or other completion
+                    requirements applicable to your programme.
+                </p>
+
+            </div>
+
+        </article>
+
+    </div>
+
+</section>
+
+
+<!-- ======================================================================
+     GUIDANCE
+     ====================================================================== -->
+<section class="section">
+
+    <div class="home-section-split">
+
+        <div class="section-header">
+
+            <span class="section-eyebrow">
+                SIWES knowledge
+            </span>
+
+            <h2 class="section-title">
+                Practical guidance when you need it.
+            </h2>
+
+            <p class="section-description">
+                Explore available DSA guidance covering important parts of
+                the industrial training process.
+            </p>
+
+        </div>
+
+
+        <a href="{{ url_for('main.siwes_guide') }}" class="btn btn-outline">
+            View all topics
+        </a>
+
+    </div>
+
+
+    {% if featured_guides %}
+
+    <div class="grid-cards">
+
+        {% for guide in featured_guides %}
+
+        <article class="card home-guide-card">
+
+            <div class="card-header">
+
+                <span class="badge badge-online">
+                    {{ guide.category }}
+                </span>
+
+                <span class="home-topic-number">
+                    Topic {{ guide.order_num }}
+                </span>
+
+            </div>
+
+
+            <h3 class="card-title">
+
+                <a href="{{ url_for('main.guide_detail', slug=guide.slug) }}">
+                    {{ guide.title }}
+                </a>
+
+            </h3>
+
+
+            <p class="card-body">
                 {{ guide.summary }}
             </p>
+
+
             <div class="card-footer">
-                <a href="{{ url_for('main.guide_detail', slug=guide.slug) }}" style="font-weight: 600; font-size: 0.85rem;">
-                    Read Topic &rarr;
+
+                <a href="{{ url_for('main.guide_detail', slug=guide.slug) }}">
+                    Read topic
+                    <span aria-hidden="true">&rarr;</span>
                 </a>
+
             </div>
-        </div>
+
+        </article>
+
         {% endfor %}
+
     </div>
+
+    {% else %}
+
+    <div class="empty-state">
+
+        <h3>
+            Guidance is being prepared
+        </h3>
+
+        <p>
+            SIWES guidance will appear here as topics become available.
+        </p>
+
+    </div>
+
+    {% endif %}
+
 </section>
 
-<!-- Call to Action Banner -->
-<section class="form-card" style="background: linear-gradient(135deg, var(--bg-surface), var(--primary-light)); text-align: center; padding: 3rem 1.5rem;">
-    <h2 style="font-size: 1.85rem; margin-bottom: 0.75rem;">Ready to Kickstart Your SIWES Placement?</h2>
-    <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto 1.5rem;">
-        Create your student profile today to save preferred technology companies, track your application stages, and prepare your logbook documentation.
-    </p>
-    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-        <a href="{{ url_for('student.profile') }}" class="btn btn-primary btn-lg">Set Up Student Profile</a>
-        <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline btn-lg">Browse Verified Companies</a>
+
+<!-- ======================================================================
+     TRANSPARENCY / CONTRIBUTION
+     ====================================================================== -->
+<section class="section-sm">
+
+    <div class="home-transparency-panel">
+
+        <div>
+
+            <span class="section-eyebrow">
+                Better placement information
+            </span>
+
+            <h2>
+                Know where placement information comes from.
+            </h2>
+
+            <p>
+                DSA is being designed to distinguish organization
+                information by its source and review status instead of
+                treating every listing as automatically verified or
+                currently accepting students.
+            </p>
+
+        </div>
+
+
+        <div class="home-transparency-actions">
+
+            <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary">
+                Explore Organizations
+            </a>
+
+            {% if current_user %}
+
+            <a href="{{ url_for('placement.submit_organization') }}" class="btn btn-outline">
+                Suggest an Organization
+            </a>
+
+            {% else %}
+
+            <a href="{{ url_for('auth.login', next=url_for('placement.submit_organization')) }}"
+                class="btn btn-outline">
+                Sign In to Contribute
+            </a>
+
+            {% endif %}
+
+        </div>
+
     </div>
+
 </section>
+
+
+<!-- ======================================================================
+     FINAL CTA
+     ====================================================================== -->
+<section class="section-sm">
+
+    <div class="cta-panel cta-panel-centered">
+
+        {% if current_user %}
+
+        <span class="section-eyebrow">
+            Your DSA workspace
+        </span>
+
+        <h2>
+            Keep your SIWES journey organized.
+        </h2>
+
+        <p>
+            Use your workspace to manage your profile, saved organizations
+            and placement activity as you move through SIWES.
+        </p>
+
+
+        <div class="cta-actions">
+
+            <a href="{{ url_for('student.dashboard') }}" class="btn btn-primary btn-lg">
+                Open Dashboard
+            </a>
+
+            <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline btn-lg">
+                Explore Placements
+            </a>
+
+        </div>
+
+        {% else %}
+
+        <span class="section-eyebrow">
+            Start your SIWES workspace
+        </span>
+
+        <h2>
+            Give your SIWES journey one place to live.
+        </h2>
+
+        <p>
+            Create a DSA account to build your student profile, save
+            organizations and organize your placement journey.
+        </p>
+
+
+        <div class="cta-actions">
+
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">
+                Create Free Account
+            </a>
+
+            <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline btn-lg">
+                Explore First
+            </a>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</section>
+
 {% endblock %}
