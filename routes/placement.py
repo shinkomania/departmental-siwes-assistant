@@ -392,14 +392,17 @@ def track_application(org_id):
 )
 def submit_organization():
     """
-    Legacy organization contribution route.
+    Accept a community suggestion for a potential SIWES organization.
 
-    Organization provenance/review workflow will be migrated separately.
+    Only authenticated, active DSA users may contribute suggestions.
+    A StudentProfile is intentionally not required because contributors
+    may include students, staff, coordinators, alumni, employers, and
+    other community users.
 
-    Only authenticated active DSA users may contribute organizations.
-    A StudentProfile is intentionally not required because future
-    contributors may include students, staff, coordinators, alumni,
-    employers, and other verified community users.
+    Community contributions enter DSA as pending review. Submission does
+    not mean that DSA has verified the organization, confirmed that the
+    organization currently accepts SIWES students, or confirmed suitability
+    for any particular programme.
     """
     user = _current_user()
 
@@ -408,7 +411,6 @@ def submit_organization():
             "Please sign in before suggesting a SIWES organization.",
             "warning",
         )
-
         return redirect(
             url_for(
                 "auth.login",
@@ -454,7 +456,6 @@ def submit_organization():
                 "Please provide organization name, state, city, and industry.",
                 "danger",
             )
-
             return render_template(
                 "submit_org.html",
                 states=NIGERIAN_STATES,
@@ -462,11 +463,19 @@ def submit_organization():
                 org_types=ORGANIZATION_TYPES,
             )
 
+        contribution_note = (
+            why_relevant
+            or (
+                "Suggested by a DSA community contributor as a potential "
+                f"SIWES organization relevant to {relevance_areas or industry}."
+            )
+        )
+
         new_org = Organization(
             name=name,
             description=(
                 description
-                or f"Organization in {city}, {state}."
+                or f"Community-suggested organization in {city}, {state}."
             ),
             address=address,
             state=state,
@@ -476,31 +485,41 @@ def submit_organization():
             website=website,
             contact_email=contact_email,
             contact_phone=contact_phone,
-            verification_status="Student Submitted",
-            source="Student Submission",
-            why_relevant=(
-                why_relevant
-                or (
-                    "Recommended by a community contributor for "
-                    f"{relevance_areas or industry} industrial training."
-                )
-            ),
-            is_active=True,
+
+            # Provenance and review state
+            source_type="Community Contribution",
+            source_name="DSA Community Contribution",
+            provenance_notes=contribution_note,
+            review_status="Pending",
+
+            # A community suggestion is not automatically an approved
+            # directory listing or evidence of current SIWES intake.
+            listing_status="Unknown",
+            acceptance_status="Unknown",
+            is_active=False,
+
+            # Temporary compatibility values for legacy non-null columns.
+            # New UI and application logic must use the provenance fields above.
+            verification_status="Pending Review",
+            source="Community Contribution",
+            why_relevant=contribution_note,
         )
 
         db.session.add(new_org)
         db.session.commit()
 
         flash(
-            f'Thank you! "{name}" has been submitted.',
+            (
+                f'Thank you! "{name}" has been submitted for review. '
+                "Its submission does not confirm current SIWES intake "
+                "or programme suitability."
+            ),
             "success",
         )
 
         return redirect(
-            url_for(
-                "placement.organization_detail",
-                org_id=new_org.id,
-            )
+    url_for("placement.search_form")
+
         )
 
     return render_template(

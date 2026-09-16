@@ -1,128 +1,390 @@
 {% extends "base.html" %}
 
-{% block title %}Submit an Organization | Departmental SIWES Assistant{% endblock %}
+{% block title %}Suggest a SIWES Organization | Departmental SIWES Assistant{% endblock %}
 
 {% block content %}
-<div class="container-narrow">
-    <div style="margin-bottom: 2rem; text-align: center;">
-        <div class="hero-badge">
-            <span>🏢</span>
-            <span>Community Contributions</span>
+<section class="org-submit-page">
+    <div class="container">
+
+        <!-- Page Hero -->
+        <header class="org-submit-hero">
+            <div class="org-submit-hero-copy">
+                <div class="org-submit-eyebrow">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 5v14M5 12h14"></path>
+                    </svg>
+                    Community contribution
+                </div>
+
+                <h1>Suggest a SIWES Organization</h1>
+
+                <p>
+                    Know an organization that may provide useful industrial training
+                    opportunities? Share what you know and help DSA improve placement
+                    discovery for students across Nigeria.
+                </p>
+            </div>
+
+            <div class="org-submit-hero-card" aria-label="Submission process">
+                <div class="org-submit-process-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M9 11l3 3L22 4"></path>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                    </svg>
+                </div>
+
+                <div>
+                    <span class="org-submit-process-label">What happens next?</span>
+                    <strong>Submission → Pending review</strong>
+                    <p>
+                        DSA reviews contributed information before it is treated as
+                        part of the active placement directory.
+                    </p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Transparency Notice -->
+        <div class="org-submit-notice">
+            <div class="org-submit-notice-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <path d="M12 11v5"></path>
+                    <path d="M12 8h.01"></path>
+                </svg>
+            </div>
+
+            <div>
+                <strong>Community suggestions are not verification</strong>
+                <p>
+                    Submitting an organization does not confirm that it currently
+                    accepts SIWES students or that it is suitable for a particular
+                    institution or programme. Your contribution enters DSA as
+                    <strong>Pending Review</strong>.
+                </p>
+            </div>
         </div>
-        <h1 style="font-size: 2.25rem; margin-bottom: 0.5rem;">Submit an IT Organization</h1>
-        <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto;">
-            Help your fellow computer engineering students by submitting a technology firm, lab, or engineering company
-            that accepts SIWES trainees in Nigeria.
-        </p>
-    </div>
 
-    <!-- Student Submission Disclaimer -->
-    <div class="notice-banner">
-        <div class="icon">ℹ️</div>
-        <div>
-            <strong>Transparency Notice:</strong>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
-                Organizations submitted through this form will initially be marked with the <strong>"Student
-                    Submitted"</strong> status label so that other students know it came from peer recommendation before
-                departmental verification.
-            </p>
+        <div class="org-submit-layout">
+
+            <!-- Main Form -->
+            <div class="org-submit-main">
+                <form action="{{ url_for('placement.submit_organization') }}" method="POST" class="org-submit-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Section 1 -->
+                    <section class="org-submit-section">
+                        <div class="org-submit-section-heading">
+                            <div class="org-submit-section-number">01</div>
+
+                            <div>
+                                <h2>Organization details</h2>
+                                <p>
+                                    Tell us which organization you are suggesting and
+                                    where it is located.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="form-grid org-submit-form-grid">
+                            <div class="form-group full-width">
+                                <label class="form-label" for="organizationName">
+                                    Organization name
+                                    <span class="required-mark">*</span>
+                                </label>
+
+                                <input type="text" name="name" id="organizationName" class="form-control"
+                                    placeholder="e.g. Apex Solutions Limited" autocomplete="organization" required>
+
+                                <p class="form-hint">
+                                    Use the organization's official or commonly known name.
+                                </p>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="stateSelect">
+                                    State
+                                    <span class="required-mark">*</span>
+                                </label>
+
+                                <select name="state" id="stateSelect" class="form-control" required>
+                                    <option value="">Select state</option>
+
+                                    {% for st in states %}
+                                    <option value="{{ st }}">{{ st }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="cityInput">
+                                    City / Town
+                                    <span class="required-mark">*</span>
+                                </label>
+
+                                <input type="text" name="city" id="cityInput" list="cityList" class="form-control"
+                                    placeholder="e.g. Zaria, Ikeja or Garki" autocomplete="address-level2" required>
+
+                                <datalist id="cityList"></datalist>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label class="form-label" for="organizationAddress">
+                                    Physical address
+                                </label>
+
+                                <input type="text" name="address" id="organizationAddress" class="form-control"
+                                    placeholder="Street, district or identifiable location"
+                                    autocomplete="street-address">
+
+                                <p class="form-hint">
+                                    Add as much location detail as you can confidently provide.
+                                </p>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label class="form-label" for="organizationDescription">
+                                    Brief description
+                                </label>
+
+                                <textarea name="description" id="organizationDescription"
+                                    class="form-control org-submit-textarea"
+                                    placeholder="What does the organization do? Briefly describe its main activities, services or operations."></textarea>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Section 2 -->
+                    <section class="org-submit-section">
+                        <div class="org-submit-section-heading">
+                            <div class="org-submit-section-number">02</div>
+
+                            <div>
+                                <h2>SIWES relevance</h2>
+                                <p>
+                                    Help reviewers understand the organization's sector
+                                    and the training areas it may be relevant to.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="form-grid org-submit-form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="organizationIndustry">
+                                    Industry / Sector
+                                    <span class="required-mark">*</span>
+                                </label>
+
+                                <select name="industry" id="organizationIndustry" class="form-control" required>
+                                    <option value="">Select industry or sector</option>
+
+                                    {% for org_opt in org_types %}
+                                    <option value="{{ org_opt }}">{{ org_opt }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="relevanceAreas">
+                                    Relevant fields / disciplines
+                                </label>
+
+                                <input type="text" name="relevance_areas" id="relevanceAreas" class="form-control"
+                                    placeholder="e.g. ICT, Agriculture, Laboratory Science">
+
+                                <p class="form-hint">
+                                    Enter only fields you know or reasonably understand
+                                    to be relevant.
+                                </p>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label class="form-label" for="whyRelevant">
+                                    What do you know about its SIWES relevance?
+                                </label>
+
+                                <textarea name="why_relevant" id="whyRelevant" class="form-control org-submit-textarea"
+                                    placeholder="For example: students have previously trained here, the organization advertised SIWES opportunities, or you have direct knowledge of its training activities."></textarea>
+
+                                <p class="form-hint">
+                                    Describe what you actually know. DSA will not treat
+                                    this statement as proof of current intake until reviewed.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Section 3 -->
+                    <section class="org-submit-section">
+                        <div class="org-submit-section-heading">
+                            <div class="org-submit-section-number">03</div>
+
+                            <div>
+                                <h2>Contact information</h2>
+                                <p>
+                                    Official contact details can help DSA review the
+                                    contribution and help students research opportunities.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="form-grid org-submit-form-grid">
+                            <div class="form-group full-width">
+                                <label class="form-label" for="organizationWebsite">
+                                    Official website
+                                </label>
+
+                                <input type="url" name="website" id="organizationWebsite" class="form-control"
+                                    placeholder="https://example.com" autocomplete="url">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="organizationEmail">
+                                    Official / inquiry email
+                                </label>
+
+                                <input type="email" name="contact_email" id="organizationEmail" class="form-control"
+                                    placeholder="careers@example.com" autocomplete="email">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="organizationPhone">
+                                    Contact phone
+                                </label>
+
+                                <input type="tel" name="contact_phone" id="organizationPhone" class="form-control"
+                                    placeholder="+234 ..." autocomplete="tel">
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Submission Confirmation -->
+                    <div class="org-submit-confirmation">
+                        <div class="org-submit-confirmation-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M12 3l8 4v5c0 5-3.4 8-8 9-4.6-1-8-4-8-9V7l8-4z"></path>
+                                <path d="M9 12l2 2 4-4"></path>
+                            </svg>
+                        </div>
+
+                        <div>
+                            <strong>Submit information you believe to be accurate</strong>
+                            <p>
+                                DSA preserves the contribution as a community source and
+                                reviews it separately from evidence of current SIWES intake.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="org-submit-actions">
+                        <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline">
+                            Cancel
+                        </a>
+
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            Submit for Review
+
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M5 12h14"></path>
+                                <path d="M13 6l6 6-6 6"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Sidebar -->
+            <aside class="org-submit-sidebar">
+                <div class="org-submit-sidebar-card">
+                    <div class="org-submit-sidebar-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 21v-7"></path>
+                            <path d="M4 10V3"></path>
+                            <path d="M12 21v-9"></path>
+                            <path d="M12 8V3"></path>
+                            <path d="M20 21v-5"></path>
+                            <path d="M20 12V3"></path>
+                            <path d="M1 14h6"></path>
+                            <path d="M9 8h6"></path>
+                            <path d="M17 16h6"></path>
+                        </svg>
+                    </div>
+
+                    <h3>What makes a useful contribution?</h3>
+
+                    <div class="org-submit-check-list">
+                        <div>
+                            <span>
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M5 12l4 4L19 6"></path>
+                                </svg>
+                            </span>
+                            <p>
+                                The organization is real and you can identify its
+                                location or official contact information.
+                            </p>
+                        </div>
+
+                        <div>
+                            <span>
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M5 12l4 4L19 6"></path>
+                                </svg>
+                            </span>
+                            <p>
+                                You have some basis for believing it may be relevant
+                                to industrial training.
+                            </p>
+                        </div>
+
+                        <div>
+                            <span>
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M5 12l4 4L19 6"></path>
+                                </svg>
+                            </span>
+                            <p>
+                                Your description distinguishes what you know from what
+                                still needs to be confirmed.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="org-submit-sidebar-note">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+
+                    <div>
+                        <strong>Evidence before labels</strong>
+                        <p>
+                            A directory listing, community recommendation or previous
+                            placement does not by itself prove that an organization is
+                            currently accepting SIWES students.
+                        </p>
+                    </div>
+                </div>
+
+                <a href="{{ url_for('placement.search_form') }}" class="org-submit-sidebar-link">
+                    <span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="11" cy="11" r="7"></circle>
+                            <path d="M20 20l-4-4"></path>
+                        </svg>
+                    </span>
+
+                    <div>
+                        <strong>Looking for a placement?</strong>
+                        <small>Return to placement discovery</small>
+                    </div>
+
+                    <svg class="org-submit-sidebar-arrow" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M9 18l6-6-6-6"></path>
+                    </svg>
+                </a>
+            </aside>
         </div>
     </div>
-
-    <div class="form-card">
-        <form action="{{ url_for('placement.submit_organization') }}" method="POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <h3
-                style="font-size: 1.2rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
-                Organization Information
-            </h3>
-
-            <div class="form-grid">
-                <div class="form-group full-width">
-                    <label class="form-label">Organization Name *</label>
-                    <input type="text" name="name" class="form-control"
-                        placeholder="e.g. Apex Software Solutions Limited" required>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">State in Nigeria *</label>
-                    <select name="state" id="stateSelect" class="form-control" required>
-                        <option value="">Select State</option>
-                        {% for st in states %}
-                        <option value="{{ st }}">{{ st }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">City / Town *</label>
-                    <input type="text" name="city" id="cityInput" list="cityList" class="form-control"
-                        placeholder="e.g. Zaria, Ikeja, Garki" required>
-                    <datalist id="cityList"></datalist>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Industry / Sector *</label>
-                    <select name="industry" class="form-control" required>
-                        <option value="">Select Industry</option>
-                        {% for org_opt in org_types %}
-                        <option value="{{ org_opt }}">{{ org_opt }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Engineering Relevance Areas</label>
-                    <input type="text" name="relevance_areas" class="form-control"
-                        placeholder="e.g. Software Development, Networking, AI, Embedded Systems">
-                </div>
-
-                <div class="form-group full-width">
-                    <label class="form-label">Physical Address</label>
-                    <input type="text" name="address" class="form-control"
-                        placeholder="e.g. 15 Commercial Avenue, Sabo">
-                </div>
-
-                <div class="form-group full-width">
-                    <label class="form-label">Brief Description of Organization</label>
-                    <textarea name="description" class="form-control"
-                        placeholder="What does this company do and what kind of engineering or IT work happens there?"></textarea>
-                </div>
-            </div>
-
-            <h3
-                style="font-size: 1.2rem; margin: 1.5rem 0 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
-                Contact & Verification Details
-            </h3>
-
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label">Official Website</label>
-                    <input type="url" name="website" class="form-control" placeholder="https://example.com">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">HR / Inquiry Email</label>
-                    <input type="email" name="contact_email" class="form-control" placeholder="careers@example.com">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Contact Phone</label>
-                    <input type="tel" name="contact_phone" class="form-control" placeholder="+234 ...">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Why is it recommended for SIWES?</label>
-                    <input type="text" name="why_relevant" class="form-control"
-                        placeholder="e.g. Accepted 4 computer engineering interns last year with good software mentors.">
-                </div>
-            </div>
-
-            <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
-                <a href="{{ url_for('placement.search_form') }}" class="btn btn-outline">Cancel</a>
-                <button type="submit" class="btn btn-primary btn-lg">Submit for Verification</button>
-            </div>
-        </form>
-    </div>
-</div>
+</section>
 {% endblock %}

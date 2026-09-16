@@ -528,6 +528,10 @@ class DSATestCase(unittest.TestCase):
         """
         An authenticated active User may suggest an organization even when
         they do not have a StudentProfile.
+
+        A community suggestion must enter the provenance workflow as pending
+        review and must not imply an approved listing, current SIWES intake,
+        or programme suitability.
         """
         contributor = User(
             full_name="Community Contributor",
@@ -567,13 +571,45 @@ class DSATestCase(unittest.TestCase):
         ).first()
 
         self.assertIsNotNone(organization)
+
+        # Provenance/review contract.
+        self.assertEqual(
+            organization.source_type,
+            "Community Contribution",
+        )
+        self.assertEqual(
+            organization.source_name,
+            "DSA Community Contribution",
+        )
+        self.assertEqual(
+            organization.review_status,
+            "Pending",
+        )
+        self.assertEqual(
+            organization.listing_status,
+            "Unknown",
+        )
+        self.assertEqual(
+            organization.acceptance_status,
+            "Unknown",
+        )
+        self.assertFalse(organization.is_active)
+
+        # Contributor context is preserved as provenance evidence.
+        self.assertEqual(
+            organization.provenance_notes,
+            "Known to accept SIWES students.",
+        )
+
+        # Legacy non-null fields remain populated only for compatibility
+        # while older code is migrated away from them.
         self.assertEqual(
             organization.verification_status,
-            "Student Submitted",
+            "Pending Review",
         )
         self.assertEqual(
             organization.source,
-            "Student Submission",
+            "Community Contribution",
         )
 
     def test_dashboard_does_not_fallback_to_another_students_profile(self):
