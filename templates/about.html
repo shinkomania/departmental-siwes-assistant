@@ -1,65 +1,456 @@
 {% extends "base.html" %}
 
-{% block title %}About | Departmental SIWES Assistant{% endblock %}
+{% block title %}About DSA | Departmental SIWES Assistant{% endblock %}
 
 {% block content %}
-<div class="container-narrow">
-    <div style="margin-bottom: 2rem;">
-        <div class="hero-badge">
-            <span>ℹ️</span>
-            <span>Project Overview</span>
-        </div>
-        <h1 style="font-size: 2.25rem; margin-bottom: 0.5rem;">About Departmental SIWES Assistant (DSA)</h1>
-        <p style="color: var(--text-muted);">
-            A dedicated system built for Computer Engineering students undertaking a 6-month Industrial Work Experience Scheme (SIWES) in Nigeria.
-        </p>
+<section class="about-page">
+    <div class="container">
+
+        <!-- Hero -->
+        <header class="about-hero">
+            <div class="about-hero-main">
+                <div class="about-eyebrow">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path d="M12 11v5"></path>
+                        <path d="M12 8h.01"></path>
+                    </svg>
+                    About DSA
+                </div>
+
+                <h1>
+                    Making SIWES easier to
+                    <span>understand and navigate.</span>
+                </h1>
+
+                <p class="about-hero-lead">
+                    Departmental SIWES Assistant is being built as a structured
+                    support platform for students and institutions participating
+                    in industrial training across Nigeria.
+                </p>
+
+                <div class="about-hero-actions">
+                    <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary btn-lg">
+                        Explore Placements
+
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M5 12h14"></path>
+                            <path d="M13 6l6 6-6 6"></path>
+                        </svg>
+                    </a>
+
+                    <a href="{{ url_for('main.siwes_guide') }}" class="btn btn-outline btn-lg">
+                        Read SIWES Guide
+                    </a>
+                </div>
+            </div>
+
+            <aside class="about-hero-principle">
+                <div class="about-principle-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        <path d="M9 12l2 2 4-4"></path>
+                    </svg>
+                </div>
+
+                <span>Core principle</span>
+
+                <h2>Useful information should remain traceable.</h2>
+
+                <p>
+                    DSA is designed to distinguish where placement information
+                    comes from, what has been reviewed, and what still requires
+                    confirmation.
+                </p>
+            </aside>
+        </header>
+
+        <!-- Product identity -->
+        <section class="about-identity">
+            <div class="about-section-heading">
+                <span class="about-section-kicker">The platform</span>
+
+                <h2>One SIWES support layer, built around real academic structure.</h2>
+
+                <p>
+                    SIWES requirements can differ by institution, department,
+                    programme and academic session. DSA is being structured around
+                    those differences instead of assuming every student follows the
+                    same training arrangement.
+                </p>
+            </div>
+
+            <div class="about-identity-grid">
+                <article class="about-feature-card">
+                    <div class="about-feature-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M3 21h18"></path>
+                            <path d="M5 21V8l7-5 7 5v13"></path>
+                            <path d="M9 21v-6h6v6"></path>
+                        </svg>
+                    </div>
+
+                    <h3>Institution-aware</h3>
+
+                    <p>
+                        Academic information can be organized from institution to
+                        faculty or school, department, programme and SIWES
+                        configuration.
+                    </p>
+                </article>
+
+                <article class="about-feature-card">
+                    <div class="about-feature-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="12" cy="8" r="4"></circle>
+                            <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"></path>
+                        </svg>
+                    </div>
+
+                    <h3>Student-centred</h3>
+
+                    <p>
+                        Students can build a SIWES profile, discover organizations,
+                        save opportunities and keep track of their personal
+                        application journey.
+                    </p>
+                </article>
+
+                <article class="about-feature-card">
+                    <div class="about-feature-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        </svg>
+                    </div>
+
+                    <h3>Guidance-focused</h3>
+
+                    <p>
+                        DSA provides structured SIWES guidance while allowing the
+                        platform architecture to support institution and
+                        department-specific instructions.
+                    </p>
+                </article>
+            </div>
+        </section>
+
+        <!-- Problem / response -->
+        <section class="about-purpose">
+            <div class="about-purpose-copy">
+                <span class="about-section-kicker">Why DSA exists</span>
+
+                <h2>SIWES information is often scattered across too many places.</h2>
+
+                <p>
+                    Students may need to understand training requirements, identify
+                    suitable organizations, find reliable contact information,
+                    track applications and follow instructions from their
+                    institution or department.
+                </p>
+
+                <p>
+                    DSA brings these activities into a more structured workflow
+                    while keeping institutional rules and evidence boundaries
+                    visible.
+                </p>
+            </div>
+
+            <div class="about-purpose-list">
+                <div class="about-purpose-item">
+                    <span>01</span>
+
+                    <div>
+                        <strong>Understand the process</strong>
+                        <p>
+                            Access clear guidance for common SIWES activities and
+                            responsibilities.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="about-purpose-item">
+                    <span>02</span>
+
+                    <div>
+                        <strong>Discover possible placements</strong>
+                        <p>
+                            Search organizations using location, sector and relevant
+                            placement information.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="about-purpose-item">
+                    <span>03</span>
+
+                    <div>
+                        <strong>Manage the journey</strong>
+                        <p>
+                            Save organizations and maintain a personal record of
+                            placement applications.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="about-purpose-item">
+                    <span>04</span>
+
+                    <div>
+                        <strong>Support institutional coordination</strong>
+                        <p>
+                            The platform architecture supports scoped administrative
+                            roles for institutions and departments as these
+                            capabilities are introduced.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Academic hierarchy -->
+        <section class="about-structure">
+            <div class="about-section-heading about-section-heading-centered">
+                <span class="about-section-kicker">Programme-aware by design</span>
+
+                <h2>SIWES eligibility belongs at programme level.</h2>
+
+                <p>
+                    An institution participating in SIWES does not automatically
+                    mean every programme follows the same requirement. DSA's
+                    architecture keeps that distinction explicit.
+                </p>
+            </div>
+
+            <div class="about-hierarchy" aria-label="DSA academic hierarchy">
+                <div class="about-hierarchy-item">
+                    <div class="about-hierarchy-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M3 21h18"></path>
+                            <path d="M5 21V8l7-5 7 5v13"></path>
+                        </svg>
+                    </div>
+
+                    <span>Institution</span>
+                </div>
+
+                <div class="about-hierarchy-arrow" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M5 12h14"></path>
+                        <path d="M14 7l5 5-5 5"></path>
+                    </svg>
+                </div>
+
+                <div class="about-hierarchy-item">
+                    <div class="about-hierarchy-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 20h16"></path>
+                            <path d="M6 20V9h12v11"></path>
+                            <path d="M9 9V5h6v4"></path>
+                        </svg>
+                    </div>
+
+                    <span>Faculty / School</span>
+                </div>
+
+                <div class="about-hierarchy-arrow" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M5 12h14"></path>
+                        <path d="M14 7l5 5-5 5"></path>
+                    </svg>
+                </div>
+
+                <div class="about-hierarchy-item">
+                    <div class="about-hierarchy-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 21V7h16v14"></path>
+                            <path d="M8 3h8v4H8z"></path>
+                            <path d="M8 12h8"></path>
+                            <path d="M8 16h5"></path>
+                        </svg>
+                    </div>
+
+                    <span>Department</span>
+                </div>
+
+                <div class="about-hierarchy-arrow" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M5 12h14"></path>
+                        <path d="M14 7l5 5-5 5"></path>
+                    </svg>
+                </div>
+
+                <div class="about-hierarchy-item about-hierarchy-highlight">
+                    <div class="about-hierarchy-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="12" cy="8" r="3"></circle>
+                            <path d="M5 21c.7-4 3.1-7 7-7s6.3 3 7 7"></path>
+                        </svg>
+                    </div>
+
+                    <span>Programme</span>
+                    <small>SIWES configuration</small>
+                </div>
+            </div>
+        </section>
+
+        <!-- Data integrity -->
+        <section class="about-evidence">
+            <div class="about-evidence-intro">
+                <span class="about-section-kicker">Evidence & transparency</span>
+
+                <h2>Source, review and current intake are different questions.</h2>
+
+                <p>
+                    DSA avoids treating every organization listing as proof that
+                    students are currently being accepted. Placement information
+                    should communicate both its origin and what the available
+                    evidence actually supports.
+                </p>
+
+                <a href="{{ url_for('placement.submit_organization') }}" class="about-text-link">
+                    Suggest an organization
+
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M5 12h14"></path>
+                        <path d="M13 6l6 6-6 6"></path>
+                    </svg>
+                </a>
+            </div>
+
+            <div class="about-evidence-grid">
+                <article class="about-evidence-card">
+                    <span class="about-evidence-label">01 · Source</span>
+
+                    <h3>Where did the information come from?</h3>
+
+                    <p>
+                        Examples can include an official organization source,
+                        institution placement record, public registry, ITF-related
+                        source or community contribution.
+                    </p>
+                </article>
+
+                <article class="about-evidence-card">
+                    <span class="about-evidence-label">02 · Review</span>
+
+                    <h3>Has the contribution been reviewed?</h3>
+
+                    <p>
+                        Community suggestions can remain pending while information
+                        is assessed instead of immediately appearing as trusted
+                        placement data.
+                    </p>
+                </article>
+
+                <article class="about-evidence-card">
+                    <span class="about-evidence-label">03 · Intake</span>
+
+                    <h3>Is there evidence of current SIWES intake?</h3>
+
+                    <p>
+                        Previous placements or directory presence do not
+                        automatically prove that an organization is accepting
+                        students now.
+                    </p>
+                </article>
+            </div>
+        </section>
+
+        <!-- Institutional boundary -->
+        <section class="about-boundary">
+            <div class="about-boundary-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+            </div>
+
+            <div class="about-boundary-copy">
+                <span>Important platform boundary</span>
+
+                <h2>DSA supports the SIWES process. It does not replace its authorities.</h2>
+
+                <p>
+                    Departmental SIWES Assistant is designed to complement—not
+                    replace—the official requirements, processes and decisions of
+                    participating institutions and relevant SIWES authorities.
+                    Students should continue to follow the current instructions
+                    issued by their institution, department and applicable
+                    authorities.
+                </p>
+            </div>
+        </section>
+
+        <!-- Roadmap -->
+        <section class="about-roadmap">
+            <div class="about-roadmap-heading">
+                <div>
+                    <span class="about-section-kicker">Designed to grow</span>
+
+                    <h2>Intelligence comes after trustworthy foundations.</h2>
+                </div>
+
+                <p>
+                    DSA's longer-term direction includes intelligent assistance, but
+                    those capabilities are treated as a roadmap—not as features
+                    already available today.
+                </p>
+            </div>
+
+            <div class="about-roadmap-grid">
+                <article>
+                    <span>Planned</span>
+                    <h3>Intelligent placement matching</h3>
+                    <p>
+                        Better recommendations using programme relevance, skills,
+                        interests and preferred location.
+                    </p>
+                </article>
+
+                <article>
+                    <span>Planned</span>
+                    <h3>SIWES guidance assistant</h3>
+                    <p>
+                        Context-aware assistance grounded in structured SIWES and
+                        institution-specific guidance.
+                    </p>
+                </article>
+
+                <article>
+                    <span>Planned</span>
+                    <h3>Learning-document assistance</h3>
+                    <p>
+                        Responsible support for organizing logbook and report work
+                        without replacing the student's own training experience.
+                    </p>
+                </article>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="about-cta">
+            <div>
+                <span>Departmental SIWES Assistant</span>
+
+                <h2>Start with the part of your SIWES journey you need today.</h2>
+
+                <p>
+                    Explore placement information or review structured SIWES
+                    guidance from one platform.
+                </p>
+            </div>
+
+            <div class="about-cta-actions">
+                <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary btn-lg">
+                    Explore Placements
+                </a>
+
+                <a href="{{ url_for('main.siwes_guide') }}" class="btn btn-outline btn-lg">
+                    SIWES Guide
+                </a>
+            </div>
+        </section>
+
     </div>
-
-    <div class="form-card" style="margin-bottom: 2rem;">
-        <h3 style="font-size: 1.35rem; margin-bottom: 1rem; color: var(--primary);">🎯 Mission & Purpose</h3>
-        <p style="margin-bottom: 1rem; line-height: 1.7;">
-            The <strong>Departmental SIWES Assistant (DSA)</strong> was conceived to solve two fundamental challenges faced by university engineering students:
-        </p>
-        <ol style="margin-left: 1.5rem; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
-            <li><strong>Finding High-Quality, Relevant Placements:</strong> Moving beyond word-of-mouth by providing transparent, categorized, and verified technology companies, datacenters, and fintech hubs across all Nigerian states.</li>
-            <li><strong>Mastering SIWES Academic Requirements:</strong> Demystifying ITF Form 8, daily logbook entries, supervisor inspection protocols, technical report writing, and final presentation defense.</li>
-        </ol>
-
-        <h3 style="font-size: 1.35rem; margin: 2rem 0 1rem; color: var(--primary);">🛡️ Data Integrity & Source Transparency</h3>
-        <p style="margin-bottom: 1rem; line-height: 1.7;">
-            A key architectural tenet of DSA is <strong>truth in data</strong>. The platform strictly distinguishes between:
-        </p>
-        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem;">
-            <div style="background: var(--bg-subtle); padding: 0.85rem 1.25rem; border-radius: var(--radius-md); border-left: 3px solid var(--success);">
-                <span class="badge badge-verified" style="margin-bottom: 0.25rem;">Verified</span>
-                <p style="font-size: 0.85rem; color: var(--text-main); margin-top: 0.25rem;">
-                    Organizations verified by the department or proven to accept engineering interns with active engineering teams.
-                </p>
-            </div>
-            <div style="background: var(--bg-subtle); padding: 0.85rem 1.25rem; border-radius: var(--radius-md); border-left: 3px solid var(--accent);">
-                <span class="badge badge-online" style="margin-bottom: 0.25rem;">Online Source</span>
-                <p style="font-size: 0.85rem; color: var(--text-main); margin-top: 0.25rem;">
-                    Results returned through structured web research adapters or verified online registries.
-                </p>
-            </div>
-            <div style="background: var(--bg-subtle); padding: 0.85rem 1.25rem; border-radius: var(--radius-md); border-left: 3px solid var(--warning);">
-                <span class="badge badge-student" style="margin-bottom: 0.25rem;">Student Submitted</span>
-                <p style="font-size: 0.85rem; color: var(--text-main); margin-top: 0.25rem;">
-                    Peer recommendations submitted by fellow students pending formal departmental verification.
-                </p>
-            </div>
-        </div>
-
-        <h3 style="font-size: 1.35rem; margin: 2rem 0 1rem; color: var(--primary);">🚀 Future AI & Intelligence Capabilities</h3>
-        <p style="margin-bottom: 1rem; line-height: 1.7;">
-            DSA is architected with modular service boundaries to facilitate upcoming intelligence modules without requiring code rewrites:
-        </p>
-        <ul style="margin-left: 1.5rem; display: flex; flex-direction: column; gap: 0.4rem; color: var(--text-muted); font-size: 0.95rem;">
-            <li><strong>AI SIWES Chatbot:</strong> Interactive Q&A on university guidelines and workplace etiquette.</li>
-            <li><strong>AI Logbook Assistant:</strong> Refines draft daily activities into technically precise, academic logbook entries.</li>
-            <li><strong>AI Report Structurer:</strong> Analyzes student project notes and generates standard Chapter outlines.</li>
-            <li><strong>Intelligent Placement Matcher:</strong> Uses student skill vectors and location proximity for personalized placement matching.</li>
-        </ul>
-    </div>
-</div>
+</section>
 {% endblock %}
