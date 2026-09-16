@@ -1,104 +1,347 @@
 {% extends "base.html" %}
 
-{% block title %}SIWES Knowledge Guide | Departmental SIWES Assistant{% endblock %}
+{% block title %}
+{% if selected_topic %}
+{{ selected_topic.title }} | SIWES Guide | DSA
+{% else %}
+SIWES Guide | Departmental SIWES Assistant
+{% endif %}
+{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <div class="hero-badge" style="margin-bottom: 0.75rem;">
-        <span>📚</span>
-        <span>Student Knowledge Base</span>
+<section class="siwes-guide-page">
+
+    <!-- ================================================================
+         PAGE INTRODUCTION
+         ================================================================ -->
+    <header class="siwes-guide-hero">
+
+        <div class="siwes-guide-hero__copy">
+            <span class="section-eyebrow">SIWES KNOWLEDGE BASE</span>
+
+            <h1>Understand your SIWES journey</h1>
+
+            <p>
+                Practical guidance to help you prepare for industrial training,
+                understand documentation, manage your placement experience and
+                complete SIWES responsibly.
+            </p>
+        </div>
+
+        <div class="siwes-guide-hero__meta" aria-label="Guide information">
+
+            <div class="siwes-guide-meta-item">
+                <span class="siwes-guide-meta-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M5 4.5h10.5A2.5 2.5 0 0 1 18 7v13H7.5A2.5 2.5 0 0 1 5 17.5v-13Z" stroke="currentColor"
+                            stroke-width="1.7" stroke-linejoin="round" />
+                        <path d="M5 17.5A2.5 2.5 0 0 1 7.5 15H18M9 8h5M9 11h4" stroke="currentColor" stroke-width="1.7"
+                            stroke-linecap="round" />
+                    </svg>
+                </span>
+
+                <div>
+                    <strong>{{ topics|length }}</strong>
+                    <span>
+                        {% if active_category != 'all' %}
+                        topics in this view
+                        {% else %}
+                        guide topics
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <div class="siwes-guide-meta-item">
+                <span class="siwes-guide-meta-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M12 3 4.5 6.5v5c0 4.5 3 7.8 7.5 9.5 4.5-1.7 7.5-5 7.5-9.5v-5L12 3Z"
+                            stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+                        <path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </span>
+
+                <div>
+                    <strong>General guidance</strong>
+                    <span>Programme requirements may differ</span>
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+
+    <!-- ================================================================
+         GUIDANCE NOTICE
+         ================================================================ -->
+    <div class="siwes-guide-notice">
+
+        <span class="siwes-guide-notice__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7" />
+                <path d="M12 10.5v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                <circle cx="12" cy="7.5" r="1" fill="currentColor" />
+            </svg>
+        </span>
+
+        <div>
+            <strong>General SIWES guidance</strong>
+
+            <p>
+                DSA provides general guidance to help you understand the SIWES
+                process. Your institution, faculty, department or programme may
+                issue specific instructions on eligibility, duration, forms,
+                deadlines, supervision and assessment. Follow those verified
+                instructions whenever they differ from general guidance.
+            </p>
+        </div>
+
     </div>
-    <h1 style="font-size: 2.25rem; margin-bottom: 0.5rem;">SIWES Preparation & Handbook</h1>
-    <p style="color: var(--text-muted); max-width: 750px;">
-        Practical guidelines and procedural advice for Computer Engineering and tech students undergoing a 6-month industrial work experience scheme in Nigeria.
-    </p>
-</div>
 
-<!-- Important Guidance Disclaimer Notice -->
-<div class="notice-banner">
-    <div class="icon">ℹ️</div>
-    <div>
-        <strong>General Guidance Note:</strong>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
-            The information presented here serves as general professional guidance. Specific submission deadlines, grading rubrics, and logbook formats may vary slightly depending on your university's Departmental SIWES Coordinator and ITF Area Office requirements.
-        </p>
-    </div>
-</div>
 
-<div class="guide-layout">
-    <!-- Sidebar Navigation -->
-    <aside class="guide-sidebar">
-        <h4 style="font-size: 1rem; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
-            Guide Topics
-        </h4>
+    <!-- ================================================================
+         CATEGORY FILTERS
+         ================================================================ -->
+    <section class="siwes-guide-categories" aria-labelledby="siwes-guide-category-heading">
 
-        <!-- Category Filters -->
-        <div style="margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">
-            <a href="{{ url_for('main.siwes_guide', category='all') }}" 
-               class="btn btn-sm {% if active_category == 'all' %}btn-primary{% else %}btn-outline{% endif %}" 
-               style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">
-                All
+        <div class="siwes-guide-section-heading">
+            <div>
+                <span class="section-eyebrow">BROWSE THE GUIDE</span>
+                <h2 id="siwes-guide-category-heading">Explore by category</h2>
+            </div>
+
+            {% if active_category != 'all' %}
+            <a href="{{ url_for('main.siwes_guide', category='all') }}" class="siwes-guide-clear-filter">
+                View all topics
+                <span aria-hidden="true">&rarr;</span>
             </a>
+            {% endif %}
+        </div>
+
+
+        <div class="siwes-guide-category-list">
+
+            <a href="{{ url_for('main.siwes_guide', category='all') }}"
+                class="siwes-guide-category-chip {% if active_category == 'all' %}active{% endif %}" {% if
+                active_category=='all' %}aria-current="page" {% endif %}>
+                All topics
+            </a>
+
             {% for cat in categories %}
-            <a href="{{ url_for('main.siwes_guide', category=cat) }}" 
-               class="btn btn-sm {% if active_category == cat %}btn-primary{% else %}btn-outline{% endif %}"
-               style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+            <a href="{{ url_for('main.siwes_guide', category=cat) }}"
+                class="siwes-guide-category-chip {% if active_category == cat %}active{% endif %}" {% if
+                active_category==cat %}aria-current="page" {% endif %}>
                 {{ cat }}
             </a>
             {% endfor %}
+
         </div>
+    </section>
 
-        <ul class="guide-nav-list">
-            {% for topic in topics %}
-            <li class="guide-nav-item {% if selected_topic and selected_topic.id == topic.id %}active{% endif %}">
-                <a href="{{ url_for('main.siwes_guide', topic=topic.slug, category=active_category) }}">
-                    <span style="font-size: 0.8rem; color: var(--text-light); margin-right: 0.35rem;">{{ topic.order_num }}.</span>
-                    {{ topic.title }}
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
-    </aside>
 
-    <!-- Main Content Reader -->
-    <section class="guide-content-view">
-        {% if selected_topic %}
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
-                <div>
-                    <span class="badge badge-online">{{ selected_topic.category }}</span>
-                    <span style="font-size: 0.85rem; color: var(--text-light); margin-left: 0.5rem;">Topic #{{ selected_topic.order_num }}</span>
-                </div>
-                <div style="font-size: 0.85rem; color: var(--text-muted);">
-                    Last Updated: {{ selected_topic.updated_at.strftime('%B %Y') if selected_topic.updated_at else 'Recent' }}
-                </div>
+    <!-- ================================================================
+         GUIDE READER
+         ================================================================ -->
+    <div class="guide-layout">
+
+        <!-- Topic navigation -->
+        <aside class="guide-sidebar">
+
+            <div class="guide-sidebar__heading">
+                <span class="section-eyebrow">
+                    {% if active_category != 'all' %}
+                    {{ active_category|upper }}
+                    {% else %}
+                    GUIDE TOPICS
+                    {% endif %}
+                </span>
+
+                <h2>
+                    {% if active_category != 'all' %}
+                    {{ active_category }} topics
+                    {% else %}
+                    Your SIWES handbook
+                    {% endif %}
+                </h2>
+
+                <p>
+                    Select a topic to read the guidance.
+                </p>
             </div>
+
+
+            {% if topics %}
+            <ol class="guide-nav-list">
+
+                {% for topic in topics %}
+                <li class="guide-nav-item {% if selected_topic and selected_topic.id == topic.id %}active{% endif %}">
+
+                    <a href="{{ url_for('main.siwes_guide', topic=topic.slug, category=active_category) }}" {% if
+                        selected_topic and selected_topic.id==topic.id %} aria-current="page" {% endif %}>
+
+                        <span class="guide-nav-number" aria-hidden="true">
+                            {{ "%02d"|format(topic.order_num) }}
+                        </span>
+
+                        <span class="guide-nav-copy">
+                            <strong>{{ topic.title }}</strong>
+                            <small>{{ topic.category }}</small>
+                        </span>
+
+                        <span class="guide-nav-arrow" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                        </span>
+
+                    </a>
+
+                </li>
+                {% endfor %}
+
+            </ol>
+
+            {% else %}
+            <div class="guide-sidebar__empty">
+                <p>No published topics are available in this category.</p>
+            </div>
+            {% endif %}
+
+        </aside>
+
+
+        <!-- Main reader -->
+        <main class="guide-content-view">
+
+            {% if selected_topic %}
+
+            <div class="guide-reader-meta">
+
+                <div class="guide-reader-meta__left">
+                    <span class="guide-topic-category">
+                        {{ selected_topic.category }}
+                    </span>
+
+                    <span class="guide-topic-number">
+                        Topic {{ "%02d"|format(selected_topic.order_num) }}
+                    </span>
+                </div>
+
+                <div class="guide-reader-updated">
+                    <span>Last updated</span>
+                    <strong>
+                        {{ selected_topic.updated_at.strftime('%B %Y')
+                        if selected_topic.updated_at else 'Recently' }}
+                    </strong>
+                </div>
+
+            </div>
+
 
             <article class="guide-article">
-                <h2>{{ selected_topic.title }}</h2>
-                <p style="font-size: 1.05rem; color: var(--text-muted); font-weight: 500; margin-bottom: 1.5rem; background: var(--bg-subtle); padding: 0.85rem 1.25rem; border-radius: var(--radius-md); border-left: 3px solid var(--primary);">
-                    {{ selected_topic.summary }}
-                </p>
 
-                <div class="guide-body" style="line-height: 1.8; font-size: 1rem;">
+                <header class="guide-article-header">
+
+                    <h2>{{ selected_topic.title }}</h2>
+
+                    {% if selected_topic.summary %}
+                    <p class="guide-article-summary">
+                        {{ selected_topic.summary }}
+                    </p>
+                    {% endif %}
+
+                </header>
+
+
+                <div class="guide-body">
                     {{ selected_topic.content | markdown | safe }}
                 </div>
+
             </article>
 
-            <!-- Quick Action Links -->
-            <div style="margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary">
-                    <span>🔍 Find Organizations Matching This Topic</span>
-                </a>
-                <a href="{{ url_for('student.profile') }}" class="btn btn-outline">
-                    <span>👤 Set Up Your Profile</span>
-                </a>
+
+            <!-- Reader guidance -->
+            <div class="guide-reader-reminder">
+
+                <span class="guide-reader-reminder__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M12 3 4.5 6.5v5c0 4.5 3 7.8 7.5 9.5 4.5-1.7 7.5-5 7.5-9.5v-5L12 3Z"
+                            stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+                        <path d="M9 12h6M12 9v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                    </svg>
+                </span>
+
+                <div>
+                    <strong>Apply this guidance to your own programme</strong>
+                    <p>
+                        Confirm any programme-specific forms, dates, placement
+                        requirements or assessment instructions with the
+                        appropriate SIWES authority in your institution.
+                    </p>
+                </div>
+
             </div>
-        {% else %}
-            <div style="text-align: center; padding: 3rem;">
-                <p style="color: var(--text-muted);">No topic selected or found in this category.</p>
-                <a href="{{ url_for('main.siwes_guide') }}" class="btn btn-outline" style="margin-top: 1rem;">View All Topics</a>
+
+
+            <!-- Next actions -->
+            <footer class="guide-reader-actions">
+
+                <div class="guide-reader-actions__copy">
+                    <span class="section-eyebrow">CONTINUE YOUR SIWES JOURNEY</span>
+                    <h3>Put the guidance into practice</h3>
+                    <p>
+                        Discover possible placement organizations or keep your
+                        DSA student information up to date.
+                    </p>
+                </div>
+
+                <div class="guide-reader-actions__buttons">
+
+                    <a href="{{ url_for('placement.search_form') }}" class="btn btn-primary">
+                        Find Placement
+                    </a>
+
+                    <a href="{{ url_for('student.profile') }}" class="btn btn-outline">
+                        Student Profile
+                    </a>
+
+                </div>
+
+            </footer>
+
+
+            {% else %}
+
+            <div class="guide-empty-state">
+
+                <span class="guide-empty-state__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M5 4.5h10.5A2.5 2.5 0 0 1 18 7v13H7.5A2.5 2.5 0 0 1 5 17.5v-13Z" stroke="currentColor"
+                            stroke-width="1.7" stroke-linejoin="round" />
+                        <path d="M5 17.5A2.5 2.5 0 0 1 7.5 15H18" stroke="currentColor" stroke-width="1.7" />
+                    </svg>
+                </span>
+
+                <h2>No guide topic available</h2>
+
+                <p>
+                    There is no published topic available for this selection.
+                    Browse the complete SIWES knowledge base instead.
+                </p>
+
+                <a href="{{ url_for('main.siwes_guide') }}" class="btn btn-outline">
+                    View All Topics
+                </a>
+
             </div>
-        {% endif %}
-    </section>
-</div>
+
+            {% endif %}
+
+        </main>
+
+    </div>
+
+</section>
 {% endblock %}
