@@ -1,0 +1,378 @@
+{% extends "base.html" %}
+
+{% block title %}{{ managed_user.full_name }} | Users & Access | DSA{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+
+    <header class="admin-page-header">
+        <div>
+            <a href="{{ url_for('admin.users') }}" class="admin-back-link">
+                &larr; Users & Access
+            </a>
+
+            <span class="admin-eyebrow">Platform Administration</span>
+
+            <h1>Account details</h1>
+
+            <p>
+                Review this user's account status and privileged role assignments.
+                Account suspension and role revocation are managed independently.
+            </p>
+        </div>
+
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline">
+            Admin overview
+        </a>
+    </header>
+
+    <div class="admin-user-detail-layout">
+
+        <main class="admin-user-detail-main">
+
+            <!-- Account identity -->
+            <section class="admin-content-card">
+                <div class="admin-profile-summary">
+                    <div class="admin-profile-avatar" aria-hidden="true">
+                        {{ managed_user.full_name[:1]|upper }}
+                    </div>
+
+                    <div class="admin-profile-identity">
+                        <div class="admin-profile-name-row">
+                            <h2>{{ managed_user.full_name }}</h2>
+
+                            {% if managed_user.account_status == 'Active' %}
+                            <span class="admin-status admin-status-success">
+                                <span aria-hidden="true"></span>
+                                Active
+                            </span>
+                            {% elif managed_user.account_status == 'Suspended' %}
+                            <span class="admin-status admin-status-danger">
+                                <span aria-hidden="true"></span>
+                                Suspended
+                            </span>
+                            {% else %}
+                            <span class="admin-status admin-status-neutral">
+                                <span aria-hidden="true"></span>
+                                {{ managed_user.account_status }}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <p>{{ managed_user.email }}</p>
+
+                        {% if managed_user.id == current_admin.id %}
+                        <span class="admin-current-account-badge">
+                            Current Platform Admin account
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="admin-account-grid">
+                    <div>
+                        <span>Phone</span>
+                        <strong>
+                            {{ managed_user.phone or 'Not provided' }}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Email verification</span>
+                        <strong>
+                            {% if managed_user.email_verified %}
+                            Verified
+                            {% else %}
+                            Not verified
+                            {% endif %}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Joined</span>
+                        <strong>
+                            {{ managed_user.created_at.strftime('%d %b %Y') if managed_user.created_at else 'Not
+                            recorded' }}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Last account update</span>
+                        <strong>
+                            {{ managed_user.updated_at.strftime('%d %b %Y') if managed_user.updated_at else 'Not
+                            recorded' }}
+                        </strong>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Role assignments -->
+            <section class="admin-content-card">
+                <div class="admin-card-heading">
+                    <div>
+                        <span class="admin-card-kicker">Authorization</span>
+                        <h2>Role assignments</h2>
+                    </div>
+
+                    <p>
+                        A role grants access only while its assignment is approved,
+                        current and carries the required permission.
+                    </p>
+                </div>
+
+                {% if assignments %}
+
+                <div class="admin-role-list">
+                    {% for assignment in assignments %}
+
+                    <article class="admin-role-card">
+                        <div class="admin-role-card-main">
+                            <div class="admin-role-card-heading">
+                                <div>
+                                    <span class="admin-role-label">
+                                        Role
+                                    </span>
+
+                                    <h3>
+                                        {{ assignment.role.name if assignment.role else 'Role unavailable' }}
+                                    </h3>
+                                </div>
+
+                                {% if assignment.status == 'Approved' %}
+                                <span class="admin-status admin-status-success">
+                                    <span aria-hidden="true"></span>
+                                    Approved
+                                </span>
+                                {% elif assignment.status == 'Revoked' %}
+                                <span class="admin-status admin-status-danger">
+                                    <span aria-hidden="true"></span>
+                                    Revoked
+                                </span>
+                                {% elif assignment.status == 'Suspended' %}
+                                <span class="admin-status admin-status-warning">
+                                    <span aria-hidden="true"></span>
+                                    Suspended
+                                </span>
+                                {% else %}
+                                <span class="admin-status admin-status-neutral">
+                                    <span aria-hidden="true"></span>
+                                    {{ assignment.status }}
+                                </span>
+                                {% endif %}
+                            </div>
+
+                            <div class="admin-role-meta">
+                                <div>
+                                    <span>Scope</span>
+
+                                    <strong>
+                                        {% if assignment.programme %}
+                                        {{ assignment.programme.name }}
+                                        {% elif assignment.department %}
+                                        {{ assignment.department.name }}
+                                        {% elif assignment.institution %}
+                                        {{ assignment.institution.name }}
+                                        {% else %}
+                                        Global platform scope
+                                        {% endif %}
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Academic session</span>
+                                    <strong>
+                                        {{ assignment.academic_session or 'Not session-bound' }}
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Approved</span>
+                                    <strong>
+                                        {{ assignment.approved_at.strftime('%d %b %Y') if assignment.approved_at else
+                                        'Not recorded' }}
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Expires</span>
+                                    <strong>
+                                        {{ assignment.expires_at.strftime('%d %b %Y') if assignment.expires_at else 'No
+                                        expiry recorded' }}
+                                    </strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if assignment.status == 'Approved' %}
+                        <div class="admin-role-card-actions">
+
+                            {% if managed_user.id == current_admin.id and assignment.role and assignment.role.name ==
+                            'Platform Administrator' %}
+                            <div class="admin-protected-action">
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor"
+                                        stroke-width="1.8" />
+                                    <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8"
+                                        stroke-linecap="round" />
+                                </svg>
+
+                                <span>
+                                    Current administrative access is protected
+                                    from self-revocation.
+                                </span>
+                            </div>
+
+                            {% else %}
+                            <form method="POST"
+                                action="{{ url_for('admin.revoke_role_assignment', assignment_id=assignment.id) }}"
+                                onsubmit="return confirm('Revoke this role assignment? The user account will remain, but access granted by this assignment will stop immediately.');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    Revoke role
+                                </button>
+                            </form>
+                            {% endif %}
+
+                        </div>
+                        {% endif %}
+                    </article>
+
+                    {% endfor %}
+                </div>
+
+                {% else %}
+
+                <div class="admin-empty-state">
+                    <div class="admin-empty-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="8" r="3" stroke="currentColor" stroke-width="1.8" />
+                            <path d="M6 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="1.8"
+                                stroke-linecap="round" />
+                        </svg>
+                    </div>
+
+                    <h3>No role assignments</h3>
+
+                    <p>
+                        This account currently has no privileged role assignment
+                        records.
+                    </p>
+                </div>
+
+                {% endif %}
+            </section>
+
+        </main>
+
+        <aside class="admin-user-detail-sidebar">
+
+            <!-- Account control -->
+            <section class="admin-side-card">
+                <span class="admin-side-label">Account control</span>
+
+                <h3>Account access</h3>
+
+                {% if managed_user.id == current_admin.id %}
+
+                <div class="admin-protection-message">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 3 5 6v5c0 4.4 2.8 7.6 7 9 4.2-1.4 7-4.6 7-9V6l-7-3Z" stroke="currentColor"
+                            stroke-width="1.8" stroke-linejoin="round" />
+                        <path d="m9.5 12 1.7 1.7 3.5-3.7" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+
+                    <p>
+                        You are currently using this account for Platform
+                        Administration. Self-suspension is disabled to prevent
+                        accidental administrative lockout.
+                    </p>
+                </div>
+
+                {% elif managed_user.account_status == 'Active' %}
+
+                <p>
+                    Suspending this account prevents the user from signing in and
+                    using protected DSA features. Their existing data is retained.
+                </p>
+
+                <form method="POST" action="{{ url_for('admin.suspend_user', user_id=managed_user.id) }}"
+                    onsubmit="return confirm('Suspend this account? The user will lose access to DSA until the account is reactivated.');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <button type="submit" class="btn btn-danger admin-full-button">
+                        Suspend account
+                    </button>
+                </form>
+
+                {% elif managed_user.account_status == 'Suspended' %}
+
+                <p>
+                    This account is currently suspended. Reactivating it restores
+                    ordinary account access. Privileged roles still depend on
+                    their own assignment status.
+                </p>
+
+                <form method="POST" action="{{ url_for('admin.reactivate_user', user_id=managed_user.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <button type="submit" class="btn btn-primary admin-full-button">
+                        Reactivate account
+                    </button>
+                </form>
+
+                {% else %}
+
+                <p>
+                    This account currently has the status
+                    <strong>{{ managed_user.account_status }}</strong>.
+                    No lifecycle action is exposed for this status in the current
+                    Platform Admin interface.
+                </p>
+
+                {% endif %}
+            </section>
+
+            <!-- Security model -->
+            <section class="admin-side-card">
+                <span class="admin-side-label">Access model</span>
+
+                <h3>Account vs role</h3>
+
+                <div class="admin-access-explainer">
+                    <div>
+                        <span>Account</span>
+                        <p>
+                            Controls whether the person can use their DSA account.
+                        </p>
+                    </div>
+
+                    <div>
+                        <span>Role assignment</span>
+                        <p>
+                            Controls specific privileged access within an approved
+                            scope.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Destructive boundary -->
+            <section class="admin-side-card admin-boundary-card">
+                <span class="admin-side-label">Data protection</span>
+
+                <h3>No permanent delete action</h3>
+
+                <p>
+                    This interface intentionally uses suspension instead of casual
+                    account deletion. Permanent deletion requires separate rules
+                    for linked profiles, applications, institutional records and
+                    retention requirements.
+                </p>
+            </section>
+
+        </aside>
+    </div>
+</div>
+{% endblock %}

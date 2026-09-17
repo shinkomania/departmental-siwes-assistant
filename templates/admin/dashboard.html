@@ -1,211 +1,503 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Dashboard | Departmental SIWES Assistant{% endblock %}
+{% block title %}Platform Administration | DSA{% endblock %}
 
 {% block content %}
-<div
-    style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-    <div>
-        <div class="hero-badge">
-            <span>🛡️</span>
-            <span>Administration Panel</span>
+<div class="admin-page admin-dashboard-page">
+
+    <!-- Page header -->
+    <header class="admin-page-header admin-dashboard-header">
+        <div>
+            <span class="admin-eyebrow">DSA Platform Administration</span>
+
+            <h1>Platform overview</h1>
+
+            <p>
+                Manage organization evidence, review community contributions,
+                oversee user access and maintain SIWES guidance across DSA.
+            </p>
         </div>
 
-        <h1 style="font-size: 2.25rem;">
-            SIWES Management Console
-        </h1>
+        <div class="admin-header-actions">
+            {% if pending_reviews %}
+            <a href="{{ url_for('admin.organization_review_queue') }}" class="btn btn-primary">
+                Review pending
+                <span class="admin-button-count">{{ pending_reviews }}</span>
+            </a>
+            {% endif %}
 
-        <p style="color: var(--text-muted);">
-            Manage placement organizations, review student contributions, and maintain guide topics.
-        </p>
-    </div>
-
-    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <a href="{{ url_for('admin.organizations') }}" class="btn btn-outline">
-            Manage Organizations
-        </a>
-
-        <a href="{{ url_for('admin.guides') }}" class="btn btn-outline">
-            Manage Guides
-        </a>
-
-        <form action="{{ url_for('auth.logout') }}" method="POST" style="margin: 0;">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-danger btn-sm">
-                Logout
-            </button>
-        </form>
-    </div>
-</div>
-
-<!-- Admin Key Metrics -->
-<div class="stats-grid">
-
-    <div class="stat-card">
-        <span class="stat-label">
-            Total Organizations
-        </span>
-
-        <span class="stat-value">
-            {{ total_orgs }}
-        </span>
-
-        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
-            In SQLite database
-        </span>
-    </div>
-
-    <div class="stat-card">
-        <span class="stat-label">
-            Verified Organizations
-        </span>
-
-        <span class="stat-value" style="color: var(--success);">
-            {{ verified_orgs }}
-        </span>
-
-        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
-            Formally approved
-        </span>
-    </div>
-
-    <div class="stat-card">
-        <span class="stat-label">
-            Student Submissions
-        </span>
-
-        <span class="stat-value" style="color: var(--warning);">
-            {{ pending_submissions }}
-        </span>
-
-        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
-            Awaiting verification
-        </span>
-    </div>
-
-    <div class="stat-card">
-        <span class="stat-label">
-            Registered Students
-        </span>
-
-        <span class="stat-value" style="color: var(--primary);">
-            {{ total_students }}
-        </span>
-
-        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
-            Active profiles
-        </span>
-    </div>
-
-</div>
-
-<!-- Admin Management Sections -->
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
-
-    <!-- Recent Student Submissions Review -->
-    <div class="form-card">
-
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h3 style="font-size: 1.15rem;">
-                📥 Recent Student Submissions
-            </h3>
-
-            <a href="{{ url_for('admin.organizations', status='Student Submitted') }}" class="btn btn-outline btn-sm">
-                View All
+            <a href="{{ url_for('admin.new_organization') }}" class="btn btn-outline">
+                Add organization
             </a>
         </div>
+    </header>
 
-        {% if recent_submissions %}
+    <!-- Pending review alert -->
+    {% if pending_reviews %}
+    <section class="admin-review-alert">
+        <div class="admin-review-alert-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 8v5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" />
+                <path d="M12 16.5h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                <path d="M10.3 4.8 3.4 17a2 2 0 0 0 1.8 3h13.6a2 2 0 0 0 1.8-3L13.7 4.8a2 2 0 0 0-3.4 0Z"
+                    stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+            </svg>
+        </div>
 
-        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div class="admin-review-alert-content">
+            <span class="admin-review-alert-label">
+                Review queue
+            </span>
 
-            {% for sub in recent_submissions %}
+            <h2>
+                {{ pending_reviews }}
+                organization
+                {% if pending_reviews == 1 %}record is{% else %}records are{% endif %}
+                waiting for review
+            </h2>
 
-            <div
-                style="background: var(--bg-subtle); padding: 0.85rem 1rem; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+            <p>
+                These records may include community-submitted information.
+                Review their provenance and supporting evidence before changing
+                directory visibility or making stronger intake claims.
+            </p>
+        </div>
 
-                <div>
-                    <strong>
-                        {{ sub.name }}
-                    </strong>
+        <a href="{{ url_for('admin.organization_review_queue') }}" class="btn btn-primary">
+            Open review queue
+        </a>
+    </section>
+    {% else %}
+    <section class="admin-review-clear">
+        <div aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 3 5 6v5c0 4.4 2.8 7.6 7 9 4.2-1.4 7-4.6 7-9V6l-7-3Z" stroke="currentColor"
+                    stroke-width="1.8" stroke-linejoin="round" />
+                <path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+        </div>
 
-                    <div style="font-size: 0.8rem; color: var(--text-muted);">
-                        📍 {{ sub.city }}, {{ sub.state }} • {{ sub.industry }}
-                    </div>
-                </div>
+        <p>
+            <strong>Organization review queue is clear.</strong>
+            No records are currently waiting for DSA review.
+        </p>
+    </section>
+    {% endif %}
 
-                <div style="display: flex; gap: 0.35rem;">
+    <!-- Core metrics -->
+    <section class="admin-metrics-grid" aria-label="Platform metrics">
 
-                    <form action="{{ url_for('admin.verify_organization', org_id=sub.id) }}" method="POST"
-                        style="margin: 0;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-
-                        <button type="submit" class="btn btn-primary btn-sm"
-                            style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
-                            ✓ Approve
-                        </button>
-
-                    </form>
-
-                    <a href="{{ url_for('admin.edit_organization', org_id=sub.id) }}" class="btn btn-outline btn-sm"
-                        style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
-                        Edit
-                    </a>
-
-                </div>
+        <article class="admin-metric-card">
+            <div class="admin-metric-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M4 21V6.5L12 3l8 3.5V21M8 21v-4h8v4" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M8 9h.01M12 9h.01M16 9h.01M8 13h.01M12 13h.01M16 13h.01" stroke="currentColor"
+                        stroke-width="2.2" stroke-linecap="round" />
+                </svg>
             </div>
 
-            {% endfor %}
+            <div>
+                <span>Organization records</span>
+                <strong>{{ total_orgs }}</strong>
+                <small>Across all directory states</small>
+            </div>
+        </article>
 
+        <article class="admin-metric-card">
+            <div class="admin-metric-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M5 20v-8M12 20V4M19 20v-12" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round" />
+                </svg>
+            </div>
+
+            <div>
+                <span>Active listings</span>
+                <strong>{{ active_listings }}</strong>
+                <small>Visible active directory records</small>
+            </div>
+        </article>
+
+        <article class="admin-metric-card">
+            <div class="admin-metric-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.8" />
+                    <path d="M3.5 20c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round" />
+                    <path d="M16 8h5M18.5 5.5v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+            </div>
+
+            <div>
+                <span>Registered users</span>
+                <strong>{{ total_users }}</strong>
+                <small>
+                    {% if suspended_users %}
+                    {{ suspended_users }} suspended
+                    {% else %}
+                    No suspended accounts
+                    {% endif %}
+                </small>
+            </div>
+        </article>
+
+        <article class="admin-metric-card">
+            <div class="admin-metric-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M7 5.5A3.5 3.5 0 1 0 14 5.5 3.5 3.5 0 0 0 7 5.5Z" stroke="currentColor"
+                        stroke-width="1.8" />
+                    <path d="M4 20c0-4 2.9-7 6.5-7s6.5 3 6.5 7" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round" />
+                    <path d="m15 9 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+            </div>
+
+            <div>
+                <span>Student profiles</span>
+                <strong>{{ total_students }}</strong>
+                <small>SIWES student profiles</small>
+            </div>
+        </article>
+
+    </section>
+
+    <!-- Secondary metrics -->
+    <section class="admin-secondary-metrics">
+        <div>
+            <span>Placement applications</span>
+            <strong>{{ total_applications }}</strong>
         </div>
 
-        {% else %}
-
-        <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 1.5rem;">
-            No pending student submissions right now.
-        </p>
-
-        {% endif %}
-
-    </div>
-
-    <!-- Quick Admin Actions -->
-    <div class="form-card">
-
-        <h3 style="font-size: 1.15rem; margin-bottom: 1rem;">
-            ⚡ Quick Admin Actions
-        </h3>
-
-        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-
-            <a href="{{ url_for('admin.new_organization') }}" class="btn btn-primary"
-                style="justify-content: flex-start;">
-                <span>
-                    ➕ Add New Verified Organization
-                </span>
-            </a>
-
-            <a href="{{ url_for('admin.new_guide') }}" class="btn btn-outline" style="justify-content: flex-start;">
-                <span>
-                    📝 Add New SIWES Guide Topic
-                </span>
-            </a>
-
-            <a href="{{ url_for('admin.organizations') }}" class="btn btn-outline" style="justify-content: flex-start;">
-                <span>
-                    🏢 Browse & Edit All Organizations
-                </span>
-            </a>
-
-            <a href="{{ url_for('admin.guides') }}" class="btn btn-outline" style="justify-content: flex-start;">
-                <span>
-                    📖 Manage {{ guide_topics_count }} Guide Modules
-                </span>
-            </a>
-
+        <div>
+            <span>Guide topics</span>
+            <strong>{{ guide_topics_count }}</strong>
         </div>
-    </div>
 
+        <div>
+            <span>Pending organization reviews</span>
+            <strong>{{ pending_reviews }}</strong>
+        </div>
+
+        <div>
+            <span>Current intake evidence</span>
+            <strong>{{ current_intake_evidence }}</strong>
+        </div>
+    </section>
+
+    <!-- Main dashboard content -->
+    <div class="admin-dashboard-grid">
+
+        <main class="admin-dashboard-main">
+
+            <!-- Review queue preview -->
+            <section class="admin-content-card">
+                <div class="admin-card-heading">
+                    <div>
+                        <span class="admin-card-kicker">
+                            Evidence review
+                        </span>
+
+                        <h2>
+                            Pending organization reviews
+
+                            {% if pending_reviews %}
+                            <span class="admin-count-badge">
+                                {{ pending_reviews }}
+                            </span>
+                            {% endif %}
+                        </h2>
+                    </div>
+
+                    <a href="{{ url_for('admin.organization_review_queue') }}" class="admin-text-link">
+                        View queue
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
+                </div>
+
+                {% if recent_pending_reviews %}
+
+                <div class="admin-review-list">
+                    {% for org in recent_pending_reviews %}
+                    <article class="admin-review-item">
+                        <div class="admin-review-item-main">
+                            <div class="admin-review-item-top">
+                                <h3>{{ org.name }}</h3>
+
+                                <span class="admin-status admin-status-warning">
+                                    <span aria-hidden="true"></span>
+                                    Pending review
+                                </span>
+                            </div>
+
+                            <p>
+                                {{ org.city }}, {{ org.state }}
+                                {% if org.industry %}
+                                <span aria-hidden="true">&middot;</span>
+                                {{ org.industry }}
+                                {% endif %}
+                            </p>
+
+                            <div class="admin-review-meta">
+                                <span>
+                                    <strong>Source:</strong>
+                                    {{ org.source_display }}
+                                </span>
+
+                                {% if org.created_at %}
+                                <span>
+                                    <strong>Submitted:</strong>
+                                    {{ org.created_at.strftime('%d %b %Y') }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <a href="{{ url_for('admin.edit_organization', org_id=org.id) }}"
+                            class="btn btn-outline btn-sm">
+                            Review record
+                        </a>
+                    </article>
+                    {% endfor %}
+                </div>
+
+                {% else %}
+
+                <div class="admin-empty-state admin-empty-state-compact">
+                    <div class="admin-empty-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M5 4h14v16H5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                            <path d="m8 12 2 2 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </div>
+
+                    <h3>Nothing waiting for review</h3>
+
+                    <p>
+                        New community organization suggestions will appear here
+                        when they enter the review queue.
+                    </p>
+                </div>
+
+                {% endif %}
+            </section>
+
+            <!-- Recent users -->
+            <section class="admin-content-card">
+                <div class="admin-card-heading">
+                    <div>
+                        <span class="admin-card-kicker">
+                            Accounts
+                        </span>
+
+                        <h2>Recently registered users</h2>
+                    </div>
+
+                    <a href="{{ url_for('admin.users') }}" class="admin-text-link">
+                        Users & Access
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
+                </div>
+
+                {% if recent_users %}
+
+                <div class="admin-recent-users">
+                    {% for user in recent_users %}
+                    <a href="{{ url_for('admin.user_detail', user_id=user.id) }}" class="admin-recent-user">
+                        <div class="admin-user-avatar" aria-hidden="true">
+                            {{ user.full_name[:1]|upper }}
+                        </div>
+
+                        <div class="admin-recent-user-info">
+                            <strong>{{ user.full_name }}</strong>
+                            <span>{{ user.email }}</span>
+                        </div>
+
+                        <div class="admin-recent-user-status">
+                            {% if user.account_status == 'Active' %}
+                            <span class="admin-status admin-status-success">
+                                <span aria-hidden="true"></span>
+                                Active
+                            </span>
+                            {% elif user.account_status == 'Suspended' %}
+                            <span class="admin-status admin-status-danger">
+                                <span aria-hidden="true"></span>
+                                Suspended
+                            </span>
+                            {% else %}
+                            <span class="admin-status admin-status-neutral">
+                                <span aria-hidden="true"></span>
+                                {{ user.account_status }}
+                            </span>
+                            {% endif %}
+
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+
+                {% else %}
+
+                <div class="admin-empty-state admin-empty-state-compact">
+                    <h3>No registered users yet</h3>
+                    <p>User accounts will appear here after registration.</p>
+                </div>
+
+                {% endif %}
+            </section>
+
+        </main>
+
+        <!-- Quick administration -->
+        <aside class="admin-dashboard-sidebar">
+
+            <section class="admin-side-card">
+                <span class="admin-side-label">
+                    Administration
+                </span>
+
+                <h3>Quick actions</h3>
+
+                <nav class="admin-quick-actions" aria-label="Platform administration">
+                    <a href="{{ url_for('admin.organization_review_queue') }}">
+                        <div>
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M5 4h14v16H5z" stroke="currentColor" stroke-width="1.8" />
+                                <path d="M8 9h8M8 13h5" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" />
+                            </svg>
+                        </div>
+
+                        <span>
+                            <strong>Review queue</strong>
+                            <small>
+                                {{ pending_reviews }}
+                                pending
+                            </small>
+                        </span>
+
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
+
+                    <a href="{{ url_for('admin.organizations') }}">
+                        <div>
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M4 21V6.5L12 3l8 3.5V21" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linejoin="round" />
+                                <path d="M8 21v-4h8v4" stroke="currentColor" stroke-width="1.8" />
+                            </svg>
+                        </div>
+
+                        <span>
+                            <strong>Organizations</strong>
+                            <small>Directory & evidence</small>
+                        </span>
+
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
+
+                    <a href="{{ url_for('admin.users') }}">
+                        <div>
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.8" />
+                                <path d="M3.5 20c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5" stroke="currentColor"
+                                    stroke-width="1.8" />
+                                <path d="M16 9h5M16 13h5" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" />
+                            </svg>
+                        </div>
+
+                        <span>
+                            <strong>Users & Access</strong>
+                            <small>Accounts & roles</small>
+                        </span>
+
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
+
+                    <a href="{{ url_for('admin.guides') }}">
+                        <div>
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z" stroke="currentColor"
+                                    stroke-width="1.8" stroke-linejoin="round" />
+                                <path d="M8 8h7M8 12h7" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" />
+                            </svg>
+                        </div>
+
+                        <span>
+                            <strong>SIWES Guides</strong>
+                            <small>Knowledge base</small>
+                        </span>
+
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
+
+                    <a href="{{ url_for('admin.new_organization') }}">
+                        <div>
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M4 21V7l8-4 8 4v14" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linejoin="round" />
+                                <path d="M12 10v6M9 13h6" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" />
+                            </svg>
+                        </div>
+
+                        <span>
+                            <strong>Add organization</strong>
+                            <small>Create a sourced record</small>
+                        </span>
+
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
+                </nav>
+            </section>
+
+            <section class="admin-side-card admin-evidence-summary">
+                <span class="admin-side-label">
+                    Evidence discipline
+                </span>
+
+                <h3>Review is not verification</h3>
+
+                <p>
+                    DSA keeps source provenance, internal review, directory
+                    listing state and current SIWES intake evidence separate.
+                </p>
+
+                <div class="admin-mini-flow">
+                    <span>Source</span>
+                    <span aria-hidden="true">&rarr;</span>
+                    <span>Review</span>
+                    <span aria-hidden="true">&rarr;</span>
+                    <span>Listing</span>
+                    <span aria-hidden="true">&rarr;</span>
+                    <span>Intake</span>
+                </div>
+            </section>
+
+            <section class="admin-side-card admin-platform-note">
+                <span class="admin-side-label">
+                    Platform boundary
+                </span>
+
+                <h3>DSA supports the SIWES ecosystem</h3>
+
+                <p>
+                    DSA is an institutional and student support layer. Official
+                    government or institutional sources remain authoritative for
+                    the claims they publish.
+                </p>
+            </section>
+
+        </aside>
+    </div>
 </div>
 {% endblock %}

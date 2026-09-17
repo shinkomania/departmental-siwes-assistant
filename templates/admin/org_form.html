@@ -1,125 +1,566 @@
 {% extends "base.html" %}
 
-{% block title %}{% if org %}Edit {{ org.name }}{% else %}New Organization{% endif %} | Admin | DSA{% endblock %}
+{% block title %}
+{% if org %}Review {{ org.name }}{% else %}Add Organization{% endif %} | Platform Administration | DSA
+{% endblock %}
 
 {% block content %}
-<div class="container-narrow">
-    <div style="margin-bottom: 1.5rem;">
-        <a href="{{ url_for('admin.organizations') }}" style="font-size: 0.85rem; color: var(--text-muted);">&larr; Back to Organizations</a>
-        <h1 style="font-size: 2rem; margin-top: 0.25rem;">
-            {% if org %}Edit Organization: {{ org.name }}{% else %}Add New Organization{% endif %}
-        </h1>
+<div class="admin-form-page">
+
+    <div class="admin-form-header">
+        <div>
+            <a href="{{ url_for('admin.organizations') }}" class="admin-back-link">
+                &larr; Organization Directory
+            </a>
+
+            <span class="admin-eyebrow">Platform Administration</span>
+
+            <h1>
+                {% if org %}
+                Review organization record
+                {% else %}
+                Add organization record
+                {% endif %}
+            </h1>
+
+            <p>
+                {% if org %}
+                Review the organization's directory information, provenance,
+                listing state and any available SIWES intake evidence.
+                {% else %}
+                Add an organization to DSA with clear provenance and evidence
+                states. Adding a record does not certify the organization or
+                confirm that it is currently accepting SIWES students.
+                {% endif %}
+            </p>
+        </div>
+
+        {% if org %}
+        <div class="admin-record-id">
+            Record #{{ org.id }}
+        </div>
+        {% endif %}
     </div>
 
-    <div class="form-card">
-        <form method="POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <h3 style="font-size: 1.2rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
-                Organization Information
-            </h3>
+    <div class="admin-form-layout">
 
-            <div class="form-grid">
-                <div class="form-group full-width">
-                    <label class="form-label">Organization Name *</label>
-                    <input type="text" name="name" class="form-control" value="{{ org.name if org else '' }}" required>
+        <main class="admin-form-main">
+
+            <form method="POST" class="admin-record-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- Organization details -->
+                <section class="admin-form-section">
+                    <div class="admin-section-heading">
+                        <div class="admin-section-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path
+                                    d="M4 21V6.5L12 3l8 3.5V21M8 21v-4h8v4M8 9h.01M12 9h.01M16 9h.01M8 13h.01M12 13h.01M16 13h.01"
+                                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                        </div>
+
+                        <div>
+                            <h2>Organization details</h2>
+                            <p>
+                                Core directory information used to identify and
+                                describe the organization.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label class="form-label" for="orgName">
+                                Organization name <span aria-hidden="true">*</span>
+                            </label>
+
+                            <input id="orgName" type="text" name="name" class="form-control"
+                                value="{{ org.name if org else '' }}" autocomplete="organization" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="stateSelect">
+                                State <span aria-hidden="true">*</span>
+                            </label>
+
+                            <select name="state" id="stateSelect" class="form-control" required>
+                                <option value="">Select state</option>
+
+                                {% for st in states %}
+                                <option value="{{ st }}" {% if org and org.state==st %}selected{% endif %}>
+                                    {{ st }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="cityInput">
+                                City / town <span aria-hidden="true">*</span>
+                            </label>
+
+                            <input id="cityInput" type="text" name="city" list="cityList" class="form-control"
+                                value="{{ org.city if org else '' }}" required>
+
+                            <datalist id="cityList"></datalist>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="industry">
+                                Industry / sector <span aria-hidden="true">*</span>
+                            </label>
+
+                            <select id="industry" name="industry" class="form-control" required>
+                                <option value="">Select industry / sector</option>
+
+                                {% for org_opt in org_types %}
+                                <option value="{{ org_opt }}" {% if org and org.industry==org_opt %}selected{% endif %}>
+                                    {{ org_opt }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="relevanceAreas">
+                                Placement fields / areas
+                            </label>
+
+                            <input id="relevanceAreas" type="text" name="relevance_areas" class="form-control"
+                                placeholder="e.g. Software Development, Laboratory Services, Finance"
+                                value="{{ org.relevance_areas if org else '' }}">
+
+                            <small class="form-help">
+                                Transitional broad field information only.
+                                Do not infer that the organization accepts every
+                                programme related to these fields.
+                            </small>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label class="form-label" for="physicalAddress">
+                                Physical address
+                            </label>
+
+                            <input id="physicalAddress" type="text" name="address" class="form-control"
+                                value="{{ org.address if org else '' }}" autocomplete="street-address">
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label class="form-label" for="description">
+                                Description <span aria-hidden="true">*</span>
+                            </label>
+
+                            <textarea id="description" name="description" class="form-control admin-textarea" rows="5"
+                                required>{{ org.description if org else '' }}</textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Provenance -->
+                <section class="admin-form-section">
+                    <div class="admin-section-heading">
+                        <div class="admin-section-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="M12 3 4.5 6.5v5c0 4.6 3 7.9 7.5 9.5 4.5-1.6 7.5-4.9 7.5-9.5v-5L12 3Z"
+                                    stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                <path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                        </div>
+
+                        <div>
+                            <h2>Source & provenance</h2>
+                            <p>
+                                Record where DSA obtained the organization
+                                information. A source listing is not evidence of
+                                current SIWES intake.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="sourceType">
+                                Source type
+                            </label>
+
+                            <select id="sourceType" name="source_type" class="form-control">
+                                {% for source_type in source_types %}
+                                <option value="{{ source_type }}" {% if org and org.source_type==source_type
+                                    %}selected{% elif not org and source_type=='Other' %}selected{% endif %}>
+                                    {{ source_type }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="sourceName">
+                                Source name
+                            </label>
+
+                            <input id="sourceName" type="text" name="source_name" class="form-control"
+                                placeholder="e.g. ITF SIWES Portal or organization website"
+                                value="{{ org.source_name if org and org.source_name else '' }}">
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label class="form-label" for="sourceUrl">
+                                Source URL
+                            </label>
+
+                            <input id="sourceUrl" type="url" name="source_url" class="form-control"
+                                placeholder="https://" value="{{ org.source_url if org and org.source_url else '' }}">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="sourceReference">
+                                Source reference
+                            </label>
+
+                            <input id="sourceReference" type="text" name="source_reference" class="form-control"
+                                placeholder="Reference, directory entry or record ID"
+                                value="{{ org.source_reference if org and org.source_reference else '' }}">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="sourceLastChecked">
+                                Source last checked
+                            </label>
+
+                            <input id="sourceLastChecked" type="date" name="source_last_checked" class="form-control"
+                                value="{{ org.source_last_checked.strftime('%Y-%m-%d') if org and org.source_last_checked else '' }}">
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label class="form-label" for="provenanceNotes">
+                                Provenance notes
+                            </label>
+
+                            <textarea id="provenanceNotes" name="provenance_notes" class="form-control admin-textarea"
+                                rows="4"
+                                placeholder="Record useful context about how this information was obtained or what the source specifically supports.">{{ org.provenance_notes if org and org.provenance_notes else '' }}</textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- DSA review and directory state -->
+                <section class="admin-form-section">
+                    <div class="admin-section-heading">
+                        <div class="admin-section-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="M5 4h14v16H5z" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linejoin="round" />
+                                <path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" />
+                            </svg>
+                        </div>
+
+                        <div>
+                            <h2>Review & directory state</h2>
+                            <p>
+                                DSA's internal review state and directory listing
+                                state are separate from employer intake evidence.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="admin-evidence-note">
+                        <strong>Review does not mean certification.</strong>
+                        Marking a record as reviewed only means DSA has completed
+                        its internal review of the submitted information.
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="reviewStatus">
+                                DSA review status
+                            </label>
+
+                            <select id="reviewStatus" name="review_status" class="form-control">
+                                {% for status in review_statuses %}
+                                <option value="{{ status }}" {% if org and org.review_status==status %}selected{% elif
+                                    not org and status=='Pending' %}selected{% endif %}>
+                                    {{ status }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="listingStatus">
+                                Source listing status
+                            </label>
+
+                            <select id="listingStatus" name="listing_status" class="form-control">
+                                {% for status in listing_statuses %}
+                                <option value="{{ status }}" {% if org and org.listing_status==status %}selected{% elif
+                                    not org and status=='Unknown' %}selected{% endif %}>
+                                    {{ status }}
+                                </option>
+                                {% endfor %}
+                            </select>
+
+                            <small class="form-help">
+                                Whether the relevant source/listing appears active.
+                                This does not confirm current student intake.
+                            </small>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <div class="admin-switch-row">
+                                <div>
+                                    <label class="form-label" for="isActive">
+                                        Visible in the DSA placement directory
+                                    </label>
+
+                                    <p>
+                                        Controls whether ordinary users can discover
+                                        this record through the active directory.
+                                    </p>
+                                </div>
+
+                                <label class="admin-switch">
+                                    <input type="checkbox" name="is_active" id="isActive" {% if org and org.is_active
+                                        %}checked{% endif %}>
+                                    <span class="admin-switch-control"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Current intake evidence -->
+                <section class="admin-form-section">
+                    <div class="admin-section-heading">
+                        <div class="admin-section-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="M4 19.5V8l8-4 8 4v11.5M8 20v-5h8v5" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M8 10h.01M12 10h.01M16 10h.01" stroke="currentColor" stroke-width="2.2"
+                                    stroke-linecap="round" />
+                            </svg>
+                        </div>
+
+                        <div>
+                            <h2>Current SIWES intake evidence</h2>
+                            <p>
+                                Record intake claims independently from directory
+                                provenance. Use “Currently Accepting” only when
+                                intake-specific evidence is available.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="admin-evidence-note admin-evidence-note-warning">
+                        <strong>Important:</strong>
+                        appearing in an employer directory, institutional record
+                        or public registry does not by itself prove that an
+                        organization is currently accepting SIWES students.
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="acceptanceStatus">
+                                SIWES intake status
+                            </label>
+
+                            <select id="acceptanceStatus" name="acceptance_status" class="form-control">
+                                {% for status in acceptance_statuses %}
+                                <option value="{{ status }}" {% if org and org.acceptance_status==status %}selected{%
+                                    elif not org and status=='Unknown' %}selected{% endif %}>
+                                    {{ status }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="acceptanceLastChecked">
+                                Intake evidence last checked
+                            </label>
+
+                            <input id="acceptanceLastChecked" type="date" name="acceptance_last_checked"
+                                class="form-control"
+                                value="{{ org.acceptance_last_checked.strftime('%Y-%m-%d') if org and org.acceptance_last_checked else '' }}">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="acceptanceSourceName">
+                                Intake evidence source
+                            </label>
+
+                            <input id="acceptanceSourceName" type="text" name="acceptance_source_name"
+                                class="form-control" placeholder="e.g. Official careers page"
+                                value="{{ org.acceptance_source_name if org and org.acceptance_source_name else '' }}">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="acceptanceSourceUrl">
+                                Intake evidence URL
+                            </label>
+
+                            <input id="acceptanceSourceUrl" type="url" name="acceptance_source_url" class="form-control"
+                                placeholder="https://"
+                                value="{{ org.acceptance_source_url if org and org.acceptance_source_url else '' }}">
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label class="form-label" for="acceptanceNotes">
+                                Intake evidence notes
+                            </label>
+
+                            <textarea id="acceptanceNotes" name="acceptance_notes" class="form-control admin-textarea"
+                                rows="4"
+                                placeholder="Describe what the evidence says, relevant dates, limitations or other useful context.">{{ org.acceptance_notes if org and org.acceptance_notes else '' }}</textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Contact -->
+                <section class="admin-form-section">
+                    <div class="admin-section-heading">
+                        <div class="admin-section-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="M4 5h16v14H4z" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linejoin="round" />
+                                <path d="m5 7 7 5 7-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                        </div>
+
+                        <div>
+                            <h2>Contact information</h2>
+                            <p>
+                                Public-facing contact information associated with
+                                the organization.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label class="form-label" for="website">
+                                Organization website
+                            </label>
+
+                            <input id="website" type="url" name="website" class="form-control" placeholder="https://"
+                                value="{{ org.website if org and org.website else '' }}" autocomplete="url">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="contactEmail">
+                                Contact email
+                            </label>
+
+                            <input id="contactEmail" type="email" name="contact_email" class="form-control"
+                                value="{{ org.contact_email if org and org.contact_email else '' }}"
+                                autocomplete="email">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="contactPhone">
+                                Contact phone
+                            </label>
+
+                            <input id="contactPhone" type="tel" name="contact_phone" class="form-control"
+                                value="{{ org.contact_phone if org and org.contact_phone else '' }}" autocomplete="tel">
+                        </div>
+                    </div>
+                </section>
+
+                <div class="admin-form-actions">
+                    <a href="{{ url_for('admin.organizations') }}" class="btn btn-outline">
+                        Cancel
+                    </a>
+
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        {% if org %}
+                        Save organization record
+                        {% else %}
+                        Add organization record
+                        {% endif %}
+                    </button>
                 </div>
+            </form>
+        </main>
 
-                <div class="form-group">
-                    <label class="form-label">State in Nigeria *</label>
-                    <select name="state" id="stateSelect" class="form-control" required>
-                        <option value="">Select State</option>
-                        {% for st in states %}
-                        <option value="{{ st }}" {% if org and org.state == st %}selected{% endif %}>{{ st }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+        <aside class="admin-form-sidebar">
+            <div class="admin-side-card">
+                <span class="admin-side-label">Evidence model</span>
 
-                <div class="form-group">
-                    <label class="form-label">City / Town *</label>
-                    <input type="text" name="city" id="cityInput" list="cityList" class="form-control" value="{{ org.city if org else '' }}" required>
-                    <datalist id="cityList"></datalist>
-                </div>
+                <h3>Keep these facts separate</h3>
 
-                <div class="form-group">
-                    <label class="form-label">Industry / Sector *</label>
-                    <select name="industry" class="form-control" required>
-                        <option value="">Select Industry</option>
-                        {% for org_opt in org_types %}
-                        <option value="{{ org_opt }}" {% if org and org.industry == org_opt %}selected{% endif %}>{{ org_opt }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+                <div class="admin-evidence-flow">
+                    <div>
+                        <span>1</span>
+                        <p>
+                            <strong>Source</strong>
+                            Where did the information come from?
+                        </p>
+                    </div>
 
-                <div class="form-group">
-                    <label class="form-label">Engineering Relevance Areas</label>
-                    <input type="text" name="relevance_areas" class="form-control" placeholder="e.g. Software Development, AI, Networking" value="{{ org.relevance_areas if org else '' }}">
-                </div>
+                    <div>
+                        <span>2</span>
+                        <p>
+                            <strong>Review</strong>
+                            Has DSA reviewed the submitted information?
+                        </p>
+                    </div>
 
-                <div class="form-group full-width">
-                    <label class="form-label">Physical Address</label>
-                    <input type="text" name="address" class="form-control" value="{{ org.address if org else '' }}">
-                </div>
+                    <div>
+                        <span>3</span>
+                        <p>
+                            <strong>Listing</strong>
+                            Does the relevant source still list the organization?
+                        </p>
+                    </div>
 
-                <div class="form-group full-width">
-                    <label class="form-label">Description</label>
-                    <textarea name="description" class="form-control" required>{{ org.description if org else '' }}</textarea>
+                    <div>
+                        <span>4</span>
+                        <p>
+                            <strong>Current intake</strong>
+                            Is there specific evidence of current SIWES intake?
+                        </p>
+                    </div>
                 </div>
             </div>
 
-            <h3 style="font-size: 1.2rem; margin: 1.5rem 0 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
-                Contact & Verification Status
-            </h3>
+            <div class="admin-side-card">
+                <span class="admin-side-label">Programme suitability</span>
 
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label">Verification Status</label>
-                    <select name="verification_status" class="form-control">
-                        <option value="Verified" {% if org and org.verification_status == 'Verified' %}selected{% endif %}>Verified</option>
-                        <option value="Online Source" {% if org and org.verification_status == 'Online Source' %}selected{% endif %}>Online Source</option>
-                        <option value="Student Submitted" {% if org and org.verification_status == 'Student Submitted' %}selected{% endif %}>Student Submitted</option>
-                    </select>
-                </div>
+                <h3>Avoid unsupported conclusions</h3>
 
-                <div class="form-group">
-                    <label class="form-label">Information Source</label>
-                    <input type="text" name="source" class="form-control" value="{{ org.source if org else 'Departmental Directory' }}">
-                </div>
+                <p>
+                    An organization's sector or broad placement fields should not
+                    be treated as proof that it accepts a particular institution's
+                    programme.
+                </p>
 
-                <div class="form-group">
-                    <label class="form-label">Website</label>
-                    <input type="url" name="website" class="form-control" value="{{ org.website if org else '' }}">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Email</label>
-                    <input type="email" name="contact_email" class="form-control" value="{{ org.contact_email if org else '' }}">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Phone</label>
-                    <input type="tel" name="contact_phone" class="form-control" value="{{ org.contact_phone if org else '' }}">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Why Relevant for SIWES</label>
-                    <input type="text" name="why_relevant" class="form-control" value="{{ org.why_relevant if org else '' }}">
-                </div>
-
-                {% if org %}
-                <div class="form-group full-width" style="display: flex; align-items: center; gap: 0.5rem;">
-                    <input type="checkbox" name="is_active" id="isActive" {% if org.is_active %}checked{% endif %}>
-                    <label for="isActive" class="form-label" style="margin: 0; cursor: pointer;">Active & Visible to Students</label>
-                </div>
-                {% endif %}
+                <p>
+                    Structured programme-to-placement evidence belongs to the
+                    later placement-intelligence layer.
+                </p>
             </div>
 
-            <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
-                <a href="{{ url_for('admin.organizations') }}" class="btn btn-outline">Cancel</a>
-                <button type="submit" class="btn btn-primary btn-lg">
-                    {% if org %}Update Organization{% else %}Save Organization{% endif %}
-                </button>
+            {% if org and org.source_type == 'Community Contribution' %}
+            <div class="admin-side-card admin-community-card">
+                <span class="admin-side-label">Community contribution</span>
+
+                <h3>Review before publishing</h3>
+
+                <p>
+                    This record originated from a DSA community suggestion.
+                    Contributor-supplied information should be checked before the
+                    record is made visible or stronger evidence claims are added.
+                </p>
             </div>
-        </form>
+            {% endif %}
+        </aside>
+
     </div>
 </div>
 {% endblock %}

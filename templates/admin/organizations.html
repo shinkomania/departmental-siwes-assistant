@@ -1,89 +1,549 @@
 {% extends "base.html" %}
 
-{% block title %}Manage Organizations | Admin | DSA{% endblock %}
+{% block title %}
+{% if review_queue_mode %}Organization Review Queue{% else %}Organization Directory{% endif %}
+| Platform Administration | DSA
+{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-    <div>
-        <a href="{{ url_for('admin.dashboard') }}" style="font-size: 0.85rem; color: var(--text-muted);">&larr; Back to Admin Dashboard</a>
-        <h1 style="font-size: 2rem; margin-top: 0.25rem;">Placement Organizations</h1>
-    </div>
+<div class="admin-page">
 
-    <div style="display: flex; gap: 0.5rem;">
-        <a href="{{ url_for('admin.new_organization') }}" class="btn btn-primary">
-            <span>➕ Add New Organization</span>
-        </a>
-    </div>
-</div>
+    <!-- Header -->
+    <header class="admin-page-header">
+        <div>
+            <a href="{{ url_for('admin.dashboard') }}" class="admin-back-link">
+                &larr; Platform overview
+            </a>
 
-<!-- Filter Tabs -->
-<div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-    <a href="{{ url_for('admin.organizations', status='all') }}" class="btn btn-sm {% if active_status == 'all' %}btn-primary{% else %}btn-outline{% endif %}">
-        All ({{ organizations | length }})
-    </a>
-    <a href="{{ url_for('admin.organizations', status='Verified') }}" class="btn btn-sm {% if active_status == 'Verified' %}btn-primary{% else %}btn-outline{% endif %}">
-        Verified
-    </a>
-    <a href="{{ url_for('admin.organizations', status='Student Submitted') }}" class="btn btn-sm {% if active_status == 'Student Submitted' %}btn-primary{% else %}btn-outline{% endif %}">
-        Student Submitted
-    </a>
-    <a href="{{ url_for('admin.organizations', status='Online Source') }}" class="btn btn-sm {% if active_status == 'Online Source' %}btn-primary{% else %}btn-outline{% endif %}">
-        Online Source
-    </a>
-</div>
+            <span class="admin-eyebrow">Platform Administration</span>
 
-<!-- Table of Organizations -->
-<div class="table-container">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Organization Name</th>
-                <th>Location</th>
-                <th>Industry</th>
-                <th>Status</th>
-                <th>Source</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for org in organizations %}
-            <tr>
-                <td>
-                    <strong>{{ org.name }}</strong>
-                    {% if not org.is_active %}
-                    <span style="font-size: 0.7rem; color: var(--danger);">(Inactive)</span>
+            {% if review_queue_mode %}
+            <h1>Organization review queue</h1>
+
+            <p>
+                Review community and other pending organization records before
+                changing their review state, directory visibility or intake claims.
+            </p>
+            {% else %}
+            <h1>Organization directory</h1>
+
+            <p>
+                Manage organization records while keeping provenance, DSA review,
+                source listing state, intake evidence and visibility separate.
+            </p>
+            {% endif %}
+        </div>
+
+        <div class="admin-header-actions">
+            {% if review_queue_mode %}
+            <a href="{{ url_for('admin.organizations') }}" class="btn btn-outline">
+                Full directory
+            </a>
+            {% else %}
+            <a href="{{ url_for('admin.organization_review_queue') }}" class="btn btn-outline">
+                Review queue
+            </a>
+            {% endif %}
+
+            <a href="{{ url_for('admin.new_organization') }}" class="btn btn-primary">
+                Add organization
+            </a>
+        </div>
+    </header>
+
+    <!-- Review queue context -->
+    {% if review_queue_mode %}
+    <section class="admin-review-context">
+        <div class="admin-review-context-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M5 4h14v16H5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                <path d="M8 9h8M8 13h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+        </div>
+
+        <div>
+            <strong>Pending review does not mean untrustworthy.</strong>
+
+            <p>
+                It means DSA has not yet completed its internal review of the
+                submitted record. Review the source and evidence before deciding
+                whether the record should be visible or carry stronger claims.
+            </p>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Filters -->
+    {% if not review_queue_mode %}
+    <section class="admin-toolbar" aria-label="Organization directory filters">
+        <form method="GET" action="{{ url_for('admin.organizations') }}"
+            class="admin-filter-form admin-org-filter-form">
+            <div class="admin-search-field">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.8" />
+                    <path d="m16 16 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+
+                <input type="search" name="q" value="{{ active_filters.q }}"
+                    placeholder="Search organization, city, state or sector" aria-label="Search organizations">
+            </div>
+
+            <div class="admin-filter-field">
+                <label for="sourceTypeFilter">Source</label>
+
+                <select id="sourceTypeFilter" name="source_type" class="form-control">
+                    <option value="">All sources</option>
+
+                    {% for source_type in source_types %}
+                    <option value="{{ source_type }}" {% if active_filters.source_type==source_type %}selected{% endif
+                        %}>
+                        {{ source_type }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="admin-filter-field">
+                <label for="reviewStatusFilter">Review</label>
+
+                <select id="reviewStatusFilter" name="review_status" class="form-control">
+                    <option value="">All review states</option>
+
+                    {% for status in review_statuses %}
+                    <option value="{{ status }}" {% if active_filters.review_status==status %}selected{% endif %}>
+                        {{ status }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="admin-filter-field">
+                <label for="listingStatusFilter">Listing</label>
+
+                <select id="listingStatusFilter" name="listing_status" class="form-control">
+                    <option value="">All listing states</option>
+
+                    {% for status in listing_statuses %}
+                    <option value="{{ status }}" {% if active_filters.listing_status==status %}selected{% endif %}>
+                        {{ status }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="admin-filter-field">
+                <label for="intakeStatusFilter">Intake</label>
+
+                <select id="intakeStatusFilter" name="acceptance_status" class="form-control">
+                    <option value="">All intake states</option>
+
+                    {% for status in acceptance_statuses %}
+                    <option value="{{ status }}" {% if active_filters.acceptance_status==status %}selected{% endif %}>
+                        {{ status }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="admin-filter-field">
+                <label for="visibilityFilter">Visibility</label>
+
+                <select id="visibilityFilter" name="visibility" class="form-control">
+                    <option value="" {% if not active_filters.visibility %}selected{% endif %}>
+                        All records
+                    </option>
+
+                    <option value="active" {% if active_filters.visibility=='active' %}selected{% endif %}>
+                        Visible
+                    </option>
+
+                    <option value="inactive" {% if active_filters.visibility=='inactive' %}selected{% endif %}>
+                        Hidden
+                    </option>
+                </select>
+            </div>
+
+            <div class="admin-filter-actions">
+                <button type="submit" class="btn btn-primary">
+                    Apply filters
+                </button>
+
+                {% if active_filters.q
+                or active_filters.source_type
+                or active_filters.review_status
+                or active_filters.listing_status
+                or active_filters.acceptance_status
+                or active_filters.visibility %}
+                <a href="{{ url_for('admin.organizations') }}" class="btn btn-outline">
+                    Clear
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </section>
+    {% endif %}
+
+    <!-- Directory -->
+    <section class="admin-content-card">
+        <div class="admin-card-heading">
+            <div>
+                <span class="admin-card-kicker">
+                    {% if review_queue_mode %}
+                    Evidence review
+                    {% else %}
+                    Organization records
                     {% endif %}
-                </td>
-                <td style="white-space: nowrap;">
-                    📍 {{ org.city }}, {{ org.state }}
-                </td>
-                <td>{{ org.industry }}</td>
-                <td>
-                    <span class="badge {{ org.verification_status | badge_class }}">
-                        {{ org.verification_status }}
+                </span>
+
+                <h2>
+                    {% if review_queue_mode %}
+                    Waiting for review
+                    {% else %}
+                    Directory records
+                    {% endif %}
+
+                    <span class="admin-count-badge">
+                        {{ organizations|length }}
                     </span>
-                </td>
-                <td style="font-size: 0.8rem; color: var(--text-muted);">
-                    {{ org.source }}
-                </td>
-                <td style="white-space: nowrap;">
-                    <div style="display: flex; gap: 0.35rem;">
-                        {% if org.verification_status != 'Verified' %}
-                        <form action="{{ url_for('admin.verify_organization', org_id=org.id) }}" method="POST" style="margin:0;">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-primary" title="Mark as Verified">✓ Verify</button>
-                        </form>
+                </h2>
+            </div>
+
+            {% if not review_queue_mode %}
+            <p>
+                Directory visibility does not imply current SIWES intake.
+            </p>
+            {% endif %}
+        </div>
+
+        {% if organizations %}
+
+        <div class="admin-org-list">
+            {% for org in organizations %}
+
+            <article class="admin-org-card">
+
+                <div class="admin-org-card-header">
+                    <div class="admin-org-identity">
+                        <div class="admin-org-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="M4 21V6.5L12 3l8 3.5V21M8 21v-4h8v4" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M8 9h.01M12 9h.01M16 9h.01M8 13h.01M12 13h.01M16 13h.01" stroke="currentColor"
+                                    stroke-width="2.1" stroke-linecap="round" />
+                            </svg>
+                        </div>
+
+                        <div>
+                            <div class="admin-org-title-row">
+                                <h3>{{ org.name }}</h3>
+
+                                {% if org.is_active %}
+                                <span class="admin-visibility-badge admin-visible">
+                                    Visible
+                                </span>
+                                {% else %}
+                                <span class="admin-visibility-badge admin-hidden">
+                                    Hidden
+                                </span>
+                                {% endif %}
+                            </div>
+
+                            <p>
+                                {{ org.city }}, {{ org.state }}
+
+                                {% if org.industry %}
+                                <span aria-hidden="true">&middot;</span>
+                                {{ org.industry }}
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <a href="{{ url_for('admin.edit_organization', org_id=org.id) }}" class="btn btn-outline btn-sm">
+                        {% if review_queue_mode %}
+                        Review record
+                        {% else %}
+                        Manage
                         {% endif %}
-                        <a href="{{ url_for('admin.edit_organization', org_id=org.id) }}" class="btn btn-sm btn-outline">Edit</a>
-                        <form action="{{ url_for('admin.delete_organization', org_id=org.id) }}" method="POST" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete {{ org.name }}?');">
+                    </a>
+                </div>
+
+                <div class="admin-org-evidence-grid">
+
+                    <!-- Source -->
+                    <div class="admin-org-evidence-item">
+                        <span class="admin-org-evidence-label">
+                            Source
+                        </span>
+
+                        <strong>
+                            {{ org.source_type or 'Not recorded' }}
+                        </strong>
+
+                        <small>
+                            {{ org.source_name or 'Source name not recorded' }}
+                        </small>
+
+                        {% if org.source_last_checked %}
+                        <small>
+                            Checked {{ org.source_last_checked.strftime('%d %b %Y') }}
+                        </small>
+                        {% endif %}
+                    </div>
+
+                    <!-- Review -->
+                    <div class="admin-org-evidence-item">
+                        <span class="admin-org-evidence-label">
+                            DSA review
+                        </span>
+
+                        {% if org.review_status == 'Reviewed' %}
+                        <span class="admin-status admin-status-success">
+                            <span aria-hidden="true"></span>
+                            Reviewed
+                        </span>
+
+                        {% elif org.review_status == 'Pending' %}
+                        <span class="admin-status admin-status-warning">
+                            <span aria-hidden="true"></span>
+                            Pending
+                        </span>
+
+                        {% elif org.review_status == 'Rejected' %}
+                        <span class="admin-status admin-status-danger">
+                            <span aria-hidden="true"></span>
+                            Rejected
+                        </span>
+
+                        {% else %}
+                        <span class="admin-status admin-status-neutral">
+                            <span aria-hidden="true"></span>
+                            {{ org.review_status or 'Not recorded' }}
+                        </span>
+                        {% endif %}
+
+                        {% if org.reviewed_at %}
+                        <small>
+                            Reviewed {{ org.reviewed_at.strftime('%d %b %Y') }}
+                        </small>
+                        {% else %}
+                        <small>Internal record-review state</small>
+                        {% endif %}
+                    </div>
+
+                    <!-- Listing -->
+                    <div class="admin-org-evidence-item">
+                        <span class="admin-org-evidence-label">
+                            Source listing
+                        </span>
+
+                        {% if org.listing_status == 'Active' %}
+                        <span class="admin-status admin-status-success">
+                            <span aria-hidden="true"></span>
+                            Active
+                        </span>
+
+                        {% elif org.listing_status == 'Inactive' %}
+                        <span class="admin-status admin-status-danger">
+                            <span aria-hidden="true"></span>
+                            Inactive
+                        </span>
+
+                        {% else %}
+                        <span class="admin-status admin-status-neutral">
+                            <span aria-hidden="true"></span>
+                            {{ org.listing_status or 'Unknown' }}
+                        </span>
+                        {% endif %}
+
+                        <small>
+                            Source/listing state, not intake
+                        </small>
+                    </div>
+
+                    <!-- Intake -->
+                    <div class="admin-org-evidence-item">
+                        <span class="admin-org-evidence-label">
+                            SIWES intake
+                        </span>
+
+                        {% if org.acceptance_status == 'Currently Accepting' %}
+                        <span class="admin-status admin-status-success">
+                            <span aria-hidden="true"></span>
+                            Currently accepting
+                        </span>
+
+                        {% elif org.acceptance_status == 'Previously Accepted' %}
+                        <span class="admin-status admin-status-warning">
+                            <span aria-hidden="true"></span>
+                            Previously accepted
+                        </span>
+
+                        {% elif org.acceptance_status == 'Potential Placement' %}
+                        <span class="admin-status admin-status-neutral">
+                            <span aria-hidden="true"></span>
+                            Potential placement
+                        </span>
+
+                        {% else %}
+                        <span class="admin-status admin-status-neutral">
+                            <span aria-hidden="true"></span>
+                            {{ org.acceptance_status or 'Unknown' }}
+                        </span>
+                        {% endif %}
+
+                        {% if org.acceptance_source_name %}
+                        <small>
+                            Evidence: {{ org.acceptance_source_name }}
+                        </small>
+                        {% else %}
+                        <small>
+                            No intake-specific source recorded
+                        </small>
+                        {% endif %}
+                    </div>
+
+                </div>
+
+                {% if org.relevance_areas %}
+                <div class="admin-org-fields">
+                    <span>Placement fields</span>
+                    <p>{{ org.relevance_areas }}</p>
+                </div>
+                {% endif %}
+
+                {% if review_queue_mode %}
+                <div class="admin-org-review-footer">
+                    <div>
+                        {% if org.created_at %}
+                        <span>
+                            Added {{ org.created_at.strftime('%d %b %Y') }}
+                        </span>
+                        {% endif %}
+
+                        {% if org.source_type == 'Community Contribution' %}
+                        <span class="admin-community-label">
+                            Community contribution
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="admin-org-review-actions">
+                        <a href="{{ url_for('admin.edit_organization', org_id=org.id) }}"
+                            class="btn btn-outline btn-sm">
+                            Inspect evidence
+                        </a>
+
+                        <form method="POST" action="{{ url_for('admin.verify_organization', org_id=org.id) }}"
+                            onsubmit="return confirm('Mark this record as reviewed? This confirms only that DSA completed its internal review. It does not certify the organization or confirm current SIWES intake.');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-outline" style="color: var(--danger);">✕</button>
+
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                Mark reviewed
+                            </button>
                         </form>
                     </div>
-                </td>
-            </tr>
+                </div>
+                {% endif %}
+
+            </article>
+
             {% endfor %}
-        </tbody>
-    </table>
+        </div>
+
+        {% else %}
+
+        <div class="admin-empty-state">
+            <div class="admin-empty-icon" aria-hidden="true">
+                {% if review_queue_mode %}
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M5 4h14v16H5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                    <path d="m8 12 2 2 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+                {% else %}
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M4 21V6.5L12 3l8 3.5V21" stroke="currentColor" stroke-width="1.8"
+                        stroke-linejoin="round" />
+                    <path d="M9 13h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+                {% endif %}
+            </div>
+
+            {% if review_queue_mode %}
+            <h3>Review queue is clear</h3>
+
+            <p>
+                There are currently no organization records waiting for DSA review.
+            </p>
+
+            <a href="{{ url_for('admin.organizations') }}" class="btn btn-outline">
+                Open full directory
+            </a>
+            {% else %}
+            <h3>No organization records found</h3>
+
+            <p>
+                No records match the current directory filters.
+            </p>
+
+            {% if active_filters.q
+            or active_filters.source_type
+            or active_filters.review_status
+            or active_filters.listing_status
+            or active_filters.acceptance_status
+            or active_filters.visibility %}
+            <a href="{{ url_for('admin.organizations') }}" class="btn btn-outline">
+                Clear filters
+            </a>
+            {% else %}
+            <a href="{{ url_for('admin.new_organization') }}" class="btn btn-primary">
+                Add first organization
+            </a>
+            {% endif %}
+            {% endif %}
+        </div>
+
+        {% endif %}
+    </section>
+
+    <!-- Evidence explanation -->
+    <section class="admin-directory-legend">
+        <div>
+            <span>Source</span>
+            <p>
+                Where the organization information originated.
+            </p>
+        </div>
+
+        <div>
+            <span>DSA review</span>
+            <p>
+                Whether DSA has internally reviewed the submitted record.
+            </p>
+        </div>
+
+        <div>
+            <span>Source listing</span>
+            <p>
+                Whether the relevant source currently appears to list the record.
+            </p>
+        </div>
+
+        <div>
+            <span>SIWES intake</span>
+            <p>
+                Intake-specific evidence, kept separate from general listings.
+            </p>
+        </div>
+
+        <div>
+            <span>Visibility</span>
+            <p>
+                Whether ordinary users can currently discover the record in DSA.
+            </p>
+        </div>
+    </section>
+
 </div>
 {% endblock %}

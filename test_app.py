@@ -851,9 +851,219 @@ class DSATestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(
-            b'SIWES Management Console',
+            b'Platform overview',
             response.data,
         )
+
+
+    def _create_platform_admin_security_fixture(self):
+        """Create reusable accounts and roles for Platform Admin security tests."""
+        admin_permission = Permission(
+            name="Access Platform Administration Panel",
+            slug="access_platform_admin_panel",
+        )
+
+        platform_role = Role(
+            name="Platform Administrator",
+            slug="platform_administrator",
+            description="Global DSA platform administration role.",
+            is_active=True,
+        )
+        platform_role.permissions.append(admin_permission)
+
+        secondary_role = Role(
+            name="Test Privileged Role",
+            slug="test_privileged_role",
+            description="Secondary privileged role used by security tests.",
+            is_active=True,
+        )
+
+        platform_admin = User(
+            full_name="Security Test Platform Admin",
+            email="security-platform-admin@example.com",
+            account_status="Active",
+        )
+        platform_admin.set_password("platform-admin-password")
+
+        managed_user = User(
+            full_name="Managed Test User",
+            email="managed-user@example.com",
+            account_status="Active",
+        )
+        managed_user.set_password("managed-user-password")
+
+        db.session.add_all([
+            admin_permission,
+            platform_role,
+            secondary_role,
+            platform_admin,
+            managed_user,
+        ])
+        db.session.flush()
+
+        platform_assignment = UserRoleAssignment(
+            user_id=platform_admin.id,
+            role_id=platform_role.id,
+            institution_id=None,
+            department_id=None,
+            programme_id=None,
+            status="Approved",
+            approved_at=datetime.utcnow(),
+        )
+
+        admin_secondary_assignment = UserRoleAssignment(
+            user_id=platform_admin.id,
+            role_id=secondary_role.id,
+            institution_id=None,
+            department_id=None,
+            programme_id=None,
+            status="Approved",
+            approved_at=datetime.utcnow(),
+        )
+
+        managed_user_assignment = UserRoleAssignment(
+            user_id=managed_user.id,
+            role_id=secondary_role.id,
+            institution_id=None,
+            department_id=None,
+            programme_id=None,
+            status="Approved",
+            approved_at=datetime.utcnow(),
+        )
+
+        db.session.add_all([
+            platform_assignment,
+            admin_secondary_assignment,
+            managed_user_assignment,
+        ])
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess["user_id"] = platform_admin.id
+
+        return {
+            "platform_admin": platform_admin,
+            "managed_user": managed_user,
+            "platform_assignment": platform_assignment,
+            "admin_secondary_assignment": admin_secondary_assignment,
+            "managed_user_assignment": managed_user_assignment,
+        }
+
+    def test_admin_can_suspend_and_reactivate_another_account(self):
+        data = self._create_platform_admin_security_fixture()
+        managed_user_id = data["managed_user"].id
+
+        response = self.client.post(
+            f"/admin/users/{managed_user_id}/suspend",
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        managed_user = db.session.get(User, managed_user_id)
+        self.assertEqual(managed_user.account_status, "Suspended")
+        self.assertIn(
+            b'Suspended account for &#34;Managed Test User&#34;.',
+            response.data,
+        )
+
+        response = self.client.post(
+            f"/admin/users/{managed_user_id}/reactivate",
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        managed_user = db.session.get(User, managed_user_id)
+        self.assertEqual(managed_user.account_status, "Active")
+        self.assertIn(
+            b'Reactivated account for &#34;Managed Test User&#34;.',
+            response.data,
+        )
+
+    def test_admin_cannot_suspend_own_platform_admin_account(self):
+        data = self._create_platform_admin_security_fixture()
+        platform_admin_id = data["platform_admin"].id
+
+        response = self.client.post(
+            f"/admin/users/{platform_admin_id}/suspend",
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        platform_admin = db.session.get(User, platform_admin_id)
+        self.assertEqual(platform_admin.account_status, "Active")
+        self.assertIn(
+            b"You cannot suspend the account you are currently using",
+            response.data,
+        )
+
+    def test_admin_can_revoke_another_users_privileged_assignment(self):
+        data = self._create_platform_admin_security_fixture()
+        assignment_id = data["managed_user_assignment"].id
+
+        response = self.client.post(
+            f"/admin/role-assignments/{assignment_id}/revoke",
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        assignment = db.session.get(
+            UserRoleAssignment,
+            assignment_id,
+        )
+        self.assertEqual(assignment.status, "Revoked")
+        self.assertIn(
+            b'Revoked &#34;Test Privileged Role&#34; access for &#34;Managed Test User&#34;.',
+            response.data,
+        )
+
+    def test_admin_cannot_revoke_own_platform_admin_assignment(self):
+        data = self._create_platform_admin_security_fixture()
+        assignment_id = data["platform_assignment"].id
+
+        response = self.client.post(
+            f"/admin/role-assignments/{assignment_id}/revoke",
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        assignment = db.session.get(
+            UserRoleAssignment,
+            assignment_id,
+        )
+        self.assertEqual(assignment.status, "Approved")
+        self.assertIn(
+            b"You cannot revoke your own active Platform Administration",
+            response.data,
+        )
+
+    def test_admin_can_revoke_own_non_platform_admin_assignment(self):
+        data = self._create_platform_admin_security_fixture()
+        assignment_id = data["admin_secondary_assignment"].id
+
+        response = self.client.post(
+            f"/admin/role-assignments/{assignment_id}/revoke",
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        assignment = db.session.get(
+            UserRoleAssignment,
+            assignment_id,
+        )
+        self.assertEqual(assignment.status, "Revoked")
+
+        platform_assignment = db.session.get(
+            UserRoleAssignment,
+            data["platform_assignment"].id,
+        )
+        self.assertEqual(platform_assignment.status, "Approved")
 
     def test_authorization_allows_approved_department_scope(self):
         data = self._create_authorization_fixture()

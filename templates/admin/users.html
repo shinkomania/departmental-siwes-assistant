@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Users & Access | Platform Administration | DSA{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+
+    <header class="admin-page-header">
+        <div>
+            <span class="admin-eyebrow">Platform Administration</span>
+
+            <h1>Users & Access</h1>
+
+            <p>
+                Review registered DSA accounts, account status and privileged
+                access without mixing account lifecycle with role permissions.
+            </p>
+        </div>
+
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline">
+            Back to overview
+        </a>
+    </header>
+
+    <section class="admin-toolbar" aria-label="User directory filters">
+        <form method="GET" action="{{ url_for('admin.users') }}" class="admin-filter-form">
+            <div class="admin-search-field">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.8" />
+                    <path d="m16 16 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+
+                <input type="search" name="q" value="{{ search_query }}" placeholder="Search by name, email or phone"
+                    aria-label="Search users">
+            </div>
+
+            <div class="admin-filter-field">
+                <label for="accountStatus">Account status</label>
+
+                <select id="accountStatus" name="status" class="form-control">
+                    <option value="all" {% if active_status=='all' %}selected{% endif %}>
+                        All accounts
+                    </option>
+
+                    <option value="Active" {% if active_status=='Active' %}selected{% endif %}>
+                        Active
+                    </option>
+
+                    <option value="Suspended" {% if active_status=='Suspended' %}selected{% endif %}>
+                        Suspended
+                    </option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                Apply filters
+            </button>
+
+            {% if search_query or active_status != 'all' %}
+            <a href="{{ url_for('admin.users') }}" class="btn btn-outline">
+                Clear
+            </a>
+            {% endif %}
+        </form>
+    </section>
+
+    <section class="admin-content-card">
+        <div class="admin-card-heading">
+            <div>
+                <span class="admin-card-kicker">Account directory</span>
+
+                <h2>
+                    Registered users
+                    <span class="admin-count-badge">
+                        {{ users|length }}
+                    </span>
+                </h2>
+            </div>
+
+            <p>
+                Account suspension and privileged-role revocation are managed
+                separately.
+            </p>
+        </div>
+
+        {% if users %}
+
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th scope="col">User</th>
+                        <th scope="col">Account</th>
+                        <th scope="col">Roles</th>
+                        <th scope="col">Joined</th>
+                        <th scope="col">
+                            <span class="sr-only">Actions</span>
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td data-label="User">
+                            <div class="admin-user-cell">
+                                <div class="admin-user-avatar" aria-hidden="true">
+                                    {{ user.full_name[:1]|upper }}
+                                </div>
+
+                                <div>
+                                    <strong>{{ user.full_name }}</strong>
+
+                                    <span>{{ user.email }}</span>
+
+                                    {% if user.phone %}
+                                    <small>{{ user.phone }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+
+                        <td data-label="Account">
+                            {% if user.account_status == 'Active' %}
+                            <span class="admin-status admin-status-success">
+                                <span aria-hidden="true"></span>
+                                Active
+                            </span>
+                            {% elif user.account_status == 'Suspended' %}
+                            <span class="admin-status admin-status-danger">
+                                <span aria-hidden="true"></span>
+                                Suspended
+                            </span>
+                            {% else %}
+                            <span class="admin-status admin-status-neutral">
+                                <span aria-hidden="true"></span>
+                                {{ user.account_status }}
+                            </span>
+                            {% endif %}
+
+                            {% if user.id == current_admin.id %}
+                            <small class="admin-current-user">
+                                Current account
+                            </small>
+                            {% endif %}
+                        </td>
+
+                        <td data-label="Roles">
+                            {% set assignments = user.role_assignments.all() %}
+                            {% set role_namespace = namespace(count=0) %}
+
+                            {% for assignment in assignments %}
+                            {% if assignment.status == 'Approved' %}
+                            {% set role_namespace.count = role_namespace.count + 1 %}
+                            {% endif %}
+                            {% endfor %}
+
+                            {% if role_namespace.count %}
+                            <span class="admin-role-count">
+                                {{ role_namespace.count }}
+                                approved
+                                {% if role_namespace.count == 1 %}
+                                role
+                                {% else %}
+                                roles
+                                {% endif %}
+                            </span>
+                            {% else %}
+                            <span class="admin-muted-value">
+                                No approved privileged role
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <td data-label="Joined">
+                            <span class="admin-date-value">
+                                {{ user.created_at.strftime('%d %b %Y') if user.created_at else 'Not recorded' }}
+                            </span>
+                        </td>
+
+                        <td class="admin-table-action">
+                            <a href="{{ url_for('admin.user_detail', user_id=user.id) }}"
+                                class="btn btn-outline btn-sm">
+                                View account
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% else %}
+
+        <div class="admin-empty-state">
+            <div class="admin-empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M16 19c0-2.2-1.8-4-4-4s-4 1.8-4 4" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round" />
+                    <circle cx="12" cy="9" r="3" stroke="currentColor" stroke-width="1.8" />
+                    <path d="M4 5h3M5.5 3.5v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+            </div>
+
+            <h3>No users found</h3>
+
+            <p>
+                No registered accounts match the current search and filter.
+            </p>
+
+            {% if search_query or active_status != 'all' %}
+            <a href="{{ url_for('admin.users') }}" class="btn btn-outline">
+                Clear filters
+            </a>
+            {% endif %}
+        </div>
+
+        {% endif %}
+    </section>
+
+    <aside class="admin-security-note">
+        <div class="admin-security-note-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 3 5 6v5c0 4.4 2.8 7.6 7 9 4.2-1.4 7-4.6 7-9V6l-7-3Z" stroke="currentColor"
+                    stroke-width="1.8" stroke-linejoin="round" />
+                <path d="M12 9v4M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+        </div>
+
+        <div>
+            <strong>Account status and administrative access are different.</strong>
+
+            <p>
+                Suspending an account blocks the user's DSA access. Revoking a
+                role removes only that specific privileged assignment while the
+                ordinary account can remain active.
+            </p>
+        </div>
+    </aside>
+
+</div>
+{% endblock %}
