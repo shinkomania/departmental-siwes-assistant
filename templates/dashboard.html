@@ -28,14 +28,14 @@
             <div class="dashboard-student-meta">
                 <span>{{ student.matric_no }}</span>
 
-                {% if student.department %}
+                {% if student.academic_department_name %}
                 <span class="dashboard-meta-divider"></span>
-                <span>{{ student.department }}</span>
+                <span>{{ student.academic_department_name }}</span>
                 {% endif %}
 
-                {% if student.university %}
+                {% if student.institution_display_name %}
                 <span class="dashboard-meta-divider"></span>
-                <span>{{ student.university }}</span>
+                <span>{{ student.institution_display_name }}</span>
                 {% endif %}
             </div>
         </div>
@@ -504,21 +504,21 @@
                     <div>
                         <dt>Institution</dt>
                         <dd>
-                            {{ student.university or 'Not provided' }}
+                            {{ student.institution_display_name or 'Not provided' }}
                         </dd>
                     </div>
 
                     <div>
                         <dt>Department</dt>
                         <dd>
-                            {{ student.department or 'Not provided' }}
+                            {{ student.academic_department_name or 'Not provided' }}
                         </dd>
                     </div>
 
-                    {% if student.faculty %}
+                    {% if student.academic_unit_name %}
                     <div>
                         <dt>Faculty / College / School</dt>
-                        <dd>{{ student.faculty }}</dd>
+                        <dd>{{ student.academic_unit_name }}</dd>
                     </div>
                     {% endif %}
 

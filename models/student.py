@@ -1,4 +1,4 @@
-﻿"""
+"""
 Student Profile Model
 ---------------------
 Stores SIWES student demographic, academic, and placement preference data.
@@ -139,6 +139,18 @@ class StudentProfile(db.Model):
         """Prefer structured institution data, with legacy data as fallback."""
         institution = self.institution
         return institution.name if institution else self.university
+
+    @property
+    def institution_display_name(self):
+        """Return the institution name with its directory city when available."""
+        institution = self.institution
+
+        if institution:
+            if institution.city:
+                return f"{institution.name}, {institution.city}"
+            return institution.name
+
+        return self.university
 
     def __repr__(self):
         return f"<StudentProfile {self.matric_no} - {self.full_name}>"

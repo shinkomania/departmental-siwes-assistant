@@ -59,6 +59,7 @@ class DSATestCase(unittest.TestCase):
         institution_a = Institution(
             name='Institution A',
             institution_type='University',
+            city='Zaria',
             state='Kaduna',
             directory_status='Verified',
             administration_status='Claimed',
@@ -409,6 +410,10 @@ class DSATestCase(unittest.TestCase):
         self.assertEqual(
             student.institution_name,
             fixture["institution_a"].name,
+        )
+        self.assertEqual(
+            student.institution_display_name,
+            "Institution A, Zaria",
         )
 
     def test_phase4_profile_rejects_mismatched_academic_hierarchy(self):
