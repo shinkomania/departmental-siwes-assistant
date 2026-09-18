@@ -25,6 +25,13 @@ from datetime import datetime
 
 from models.access import Role, Permission, UserRoleAssignment
 from models.user import User
+from models.academic import (
+    Institution,
+    AcademicUnit,
+    Department,
+    Programme,
+    SIWESConfiguration,
+)
 
 GUIDE_TOPICS = [
     {
@@ -600,7 +607,7 @@ STARTER_ORGANIZATIONS = [
     },
     {
         'name': 'Co-Creation Hub (CcHUB)',
-        'description': 'Nigeria’s premier innovation center, social enterprise hub, and technology incubator fostering startup acceleration and digital products.',
+        "description": "Nigeria's premier innovation center, social enterprise hub, and technology incubator fostering startup acceleration and digital products.",
         'address': '294 Herbert Macaulay Way, Sabo, Yaba',
         'state': 'Lagos',
         'city': 'Lagos (Yaba)',
@@ -733,7 +740,7 @@ STARTER_ORGANIZATIONS = [
     },
     {
         'name': 'Terragon Group',
-        'description': 'Africa’s leading data and marketing technology company leveraging artificial intelligence and cloud architectures to enrich consumer insights.',
+        "description": "Africa's leading data and marketing technology company leveraging artificial intelligence and cloud architectures to enrich consumer insights.",
         'address': 'Plot 1, Block 124, T.F. Kuboye Road, Oniru, Lekki',
         'state': 'Lagos',
         'city': 'Lagos (Lekki)',
@@ -771,12 +778,145 @@ STARTER_ORGANIZATIONS = [
     }
 ]
 
+def seed_academic_directory():
+    """
+    Seed the first controlled DSA academic-directory pilot.
+
+    Pilot hierarchy:
+        Ahmadu Bello University
+        -> Faculty of Engineering
+        -> Computer Engineering
+        -> B.Eng. Computer Engineering
+
+    Programme identity is stored separately from its SIWES configuration.
+    Exact SIWES timing and requirements remain Pending Verification until
+    supported by sufficiently specific evidence.
+    """
+    print("Seeding pilot academic directory...")
+
+    institution = Institution.query.filter_by(
+        name="Ahmadu Bello University"
+    ).first()
+
+    if not institution:
+        institution = Institution(
+            name="Ahmadu Bello University",
+            institution_type="University",
+            city="Zaria",
+            state="Kaduna",
+            official_website="https://abu.edu.ng/",
+            directory_status="Verified",
+            administration_status="Unclaimed",
+            verification_source=(
+                "Official Ahmadu Bello University website and "
+                "Faculty of Engineering website."
+            ),
+            last_verified=datetime.utcnow(),
+            is_active=True,
+        )
+        db.session.add(institution)
+        db.session.flush()
+    else:
+        institution.institution_type = "University"
+        institution.city = "Zaria"
+        institution.state = "Kaduna"
+        institution.official_website = "https://abu.edu.ng/"
+        institution.directory_status = "Verified"
+        institution.administration_status = (
+            institution.administration_status or "Unclaimed"
+        )
+        institution.is_active = True
+
+    academic_unit = AcademicUnit.query.filter_by(
+        institution_id=institution.id,
+        name="Faculty of Engineering",
+    ).first()
+
+    if not academic_unit:
+        academic_unit = AcademicUnit(
+            institution_id=institution.id,
+            name="Faculty of Engineering",
+            unit_type="Faculty",
+            is_active=True,
+        )
+        db.session.add(academic_unit)
+        db.session.flush()
+    else:
+        academic_unit.unit_type = "Faculty"
+        academic_unit.is_active = True
+
+    department = Department.query.filter_by(
+        academic_unit_id=academic_unit.id,
+        name="Computer Engineering",
+    ).first()
+
+    if not department:
+        department = Department(
+            academic_unit_id=academic_unit.id,
+            name="Computer Engineering",
+            is_active=True,
+        )
+        db.session.add(department)
+        db.session.flush()
+    else:
+        department.is_active = True
+
+    programme = Programme.query.filter_by(
+        department_id=department.id,
+        name="Computer Engineering",
+    ).first()
+
+    if not programme:
+        programme = Programme(
+            department_id=department.id,
+            name="Computer Engineering",
+            award="B.Eng.",
+            duration_years=5,
+            is_active=True,
+        )
+        db.session.add(programme)
+        db.session.flush()
+    else:
+        programme.award = "B.Eng."
+        programme.duration_years = 5
+        programme.is_active = True
+
+    siwes_config = SIWESConfiguration.query.filter_by(
+        programme_id=programme.id
+    ).first()
+
+    if not siwes_config:
+        siwes_config = SIWESConfiguration(
+            programme_id=programme.id,
+            siwes_status="Pending Verification",
+            verification_source=(
+                "Official ABU Department of Computer Engineering "
+                "information confirms SIWES within the Faculty; "
+                "current programme-specific SIWES configuration "
+                "requires further verification."
+            ),
+            verification_reference=(
+                "https://engineering.abu.edu.ng/"
+                "department/compeng/public/"
+            ),
+        )
+        db.session.add(siwes_config)
+
+    print(
+        "  Pilot academic hierarchy ready: "
+        "Ahmadu Bello University -> Faculty of Engineering -> "
+        "Computer Engineering -> B.Eng. Computer Engineering"
+    )
+
 def seed_database(app=None):
     """Seed programme-neutral guides, access-control defaults, starter organizations, and demo data."""
     print("Beginning database seeding...")
 
     # 0. Seed access-control catalogue
     seed_access_control()
+
+    # 0a. Seed controlled academic-directory pilot
+    seed_academic_directory()
 
     # 0b. Optionally bootstrap the first Platform Administrator
     bootstrap_platform_administrator()

@@ -19,12 +19,14 @@ from flask import (
     url_for,
     flash,
     session,
+    jsonify,
 )
 
 from models.db import db
 from models.user import User
 from models.student import StudentProfile
 from models.application import SavedOrganization, PlacementApplication
+from models.academic import Institution, AcademicUnit, Department, Programme
 
 
 student_bp = Blueprint("student", __name__)
@@ -161,12 +163,175 @@ def _require_authenticated_user():
     return _current_user()
 
 
+def _parse_positive_int(value):
+    """Safely convert a submitted identifier to a positive integer."""
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+
+    return parsed if parsed > 0 else None
+
+
+@student_bp.route("/academic/institutions")
+def academic_institutions():
+    """
+    Return active institutions available in DSA's controlled directory.
+
+    Suspended, inactive, and rejected directory records are not exposed
+    through the student academic-selection workflow.
+    """
+    institutions = (
+        Institution.query
+        .filter(
+            Institution.is_active.is_(True),
+            Institution.directory_status == "Verified",
+        )
+        .order_by(Institution.name.asc())
+        .all()
+    )
+
+    return jsonify(
+        [
+            {
+                "id": institution.id,
+                "name": institution.name,
+                "type": institution.institution_type,
+                "city": institution.city,
+                "state": institution.state,
+                "directory_status": institution.directory_status,
+            }
+            for institution in institutions
+        ]
+    )
+
+
+@student_bp.route("/academic/institutions/<int:institution_id>/units")
+def academic_units(institution_id):
+    """Return active academic units belonging to one institution."""
+    institution = db.session.get(Institution, institution_id)
+
+    if (
+        not institution
+        or not institution.is_active
+        or institution.directory_status
+        != "Verified"
+    ):
+        return jsonify([])
+
+    units = (
+        AcademicUnit.query
+        .filter_by(
+            institution_id=institution.id,
+            is_active=True,
+        )
+        .order_by(AcademicUnit.name.asc())
+        .all()
+    )
+
+    return jsonify(
+        [
+            {
+                "id": unit.id,
+                "name": unit.name,
+                "type": unit.unit_type,
+            }
+            for unit in units
+        ]
+    )
+
+
+@student_bp.route("/academic/units/<int:unit_id>/departments")
+def academic_departments(unit_id):
+    """Return active departments belonging to one academic unit."""
+    unit = db.session.get(AcademicUnit, unit_id)
+
+    if (
+        not unit
+        or not unit.is_active
+        or not unit.institution
+        or not unit.institution.is_active
+        or unit.institution.directory_status
+        != "Verified"
+    ):
+        return jsonify([])
+
+    departments = (
+        Department.query
+        .filter_by(
+            academic_unit_id=unit.id,
+            is_active=True,
+        )
+        .order_by(Department.name.asc())
+        .all()
+    )
+
+    return jsonify(
+        [
+            {
+                "id": department.id,
+                "name": department.name,
+            }
+            for department in departments
+        ]
+    )
+
+
+@student_bp.route("/academic/departments/<int:department_id>/programmes")
+def academic_programmes(department_id):
+    """Return active programmes belonging to one department."""
+    department = db.session.get(Department, department_id)
+
+    if (
+        not department
+        or not department.is_active
+        or not department.academic_unit
+        or not department.academic_unit.is_active
+        or not department.academic_unit.institution
+        or not department.academic_unit.institution.is_active
+        or department.academic_unit.institution.directory_status
+        != "Verified"
+    ):
+        return jsonify([])
+
+    programmes = (
+        Programme.query
+        .filter_by(
+            department_id=department.id,
+            is_active=True,
+        )
+        .order_by(Programme.name.asc())
+        .all()
+    )
+
+    return jsonify(
+        [
+            {
+                "id": programme.id,
+                "name": programme.name,
+                "award": programme.award,
+                "duration_years": programme.duration_years,
+                "siwes_status": (
+                    programme.siwes_configuration.siwes_status
+                    if programme.siwes_configuration
+                    else "Pending Verification"
+                ),
+            }
+            for programme in programmes
+        ]
+    )
+
 @student_bp.route("/profile", methods=["GET", "POST"])
 def profile():
     """
     View, create, or update the authenticated user's own student profile.
 
-    Legacy profile lookup by matric number has intentionally been removed.
+    Structured academic identity follows:
+
+        Institution -> Academic Unit -> Department -> Programme
+
+    Legacy academic text fields remain synchronized temporarily so older
+    dashboard/template code continues to work during the Phase 4 migration.
     """
     user = _require_authenticated_user()
 
@@ -184,26 +349,101 @@ def profile():
 
     student = StudentProfile.query.filter_by(user_id=user.id).first()
 
+    def render_profile():
+        selected_institution_id = None
+        selected_academic_unit_id = None
+        selected_department_id = None
+        selected_programme_id = None
+
+        if student and student.programme:
+            selected_programme_id = student.programme.id
+
+            department = student.programme.department
+            if department:
+                selected_department_id = department.id
+
+                academic_unit = department.academic_unit
+                if academic_unit:
+                    selected_academic_unit_id = academic_unit.id
+
+                    institution = academic_unit.institution
+                    if institution:
+                        selected_institution_id = institution.id
+
+        return render_template(
+            "profile.html",
+            student=student,
+            interests=AREAS_OF_INTEREST,
+            org_types=ORGANIZATION_TYPES,
+            states=NIGERIAN_STATES,
+            selected_institution_id=selected_institution_id,
+            selected_academic_unit_id=selected_academic_unit_id,
+            selected_department_id=selected_department_id,
+            selected_programme_id=selected_programme_id,
+        )
+
     if request.method == "POST":
         full_name = request.form.get("full_name", "").strip()
         matric_no = request.form.get("matric_no", "").strip()
-        department = request.form.get("department", "").strip()
-        faculty = request.form.get("faculty", "").strip()
-        university = request.form.get("university", "").strip()
-        preferred_state = request.form.get("preferred_state", "").strip()
-        preferred_city = request.form.get("preferred_city", "").strip()
-        area_of_interest = request.form.get("area_of_interest", "").strip()
+
+        preferred_state = request.form.get(
+            "preferred_state",
+            "",
+        ).strip()
+
+        preferred_city = request.form.get(
+            "preferred_city",
+            "",
+        ).strip()
+
+        area_of_interest = request.form.get(
+            "area_of_interest",
+            "",
+        ).strip()
+
         skills = request.form.get("skills", "").strip()
+
         preferred_org_type = request.form.get(
             "preferred_org_type",
             "",
         ).strip()
+
         bio = request.form.get("bio", "").strip()
+
+        level = request.form.get("level", "").strip()
+        siwes_session = request.form.get(
+            "siwes_session",
+            "",
+        ).strip()
+
+        institution_id = _parse_positive_int(
+            request.form.get("institution_id")
+        )
+
+        academic_unit_id = _parse_positive_int(
+            request.form.get("academic_unit_id")
+        )
+
+        department_id = _parse_positive_int(
+            request.form.get("department_id")
+        )
+
+        programme_id = _parse_positive_int(
+            request.form.get("programme_id")
+        )
+
+        submitted_academic_ids = any(
+            (
+                institution_id,
+                academic_unit_id,
+                department_id,
+                programme_id,
+            )
+        )
 
         if (
             not full_name
             or not matric_no
-            or not university
             or not preferred_state
             or not area_of_interest
         ):
@@ -211,13 +451,7 @@ def profile():
                 "Please fill in all required profile fields.",
                 "danger",
             )
-            return render_template(
-                "profile.html",
-                student=student,
-                interests=AREAS_OF_INTEREST,
-                org_types=ORGANIZATION_TYPES,
-                states=NIGERIAN_STATES,
-            )
+            return render_profile()
 
         existing_matric = StudentProfile.query.filter_by(
             matric_no=matric_no
@@ -231,20 +465,137 @@ def profile():
                 "another student profile.",
                 "warning",
             )
-            return render_template(
-                "profile.html",
-                student=student,
-                interests=AREAS_OF_INTEREST,
-                org_types=ORGANIZATION_TYPES,
-                states=NIGERIAN_STATES,
+            return render_profile()
+
+        selected_programme = None
+        selected_department = None
+        selected_unit = None
+        selected_institution = None
+
+        if submitted_academic_ids:
+            if not all(
+                (
+                    institution_id,
+                    academic_unit_id,
+                    department_id,
+                    programme_id,
+                )
+            ):
+                flash(
+                    "Please complete your institution, academic unit, "
+                    "department, and programme selection.",
+                    "danger",
+                )
+                return render_profile()
+
+            selected_institution = db.session.get(
+                Institution,
+                institution_id,
             )
+
+            selected_unit = db.session.get(
+                AcademicUnit,
+                academic_unit_id,
+            )
+
+            selected_department = db.session.get(
+                Department,
+                department_id,
+            )
+
+            selected_programme = db.session.get(
+                Programme,
+                programme_id,
+            )
+
+            valid_hierarchy = (
+                selected_institution is not None
+                and selected_unit is not None
+                and selected_department is not None
+                and selected_programme is not None
+                and selected_institution.is_active
+                and selected_unit.is_active
+                and selected_department.is_active
+                and selected_programme.is_active
+                and selected_institution.directory_status == "Verified"
+                and selected_unit.institution_id
+                == selected_institution.id
+                and selected_department.academic_unit_id
+                == selected_unit.id
+                and selected_programme.department_id
+                == selected_department.id
+            )
+
+            if not valid_hierarchy:
+                flash(
+                    "The selected academic programme does not match the "
+                    "institution hierarchy. Please select your academic "
+                    "details again.",
+                    "danger",
+                )
+                return render_profile()
+
+        if selected_programme:
+            # Structured hierarchy is authoritative.
+            programme_value = selected_programme.id
+            department_value = selected_department.name
+            faculty_value = selected_unit.name
+            university_value = selected_institution.name
+
+        elif student:
+            # Transitional fallback for an existing legacy profile.
+            programme_value = student.programme_id
+            department_value = student.department
+            faculty_value = student.faculty
+            university_value = student.university
+
+        else:
+            # Current legacy form fallback until the controlled academic
+            # directory UI is activated.
+            department_value = request.form.get(
+                "department",
+                "",
+            ).strip()
+
+            faculty_value = request.form.get(
+                "faculty",
+                "",
+            ).strip()
+
+            university_value = request.form.get(
+                "university",
+                "",
+            ).strip()
+
+            programme_value = None
+
+            if (
+                not department_value
+                or not faculty_value
+                or not university_value
+            ):
+                flash(
+                    "Please provide your academic institution details.",
+                    "danger",
+                )
+                return render_profile()
 
         if student:
             student.full_name = full_name
             student.matric_no = matric_no
-            student.department = department
-            student.faculty = faculty
-            student.university = university
+
+            student.programme_id = programme_value
+            student.level = level or student.level
+            student.siwes_session = (
+                siwes_session or student.siwes_session
+            )
+
+            # Legacy compatibility fields are derived from the structured
+            # hierarchy whenever a programme has been selected.
+            student.department = department_value
+            student.faculty = faculty_value
+            student.university = university_value
+
             student.preferred_state = preferred_state
             student.preferred_city = preferred_city
             student.area_of_interest = area_of_interest
@@ -252,19 +603,19 @@ def profile():
             student.preferred_org_type = preferred_org_type
             student.bio = bio
 
-            flash(
-                "Student profile updated successfully!",
-                "success",
-            )
+            success_message = "Student profile updated successfully!"
 
         else:
             student = StudentProfile(
                 user_id=user.id,
                 full_name=full_name,
                 matric_no=matric_no,
-                department=department,
-                faculty=faculty,
-                university=university,
+                programme_id=programme_value,
+                level=level or None,
+                siwes_session=siwes_session or None,
+                department=department_value,
+                faculty=faculty_value,
+                university=university_value,
                 preferred_state=preferred_state,
                 preferred_city=preferred_city,
                 area_of_interest=area_of_interest,
@@ -275,10 +626,7 @@ def profile():
 
             db.session.add(student)
 
-            flash(
-                "Student profile created successfully!",
-                "success",
-            )
+            success_message = "Student profile created successfully!"
 
         try:
             db.session.commit()
@@ -290,27 +638,16 @@ def profile():
                 "danger",
             )
 
-            return render_template(
-                "profile.html",
-                student=student,
-                interests=AREAS_OF_INTEREST,
-                org_types=ORGANIZATION_TYPES,
-                states=NIGERIAN_STATES,
-            )
+            return render_profile()
+
+        flash(success_message, "success")
 
         # Remove any legacy student-session authority.
         session.pop("student_id", None)
 
         return redirect(url_for("student.dashboard"))
 
-    return render_template(
-        "profile.html",
-        student=student,
-        interests=AREAS_OF_INTEREST,
-        org_types=ORGANIZATION_TYPES,
-        states=NIGERIAN_STATES,
-    )
-
+    return render_profile()
 
 @student_bp.route("/dashboard")
 def dashboard():

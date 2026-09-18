@@ -1,4 +1,4 @@
-﻿"""
+"""
 Academic Structure and SIWES Configuration Models
 --------------------------------------------------
 Provides DSA's institution-neutral academic hierarchy:
@@ -37,6 +37,9 @@ class Institution(db.Model):
     # College of Agriculture, College of Education.
     institution_type = db.Column(db.String(100))
 
+    # City/town identifies the institution's primary directory location,
+    # while state remains available for filtering and administration.
+    city = db.Column(db.String(100))
     state = db.Column(db.String(100))
     official_website = db.Column(db.String(255))
 

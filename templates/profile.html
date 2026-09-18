@@ -83,39 +83,96 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label" for="department">
-                                Department <span class="required-mark">*</span>
+                            <label class="form-label" for="institution">
+                                Institution <span class="required-mark">*</span>
                             </label>
 
-                            <input type="text" id="department" name="department" class="form-control"
-                                placeholder="e.g. Your department"
-                                value="{{ student.department if student else '' }}" required>
+                            <select id="institution" name="institution_id"
+                                class="form-control"
+                                data-selected="{{ selected_institution_id or '' }}"
+                                required>
+                                <option value="">Select your institution</option>
+                            </select>
+
+                            <span class="form-hint">
+                                Select from institutions currently available in DSA's
+                                controlled academic directory.
+                            </span>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label" for="faculty">
+                            <label class="form-label" for="academicUnit">
                                 Faculty / College / School
                                 <span class="required-mark">*</span>
                             </label>
 
-                            <input type="text" id="faculty" name="faculty" class="form-control"
-                                placeholder="e.g. Your faculty, college or school"
-                                value="{{ student.faculty if student else '' }}" required>
+                            <select id="academicUnit" name="academic_unit_id"
+                                class="form-control"
+                                data-selected="{{ selected_academic_unit_id or '' }}"
+                                disabled required>
+                                <option value="">Select your academic unit</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="department">
+                                Department <span class="required-mark">*</span>
+                            </label>
+
+                            <select id="department" name="department_id"
+                                class="form-control"
+                                data-selected="{{ selected_department_id or '' }}"
+                                disabled required>
+                                <option value="">Select your department</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="programme">
+                                Programme <span class="required-mark">*</span>
+                            </label>
+
+                            <select id="programme" name="programme_id"
+                                class="form-control"
+                                data-selected="{{ selected_programme_id or '' }}"
+                                disabled required>
+                                <option value="">Select your programme</option>
+                            </select>
+
+                            <span id="programmeStatus" class="form-hint" aria-live="polite"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="level">
+                                Current Level / Stage
+                            </label>
+
+                            <input type="text" id="level" name="level"
+                                class="form-control"
+                                placeholder="e.g. 400 Level, ND I, NCE II"
+                                value="{{ student.level if student and student.level else '' }}">
+
+                            <span class="form-hint">
+                                Use the level or academic stage recognised by your institution.
+                            </span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="siwesSession">
+                                SIWES Session
+                            </label>
+
+                            <input type="text" id="siwesSession" name="siwes_session"
+                                class="form-control"
+                                placeholder="e.g. 2026"
+                                value="{{ student.siwes_session if student and student.siwes_session else '' }}">
                         </div>
 
                         <div class="form-group profile-field-full">
-                            <label class="form-label" for="university">
-                                University / Institution
-                                <span class="required-mark">*</span>
-                            </label>
-
-                            <input type="text" id="university" name="university" class="form-control"
-                                placeholder="e.g. Ahmadu Bello University, Zaria"
-                                value="{{ student.university if student else '' }}" required>
-
                             <span class="form-hint">
-                                Institution selection will become more structured as
-                                verified institutional support is expanded on DSA.
+                                Can't find your institution or programme? DSA's verified
+                                academic directory is being expanded. A formal directory
+                                request workflow will be added as institutional coverage grows.
                             </span>
                         </div>
                     </div>
@@ -364,4 +421,252 @@
 
     </div>
 </section>
+{% endblock %}
+{% block extra_scripts %}
+{{ super() }}
+
+<script>
+document.addEventListener("DOMContentLoaded", async function () {
+    const institution = document.getElementById("institution");
+    const academicUnit = document.getElementById("academicUnit");
+    const department = document.getElementById("department");
+    const programme = document.getElementById("programme");
+    const programmeStatus = document.getElementById("programmeStatus");
+
+    if (!institution || !academicUnit || !department || !programme) {
+        return;
+    }
+
+    const selected = {
+        institution: institution.dataset.selected || "",
+        academicUnit: academicUnit.dataset.selected || "",
+        department: department.dataset.selected || "",
+        programme: programme.dataset.selected || ""
+    };
+
+    function resetSelect(select, placeholder) {
+        select.innerHTML = "";
+        select.appendChild(new Option(placeholder, ""));
+        select.disabled = true;
+    }
+
+    function populateSelect(select, items, placeholder, selectedValue, labelBuilder) {
+        select.innerHTML = "";
+        select.appendChild(new Option(placeholder, ""));
+
+        items.forEach(function (item) {
+            const label = labelBuilder ? labelBuilder(item) : item.name;
+            const option = new Option(label, item.id);
+
+            if (String(item.id) === String(selectedValue)) {
+                option.selected = true;
+            }
+
+            select.appendChild(option);
+        });
+
+        select.disabled = items.length === 0;
+    }
+
+    async function getJSON(url) {
+        const response = await fetch(url, {
+            headers: {
+                "Accept": "application/json"
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Request failed with status " + response.status);
+        }
+
+        return response.json();
+    }
+
+    async function loadInstitutions() {
+        resetSelect(institution, "Loading institutions...");
+
+        try {
+            const items = await getJSON("/academic/institutions");
+
+            populateSelect(
+                institution,
+                items,
+                "Select your institution",
+                selected.institution,
+                function (item) {
+                    return item.city ? item.name + ", " + item.city : (item.state ? item.name + ", " + item.state : item.name);
+                }
+            );
+        } catch (error) {
+            resetSelect(institution, "Unable to load institutions");
+            console.error(error);
+        }
+    }
+
+    async function loadUnits(institutionId, selectedValue = "") {
+        resetSelect(academicUnit, "Loading academic units...");
+        resetSelect(department, "Select your department");
+        resetSelect(programme, "Select your programme");
+        programmeStatus.textContent = "";
+
+        if (!institutionId) {
+            resetSelect(academicUnit, "Select your academic unit");
+            return;
+        }
+
+        try {
+            const items = await getJSON(
+                "/academic/institutions/" + institutionId + "/units"
+            );
+
+            populateSelect(
+                academicUnit,
+                items,
+                "Select your academic unit",
+                selectedValue,
+                function (item) {
+                    return item.name;
+                }
+            );
+        } catch (error) {
+            resetSelect(academicUnit, "Unable to load academic units");
+            console.error(error);
+        }
+    }
+
+    async function loadDepartments(unitId, selectedValue = "") {
+        resetSelect(department, "Loading departments...");
+        resetSelect(programme, "Select your programme");
+        programmeStatus.textContent = "";
+
+        if (!unitId) {
+            resetSelect(department, "Select your department");
+            return;
+        }
+
+        try {
+            const items = await getJSON(
+                "/academic/units/" + unitId + "/departments"
+            );
+
+            populateSelect(
+                department,
+                items,
+                "Select your department",
+                selectedValue
+            );
+        } catch (error) {
+            resetSelect(department, "Unable to load departments");
+            console.error(error);
+        }
+    }
+
+    async function loadProgrammes(departmentId, selectedValue = "") {
+        resetSelect(programme, "Loading programmes...");
+        programmeStatus.textContent = "";
+
+        if (!departmentId) {
+            resetSelect(programme, "Select your programme");
+            return;
+        }
+
+        try {
+            const items = await getJSON(
+                "/academic/departments/" + departmentId + "/programmes"
+            );
+
+            populateSelect(
+                programme,
+                items,
+                "Select your programme",
+                selectedValue,
+                function (item) {
+                    return item.award
+                        ? item.name + " (" + item.award + ")"
+                        : item.name;
+                }
+            );
+
+            updateProgrammeStatus(items);
+        } catch (error) {
+            resetSelect(programme, "Unable to load programmes");
+            console.error(error);
+        }
+    }
+
+    function updateProgrammeStatus(items) {
+        programmeStatus.textContent = "";
+
+        const selectedProgramme = items.find(function (item) {
+            return String(item.id) === String(programme.value);
+        });
+
+        if (!selectedProgramme) {
+            return;
+        }
+
+        let message = "SIWES status: " + selectedProgramme.siwes_status;
+
+        if (selectedProgramme.duration_years) {
+            message += " | Programme duration: " +
+                selectedProgramme.duration_years + " years";
+        }
+
+        programmeStatus.textContent = message;
+    }
+
+    institution.addEventListener("change", async function () {
+        selected.academicUnit = "";
+        selected.department = "";
+        selected.programme = "";
+
+        await loadUnits(institution.value);
+    });
+
+    academicUnit.addEventListener("change", async function () {
+        selected.department = "";
+        selected.programme = "";
+
+        await loadDepartments(academicUnit.value);
+    });
+
+    department.addEventListener("change", async function () {
+        selected.programme = "";
+
+        await loadProgrammes(department.value);
+    });
+
+    programme.addEventListener("change", async function () {
+        if (!department.value) {
+            programmeStatus.textContent = "";
+            return;
+        }
+
+        try {
+            const items = await getJSON(
+                "/academic/departments/" + department.value + "/programmes"
+            );
+
+            updateProgrammeStatus(items);
+        } catch (error) {
+            programmeStatus.textContent = "";
+            console.error(error);
+        }
+    });
+
+    await loadInstitutions();
+
+    if (selected.institution) {
+        await loadUnits(selected.institution, selected.academicUnit);
+    }
+
+    if (selected.academicUnit) {
+        await loadDepartments(selected.academicUnit, selected.department);
+    }
+
+    if (selected.department) {
+        await loadProgrammes(selected.department, selected.programme);
+    }
+});
+</script>
 {% endblock %}

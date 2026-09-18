@@ -172,6 +172,8 @@ class DSATestCase(unittest.TestCase):
             'assignment': assignment,
             'institution_a': institution_a,
             'institution_b': institution_b,
+            'faculty_a': faculty_a,
+            'faculty_b': faculty_b,
             'department_a': department_a,
             'department_a_other': department_a_other,
             'department_b': department_b,
@@ -180,6 +182,287 @@ class DSATestCase(unittest.TestCase):
             'programme_b': programme_b,
         }
 
+    def test_phase4_academic_directory_returns_verified_institutions(self):
+        """Student institution directory exposes only active Verified records."""
+        verified = Institution(
+            name="Verified University",
+            institution_type="University",
+            city="Zaria",
+            state="Kaduna",
+            directory_status="Verified",
+            administration_status="Unclaimed",
+            is_active=True,
+        )
+        pending = Institution(
+            name="Pending University",
+            institution_type="University",
+            city="Kano",
+            state="Kano",
+            directory_status="Pending Verification",
+            administration_status="Unclaimed",
+            is_active=True,
+        )
+        inactive = Institution(
+            name="Inactive University",
+            institution_type="University",
+            city="Lagos",
+            state="Lagos",
+            directory_status="Verified",
+            administration_status="Unclaimed",
+            is_active=False,
+        )
+
+        db.session.add_all([verified, pending, inactive])
+        db.session.commit()
+
+        response = self.client.get("/academic/institutions")
+
+        self.assertEqual(response.status_code, 200)
+
+        data = response.get_json()
+        names = [item["name"] for item in data]
+
+        self.assertIn("Verified University", names)
+        self.assertNotIn("Pending University", names)
+        self.assertNotIn("Inactive University", names)
+
+        verified_item = next(
+            item for item in data
+            if item["name"] == "Verified University"
+        )
+
+        self.assertEqual(verified_item["city"], "Zaria")
+        self.assertEqual(verified_item["state"], "Kaduna")
+        self.assertEqual(verified_item["directory_status"], "Verified")
+
+    def test_phase4_academic_directory_cascade(self):
+        """Verified academic hierarchy is available through the cascade APIs."""
+        fixture = self._create_authorization_fixture()
+
+        units_response = self.client.get(
+            f"/academic/institutions/{fixture['institution_a'].id}/units"
+        )
+        self.assertEqual(units_response.status_code, 200)
+        self.assertEqual(
+            [item["id"] for item in units_response.get_json()],
+            [fixture["faculty_a"].id],
+        )
+
+        departments_response = self.client.get(
+            f"/academic/units/{fixture['faculty_a'].id}/departments"
+        )
+        self.assertEqual(departments_response.status_code, 200)
+
+        department_ids = {
+            item["id"]
+            for item in departments_response.get_json()
+        }
+
+        self.assertIn(fixture["department_a"].id, department_ids)
+        self.assertIn(fixture["department_a_other"].id, department_ids)
+        self.assertNotIn(fixture["department_b"].id, department_ids)
+
+        programmes_response = self.client.get(
+            f"/academic/departments/{fixture['department_a'].id}/programmes"
+        )
+        self.assertEqual(programmes_response.status_code, 200)
+
+        programme_ids = {
+            item["id"]
+            for item in programmes_response.get_json()
+        }
+
+        self.assertIn(fixture["programme_a"].id, programme_ids)
+        self.assertNotIn(fixture["programme_a_other"].id, programme_ids)
+        self.assertNotIn(fixture["programme_b"].id, programme_ids)
+
+    def test_phase4_pending_institution_hierarchy_is_not_exposed(self):
+        """Pending institutions cannot expose child academic records."""
+        pending = Institution(
+            name="Pending Polytechnic",
+            institution_type="Polytechnic",
+            city="Kaduna",
+            state="Kaduna",
+            directory_status="Pending Verification",
+            administration_status="Unclaimed",
+            is_active=True,
+        )
+        db.session.add(pending)
+        db.session.flush()
+
+        unit = AcademicUnit(
+            institution_id=pending.id,
+            name="School of Engineering",
+            unit_type="School",
+            is_active=True,
+        )
+        db.session.add(unit)
+        db.session.flush()
+
+        department = Department(
+            academic_unit_id=unit.id,
+            name="Computer Engineering Technology",
+            is_active=True,
+        )
+        db.session.add(department)
+        db.session.flush()
+
+        programme = Programme(
+            department_id=department.id,
+            name="Computer Engineering Technology",
+            award="ND",
+            is_active=True,
+        )
+        db.session.add(programme)
+        db.session.commit()
+
+        units_response = self.client.get(
+            f"/academic/institutions/{pending.id}/units"
+        )
+        departments_response = self.client.get(
+            f"/academic/units/{unit.id}/departments"
+        )
+        programmes_response = self.client.get(
+            f"/academic/departments/{department.id}/programmes"
+        )
+
+        self.assertEqual(units_response.status_code, 200)
+        self.assertEqual(departments_response.status_code, 200)
+        self.assertEqual(programmes_response.status_code, 200)
+
+        self.assertEqual(units_response.get_json(), [])
+        self.assertEqual(departments_response.get_json(), [])
+        self.assertEqual(programmes_response.get_json(), [])
+
+    def test_phase4_structured_profile_saves_academic_hierarchy(self):
+        """Structured selection saves programme FK and legacy compatibility fields."""
+        fixture = self._create_authorization_fixture()
+
+        student_user = User(
+            full_name="Structured Student",
+            email="structured.student@example.com",
+            phone="08000000002",
+            account_status="Active",
+            email_verified=True,
+        )
+        student_user.set_password("student-password-123")
+
+        db.session.add(student_user)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = student_user.id
+
+        response = self.client.post(
+            "/profile",
+            data={
+                "full_name": "Structured Student",
+                "matric_no": "PHASE4/001",
+                "institution_id": str(fixture["institution_a"].id),
+                "academic_unit_id": str(fixture["faculty_a"].id),
+                "department_id": str(fixture["department_a"].id),
+                "programme_id": str(fixture["programme_a"].id),
+                "level": "400 level",
+                "siwes_session": "2026",
+                "preferred_state": "Kaduna",
+                "preferred_city": "Zaria",
+                "area_of_interest": "Software Development",
+                "preferred_org_type": "Technology company",
+                "skills": "Python, SQL",
+                "bio": "Phase 4 structured profile test",
+            },
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        student = StudentProfile.query.filter_by(
+            user_id=student_user.id
+        ).first()
+
+        self.assertIsNotNone(student)
+        self.assertEqual(student.programme_id, fixture["programme_a"].id)
+        self.assertEqual(student.level, "400 level")
+        self.assertEqual(student.siwes_session, "2026")
+
+        self.assertEqual(
+            student.department,
+            fixture["department_a"].name,
+        )
+        self.assertEqual(
+            student.faculty,
+            fixture["faculty_a"].name,
+        )
+        self.assertEqual(
+            student.university,
+            fixture["institution_a"].name,
+        )
+
+        self.assertEqual(
+            student.academic_department_name,
+            fixture["department_a"].name,
+        )
+        self.assertEqual(
+            student.academic_unit_name,
+            fixture["faculty_a"].name,
+        )
+        self.assertEqual(
+            student.institution_name,
+            fixture["institution_a"].name,
+        )
+
+    def test_phase4_profile_rejects_mismatched_academic_hierarchy(self):
+        """A student cannot combine IDs belonging to different hierarchies."""
+        fixture = self._create_authorization_fixture()
+
+        student_user = User(
+            full_name="Hierarchy Test Student",
+            email="hierarchy.student@example.com",
+            account_status="Active",
+            email_verified=True,
+        )
+        student_user.set_password("student-password-123")
+
+        db.session.add(student_user)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = student_user.id
+
+        response = self.client.post(
+            "/profile",
+            data={
+                "full_name": "Hierarchy Test Student",
+                "matric_no": "PHASE4/INVALID/001",
+                "institution_id": str(fixture["institution_a"].id),
+                "academic_unit_id": str(fixture["faculty_a"].id),
+                "department_id": str(fixture["department_a"].id),
+                "programme_id": str(fixture["programme_b"].id),
+                "level": "400 level",
+                "siwes_session": "2026",
+                "preferred_state": "Kaduna",
+                "preferred_city": "Zaria",
+                "area_of_interest": "Software Development",
+                "preferred_org_type": "Technology company",
+                "skills": "Python",
+                "bio": "",
+            },
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        student = StudentProfile.query.filter_by(
+            user_id=student_user.id
+        ).first()
+
+        self.assertIsNone(student)
+
+        self.assertIn(
+            b"The selected academic programme does not match the "
+            b"institution hierarchy.",
+            response.data,
+        )
     def test_home_page(self):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
