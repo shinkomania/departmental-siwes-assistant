@@ -17,6 +17,7 @@ from models.application import SavedOrganization, PlacementApplication
 from models.user import User
 from models.academic import Institution, AcademicUnit, Department, Programme
 from models.access import Role, Permission, UserRoleAssignment
+from models.directory_request import DirectoryRequest
 from services.placement_search import PlacementSearchService
 from services.authorization import user_has_permission
 
@@ -334,6 +335,242 @@ class DSATestCase(unittest.TestCase):
         self.assertEqual(units_response.get_json(), [])
         self.assertEqual(departments_response.get_json(), [])
         self.assertEqual(programmes_response.get_json(), [])
+
+    def test_phase4_student_can_request_missing_institution(self):
+        """Authenticated users can request a missing institution for review."""
+        user = User(
+            full_name="Directory Request Student",
+            email="directory-request@example.com",
+            password_hash="test-password-hash",
+            account_status="Active",
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = user.id
+
+        response = self.client.post(
+            "/academic/directory-request",
+            data={
+                "request_type": DirectoryRequest.TYPE_INSTITUTION,
+                "institution_name": "Example College of Technology",
+                "institution_type": "College of Technology",
+                "city": "Example City",
+                "state": "Kaduna",
+                "official_website": "https://example.edu.ng",
+                "evidence_reference": "https://example.edu.ng/about",
+                "requester_notes": "Institution is missing from the directory.",
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.location.endswith("/profile"))
+
+        directory_request = DirectoryRequest.query.filter_by(
+            user_id=user.id,
+            request_type=DirectoryRequest.TYPE_INSTITUTION,
+        ).first()
+
+        self.assertIsNotNone(directory_request)
+        self.assertEqual(
+            directory_request.institution_name,
+            "Example College of Technology",
+        )
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_SUBMITTED,
+        )
+        self.assertIsNone(directory_request.institution_id)
+
+        # A request must not automatically create authoritative directory data.
+        self.assertIsNone(
+            Institution.query.filter_by(
+                name="Example College of Technology"
+            ).first()
+        )
+
+    def test_phase4_student_can_request_missing_programme(self):
+        """Programme requests use an existing verified institution."""
+        fixture = self._create_authorization_fixture()
+
+        user = User(
+            full_name="Programme Request Student",
+            email="programme-request@example.com",
+            password_hash="test-password-hash",
+            account_status="Active",
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = user.id
+
+        response = self.client.post(
+            "/academic/directory-request",
+            data={
+                "request_type": DirectoryRequest.TYPE_PROGRAMME,
+                "institution_id": str(fixture["institution_a"].id),
+                "institution_name": "Tampered Institution Name",
+                "programme_name": "B.Eng. Mechatronics Engineering",
+                "award": "B.Eng.",
+                "academic_unit_name": "Faculty of Engineering",
+                "academic_unit_type": "Faculty",
+                "department_name": "Mechatronics Engineering",
+                "evidence_reference": "Official programme handbook",
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.location.endswith("/profile"))
+
+        directory_request = DirectoryRequest.query.filter_by(
+            user_id=user.id,
+            request_type=DirectoryRequest.TYPE_PROGRAMME,
+        ).first()
+
+        self.assertIsNotNone(directory_request)
+        self.assertEqual(
+            directory_request.institution_id,
+            fixture["institution_a"].id,
+        )
+
+        # Existing directory data must override submitted institution text.
+        self.assertEqual(
+            directory_request.institution_name,
+            fixture["institution_a"].name,
+        )
+        self.assertEqual(
+            directory_request.programme_name,
+            "B.Eng. Mechatronics Engineering",
+        )
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_SUBMITTED,
+        )
+
+        # A request must not automatically create a Programme.
+        self.assertIsNone(
+            Programme.query.filter_by(
+                name="B.Eng. Mechatronics Engineering"
+            ).first()
+        )
+
+    def test_phase4_duplicate_open_directory_request_is_prevented(self):
+        """The same user cannot submit the same open request repeatedly."""
+        user = User(
+            full_name="Duplicate Request Student",
+            email="duplicate-directory-request@example.com",
+            password_hash="test-password-hash",
+            account_status="Active",
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = user.id
+
+        request_data = {
+            "request_type": DirectoryRequest.TYPE_INSTITUTION,
+            "institution_name": "Duplicate Test Polytechnic",
+            "institution_type": "Polytechnic",
+            "city": "Test City",
+            "state": "Kano",
+        }
+
+        first_response = self.client.post(
+            "/academic/directory-request",
+            data=request_data,
+            follow_redirects=False,
+        )
+
+        second_response = self.client.post(
+            "/academic/directory-request",
+            data=request_data,
+            follow_redirects=False,
+        )
+
+        self.assertEqual(first_response.status_code, 302)
+        self.assertEqual(second_response.status_code, 302)
+
+        request_count = DirectoryRequest.query.filter_by(
+            user_id=user.id,
+            request_type=DirectoryRequest.TYPE_INSTITUTION,
+            institution_name="Duplicate Test Polytechnic",
+        ).count()
+
+        self.assertEqual(request_count, 1)
+
+    def test_phase4_directory_request_requires_authentication(self):
+        """Unauthenticated users cannot submit academic directory requests."""
+        response = self.client.post(
+            "/academic/directory-request",
+            data={
+                "request_type": DirectoryRequest.TYPE_INSTITUTION,
+                "institution_name": "Unauthenticated Test Institution",
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login", response.location)
+
+        request_count = DirectoryRequest.query.filter_by(
+            institution_name="Unauthenticated Test Institution",
+        ).count()
+
+        self.assertEqual(request_count, 0)
+
+    def test_phase4_programme_request_rejects_unverified_institution(self):
+        """Programme requests require an active verified institution."""
+        user = User(
+            full_name="Unverified Institution Request Student",
+            email="unverified-directory-request@example.com",
+            password_hash="test-password-hash",
+            account_status="Active",
+        )
+
+        unverified_institution = Institution(
+            name="Pending Review University",
+            institution_type="University",
+            city="Test City",
+            state="Kaduna",
+            directory_status="Pending Review",
+        )
+
+        db.session.add_all([
+            user,
+            unverified_institution,
+        ])
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = user.id
+
+        response = self.client.post(
+            "/academic/directory-request",
+            data={
+                "request_type": DirectoryRequest.TYPE_PROGRAMME,
+                "institution_id": str(unverified_institution.id),
+                "programme_name": "B.Eng. Test Engineering",
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.location.endswith("/profile"))
+
+        request_count = DirectoryRequest.query.filter_by(
+            user_id=user.id,
+            request_type=DirectoryRequest.TYPE_PROGRAMME,
+        ).count()
+
+        self.assertEqual(request_count, 0)
 
     def test_phase4_structured_profile_saves_academic_hierarchy(self):
         """Structured selection saves programme FK and legacy compatibility fields."""

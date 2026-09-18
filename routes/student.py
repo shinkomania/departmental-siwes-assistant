@@ -27,6 +27,7 @@ from models.user import User
 from models.student import StudentProfile
 from models.application import SavedOrganization, PlacementApplication
 from models.academic import Institution, AcademicUnit, Department, Programme
+from models.directory_request import DirectoryRequest
 
 
 student_bp = Blueprint("student", __name__)
@@ -320,6 +321,214 @@ def academic_programmes(department_id):
             for programme in programmes
         ]
     )
+
+
+@student_bp.route("/academic/directory-request", methods=["POST"])
+def submit_directory_request():
+    """
+    Submit a missing institution or programme for Platform Admin review.
+
+    Submission never creates or verifies authoritative academic directory
+    records automatically.
+    """
+    user = _require_authenticated_user()
+
+    if not user:
+        flash(
+            "Please sign in to submit an academic directory request.",
+            "warning",
+        )
+        return redirect(
+            url_for(
+                "auth.login",
+                next=url_for("student.profile"),
+            )
+        )
+
+    request_type = request.form.get("request_type", "").strip()
+
+    if request_type not in DirectoryRequest.REQUEST_TYPE_CHOICES:
+        flash(
+            "Please choose a valid academic directory request type.",
+            "danger",
+        )
+        return redirect(url_for("student.profile"))
+
+    institution_id = _parse_positive_int(
+        request.form.get("institution_id")
+    )
+
+    institution_name = request.form.get(
+        "institution_name",
+        "",
+    ).strip()
+
+    institution_type = request.form.get(
+        "institution_type",
+        "",
+    ).strip()
+
+    city = request.form.get("city", "").strip()
+    state = request.form.get("state", "").strip()
+
+    official_website = request.form.get(
+        "official_website",
+        "",
+    ).strip()
+
+    academic_unit_name = request.form.get(
+        "academic_unit_name",
+        "",
+    ).strip()
+
+    academic_unit_type = request.form.get(
+        "academic_unit_type",
+        "",
+    ).strip()
+
+    department_name = request.form.get(
+        "department_name",
+        "",
+    ).strip()
+
+    programme_name = request.form.get(
+        "programme_name",
+        "",
+    ).strip()
+
+    award = request.form.get("award", "").strip()
+
+    evidence_reference = request.form.get(
+        "evidence_reference",
+        "",
+    ).strip()
+
+    requester_notes = request.form.get(
+        "requester_notes",
+        "",
+    ).strip()
+
+    selected_institution = None
+
+    if request_type == DirectoryRequest.TYPE_INSTITUTION:
+        if not institution_name:
+            flash(
+                "Please provide the institution name.",
+                "danger",
+            )
+            return redirect(url_for("student.profile"))
+
+        # An institution request represents a school that is not yet
+        # available in the controlled directory.
+        institution_id = None
+
+    elif request_type == DirectoryRequest.TYPE_PROGRAMME:
+        if not institution_id:
+            flash(
+                "Please select the institution for the missing programme.",
+                "danger",
+            )
+            return redirect(url_for("student.profile"))
+
+        selected_institution = db.session.get(
+            Institution,
+            institution_id,
+        )
+
+        if (
+            not selected_institution
+            or not selected_institution.is_active
+            or selected_institution.directory_status != "Verified"
+        ):
+            flash(
+                "Please select a verified institution from the directory.",
+                "danger",
+            )
+            return redirect(url_for("student.profile"))
+
+        if not programme_name:
+            flash(
+                "Please provide the missing programme name.",
+                "danger",
+            )
+            return redirect(url_for("student.profile"))
+
+        # Directory data is authoritative for an existing institution.
+        institution_name = selected_institution.name
+        institution_type = selected_institution.institution_type or ""
+        city = selected_institution.city or ""
+        state = selected_institution.state or ""
+        official_website = selected_institution.official_website or ""
+
+    open_statuses = [
+        DirectoryRequest.STATUS_SUBMITTED,
+        DirectoryRequest.STATUS_UNDER_REVIEW,
+        DirectoryRequest.STATUS_MORE_INFO_REQUIRED,
+    ]
+
+    duplicate_query = DirectoryRequest.query.filter(
+        DirectoryRequest.user_id == user.id,
+        DirectoryRequest.request_type == request_type,
+        DirectoryRequest.status.in_(open_statuses),
+    )
+
+    if request_type == DirectoryRequest.TYPE_INSTITUTION:
+        duplicate_query = duplicate_query.filter(
+            db.func.lower(DirectoryRequest.institution_name)
+            == institution_name.lower()
+        )
+    else:
+        duplicate_query = duplicate_query.filter(
+            DirectoryRequest.institution_id == institution_id,
+            db.func.lower(DirectoryRequest.programme_name)
+            == programme_name.lower(),
+        )
+
+    if duplicate_query.first():
+        flash(
+            "You already have an open request for this academic directory item.",
+            "info",
+        )
+        return redirect(url_for("student.profile"))
+
+    directory_request = DirectoryRequest(
+        user_id=user.id,
+        request_type=request_type,
+        institution_id=institution_id,
+        institution_name=institution_name,
+        institution_type=institution_type or None,
+        city=city or None,
+        state=state or None,
+        official_website=official_website or None,
+        academic_unit_name=academic_unit_name or None,
+        academic_unit_type=academic_unit_type or None,
+        department_name=department_name or None,
+        programme_name=programme_name or None,
+        award=award or None,
+        evidence_reference=evidence_reference or None,
+        requester_notes=requester_notes or None,
+    )
+
+    db.session.add(directory_request)
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+        flash(
+            "We could not submit your directory request. Please try again.",
+            "danger",
+        )
+        return redirect(url_for("student.profile"))
+
+    flash(
+        "Your academic directory request has been submitted for review.",
+        "success",
+    )
+
+    return redirect(url_for("student.profile"))
+
 
 @student_bp.route("/profile", methods=["GET", "POST"])
 def profile():

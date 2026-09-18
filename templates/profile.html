@@ -419,6 +419,280 @@
             </aside>
         </form>
 
+        <section class="directory-request-card" aria-labelledby="directoryRequestTitle">
+            <div class="directory-request-intro">
+                <div>
+                    <span class="directory-request-eyebrow">Academic Directory</span>
+                    <h2 id="directoryRequestTitle">Can't find your institution or programme?</h2>
+                    <p>
+                        Help us improve the DSA academic directory. Submit the missing
+                        information and it will be reviewed before being added to the
+                        verified directory.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="directory-request-toggle"
+                    id="directoryRequestToggle"
+                    aria-expanded="false"
+                    aria-controls="directoryRequestPanel">
+                    Submit a request
+                </button>
+            </div>
+
+            <div class="directory-request-panel" id="directoryRequestPanel" hidden>
+                <form
+                    action="{{ url_for('student.submit_directory_request') }}"
+                    method="POST"
+                    class="directory-request-form"
+                    id="directoryRequestForm">
+
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="directory-request-type-group">
+                        <p class="directory-request-question">
+                            What is missing from the directory?
+                        </p>
+
+                        <div class="directory-request-options">
+                            <label class="directory-request-option">
+                                <input
+                                    type="radio"
+                                    name="request_type"
+                                    value="Institution"
+                                    checked>
+                                <span>
+                                    <strong>Institution</strong>
+                                    <small>
+                                        My university, polytechnic, college or other
+                                        institution is not listed.
+                                    </small>
+                                </span>
+                            </label>
+
+                            <label class="directory-request-option">
+                                <input
+                                    type="radio"
+                                    name="request_type"
+                                    value="Programme">
+                                <span>
+                                    <strong>Programme</strong>
+                                    <small>
+                                        My institution is listed, but my programme is
+                                        missing.
+                                    </small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="institutionRequestFields">
+                        <div class="directory-request-grid">
+                            <div class="form-group directory-request-wide">
+                                <label for="requestInstitutionName">
+                                    Institution Name
+                                    <span class="required-mark">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="requestInstitutionName"
+                                    name="institution_name"
+                                    class="form-control"
+                                    maxlength="200"
+                                    placeholder="e.g. Federal Polytechnic Bida">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="requestInstitutionType">
+                                    Institution Type
+                                </label>
+                                <select
+                                    id="requestInstitutionType"
+                                    name="institution_type"
+                                    class="form-control">
+                                    <option value="">Select type</option>
+                                    <option value="University">University</option>
+                                    <option value="Polytechnic">Polytechnic</option>
+                                    <option value="College of Technology">College of Technology</option>
+                                    <option value="College of Agriculture">College of Agriculture</option>
+                                    <option value="College of Education">College of Education</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="requestState">State</label>
+                                <input
+                                    type="text"
+                                    id="requestState"
+                                    name="state"
+                                    class="form-control"
+                                    maxlength="100"
+                                    placeholder="e.g. Niger">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="requestCity">City / Town</label>
+                                <input
+                                    type="text"
+                                    id="requestCity"
+                                    name="city"
+                                    class="form-control"
+                                    maxlength="100"
+                                    placeholder="e.g. Bida">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="requestWebsite">Official Website</label>
+                                <input
+                                    type="url"
+                                    id="requestWebsite"
+                                    name="official_website"
+                                    class="form-control"
+                                    maxlength="255"
+                                    placeholder="https://...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="programmeRequestFields" hidden>
+                        <div class="directory-request-grid">
+                            <div class="form-group directory-request-wide">
+                                <label for="requestProgrammeInstitution">
+                                    Institution
+                                    <span class="required-mark">*</span>
+                                </label>
+                                <select
+                                    id="requestProgrammeInstitution"
+                                    name="institution_id"
+                                    class="form-control"
+                                    disabled>
+                                    <option value="">Select your institution</option>
+                                </select>
+                                <span class="form-hint">
+                                    Only institutions already verified in the DSA
+                                    directory can be selected here.
+                                </span>
+                            </div>
+
+                            <div class="form-group directory-request-wide">
+                                <label for="requestProgrammeName">
+                                    Programme Name
+                                    <span class="required-mark">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="requestProgrammeName"
+                                    name="programme_name"
+                                    class="form-control"
+                                    maxlength="200"
+                                    placeholder="e.g. B.Eng Mechatronics Engineering"
+                                    disabled>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="requestAcademicUnitName">
+                                    Faculty / School / College
+                                </label>
+                                <input
+                                    type="text"
+                                    id="requestAcademicUnitName"
+                                    name="academic_unit_name"
+                                    class="form-control"
+                                    maxlength="200"
+                                    placeholder="e.g. Faculty of Engineering"
+                                    disabled>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="requestAcademicUnitType">
+                                    Academic Unit Type
+                                </label>
+                                <select
+                                    id="requestAcademicUnitType"
+                                    name="academic_unit_type"
+                                    class="form-control"
+                                    disabled>
+                                    <option value="">Select type</option>
+                                    <option value="Faculty">Faculty</option>
+                                    <option value="School">School</option>
+                                    <option value="College">College</option>
+                                    <option value="Directorate">Directorate</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="requestDepartmentName">
+                                    Department
+                                </label>
+                                <input
+                                    type="text"
+                                    id="requestDepartmentName"
+                                    name="department_name"
+                                    class="form-control"
+                                    maxlength="200"
+                                    placeholder="e.g. Mechatronics Engineering"
+                                    disabled>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="requestAward">Award / Qualification</label>
+                                <input
+                                    type="text"
+                                    id="requestAward"
+                                    name="award"
+                                    class="form-control"
+                                    maxlength="100"
+                                    placeholder="e.g. B.Eng, HND, ND, NCE"
+                                    disabled>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="directory-request-grid directory-request-supporting">
+                        <div class="form-group directory-request-wide">
+                            <label for="requestEvidence">
+                                Verification Evidence
+                            </label>
+                            <input
+                                type="text"
+                                id="requestEvidence"
+                                name="evidence_reference"
+                                class="form-control"
+                                maxlength="500"
+                                placeholder="Official webpage, handbook reference or other reliable source">
+                            <span class="form-hint">
+                                An official source helps DSA review the request accurately.
+                            </span>
+                        </div>
+
+                        <div class="form-group directory-request-wide">
+                            <label for="requestNotes">Additional Notes</label>
+                            <textarea
+                                id="requestNotes"
+                                name="requester_notes"
+                                class="form-control"
+                                rows="3"
+                                placeholder="Add any useful context for the reviewer."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="directory-request-footer">
+                        <p>
+                            Submitting a request does not automatically add or verify
+                            the institution or programme.
+                        </p>
+
+                        <button type="submit" class="btn btn-primary">
+                            Submit for Review
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
     </div>
 </section>
 {% endblock %}
@@ -432,6 +706,89 @@ document.addEventListener("DOMContentLoaded", async function () {
     const department = document.getElementById("department");
     const programme = document.getElementById("programme");
     const programmeStatus = document.getElementById("programmeStatus");
+
+    const directoryRequestToggle = document.getElementById("directoryRequestToggle");
+    const directoryRequestPanel = document.getElementById("directoryRequestPanel");
+    const directoryRequestForm = document.getElementById("directoryRequestForm");
+    const institutionRequestFields = document.getElementById("institutionRequestFields");
+    const programmeRequestFields = document.getElementById("programmeRequestFields");
+    const requestProgrammeInstitution = document.getElementById("requestProgrammeInstitution");
+
+    if (
+        directoryRequestToggle &&
+        directoryRequestPanel &&
+        directoryRequestForm &&
+        institutionRequestFields &&
+        programmeRequestFields
+    ) {
+        const requestTypeInputs = directoryRequestForm.querySelectorAll(
+            'input[name="request_type"]'
+        );
+
+        const institutionInputs = institutionRequestFields.querySelectorAll(
+            "input, select, textarea"
+        );
+
+        const programmeInputs = programmeRequestFields.querySelectorAll(
+            "input, select, textarea"
+        );
+
+        function setDirectoryRequestType(type) {
+            const isProgramme = type === "Programme";
+
+            institutionRequestFields.hidden = isProgramme;
+            programmeRequestFields.hidden = !isProgramme;
+
+            institutionInputs.forEach(function (field) {
+                field.disabled = isProgramme;
+            });
+
+            programmeInputs.forEach(function (field) {
+                field.disabled = !isProgramme;
+            });
+
+            const institutionName = document.getElementById(
+                "requestInstitutionName"
+            );
+            const programmeName = document.getElementById(
+                "requestProgrammeName"
+            );
+
+            if (institutionName) {
+                institutionName.required = !isProgramme;
+            }
+
+            if (requestProgrammeInstitution) {
+                requestProgrammeInstitution.required = isProgramme;
+            }
+
+            if (programmeName) {
+                programmeName.required = isProgramme;
+            }
+        }
+
+        directoryRequestToggle.addEventListener("click", function () {
+            const willOpen = directoryRequestPanel.hidden;
+
+            directoryRequestPanel.hidden = !willOpen;
+            directoryRequestToggle.setAttribute(
+                "aria-expanded",
+                String(willOpen)
+            );
+
+            directoryRequestToggle.textContent = willOpen
+                ? "Close request"
+                : "Submit a request";
+        });
+
+        requestTypeInputs.forEach(function (input) {
+            input.addEventListener("change", function () {
+                setDirectoryRequestType(input.value);
+            });
+        });
+
+        setDirectoryRequestType("Institution");
+    }
 
     if (!institution || !academicUnit || !department || !programme) {
         return;
@@ -487,6 +844,22 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         try {
             const items = await getJSON("/academic/institutions");
+
+            if (requestProgrammeInstitution) {
+                populateSelect(
+                    requestProgrammeInstitution,
+                    items,
+                    "Select your institution",
+                    "",
+                    function (item) {
+                        return item.city
+                            ? item.name + ", " + item.city
+                            : (item.state
+                                ? item.name + ", " + item.state
+                                : item.name);
+                    }
+                );
+            }
 
             populateSelect(
                 institution,
