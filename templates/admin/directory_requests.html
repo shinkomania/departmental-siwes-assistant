@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block title %}
+Academic Directory Requests | Platform Administration | DSA
+{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+
+    <header class="admin-page-header">
+        <div>
+            <a href="{{ url_for('admin.dashboard') }}" class="admin-back-link">
+                &larr; Platform overview
+            </a>
+
+            <span class="admin-eyebrow">Platform Administration</span>
+
+            <h1>Academic directory requests</h1>
+
+            <p>
+                Review institutions and programmes reported as missing from the
+                DSA academic directory. Requests remain separate from authoritative
+                directory records until they are deliberately reviewed and handled.
+            </p>
+        </div>
+    </header>
+
+    <section class="admin-review-context">
+        <div class="admin-review-context-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path
+                    d="M5 4h14v16H5z"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linejoin="round" />
+                <path
+                    d="M8 9h8M8 13h5"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round" />
+            </svg>
+        </div>
+
+        <div>
+            <strong>A submitted request is not a verified directory record.</strong>
+
+            <p>
+                Check the academic context and supporting evidence before changing
+                the request's review state. Approval of a request must not silently
+                create or verify an institution or programme.
+            </p>
+        </div>
+    </section>
+
+    <section
+        class="admin-toolbar"
+        aria-label="Academic directory request filters">
+
+        <form
+            method="GET"
+            action="{{ url_for('admin.directory_request_queue') }}"
+            class="admin-filter-form directory-request-admin-filters">
+
+            <div class="admin-search-field">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle
+                        cx="11"
+                        cy="11"
+                        r="6.5"
+                        stroke="currentColor"
+                        stroke-width="1.8" />
+                    <path
+                        d="m16 16 4 4"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round" />
+                </svg>
+
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ search_query }}"
+                    placeholder="Search institution, programme or department"
+                    aria-label="Search academic directory requests">
+            </div>
+
+            <div class="admin-filter-field">
+                <label for="directoryRequestStatus">Status</label>
+
+                <select
+                    id="directoryRequestStatus"
+                    name="status"
+                    class="form-control">
+
+                    <option
+                        value="all"
+                        {% if active_status == "all" %}selected{% endif %}>
+                        All statuses
+                    </option>
+
+                    {% for status in request_statuses %}
+                    <option
+                        value="{{ status }}"
+                        {% if active_status == status %}selected{% endif %}>
+                        {{ status }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="admin-filter-field">
+                <label for="directoryRequestType">Type</label>
+
+                <select
+                    id="directoryRequestType"
+                    name="type"
+                    class="form-control">
+
+                    <option
+                        value="all"
+                        {% if active_request_type == "all" %}selected{% endif %}>
+                        All types
+                    </option>
+
+                    {% for request_type in request_types %}
+                    <option
+                        value="{{ request_type }}"
+                        {% if active_request_type == request_type %}selected{% endif %}>
+                        {{ request_type }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="directory-request-filter-actions">
+                <button type="submit" class="btn btn-primary">
+                    Apply filters
+                </button>
+
+                {% if
+                    search_query
+                    or active_status != "Submitted"
+                    or active_request_type != "all"
+                %}
+                <a
+                    href="{{ url_for('admin.directory_request_queue') }}"
+                    class="btn btn-outline">
+                    Reset
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </section>
+
+    <section class="directory-admin-summary" aria-label="Queue summary">
+        <div>
+            <span class="directory-admin-summary-label">Showing</span>
+            <strong>{{ directory_requests|length }}</strong>
+            <span>
+                {% if directory_requests|length == 1 %}
+                request
+                {% else %}
+                requests
+                {% endif %}
+            </span>
+        </div>
+
+        <p>
+            {% if active_status == "all" %}
+            All review states
+            {% else %}
+            Status: {{ active_status }}
+            {% endif %}
+
+            {% if active_request_type != "all" %}
+            &middot; Type: {{ active_request_type }}
+            {% endif %}
+        </p>
+    </section>
+
+    {% if directory_requests %}
+    <div class="directory-admin-request-list">
+        {% for item in directory_requests %}
+        <article class="directory-admin-request-card">
+
+            <div class="directory-admin-request-top">
+                <div class="directory-admin-request-identity">
+                    <div class="directory-admin-request-badges">
+                        <span class="directory-admin-type-badge">
+                            {{ item.request_type }}
+                        </span>
+
+                        <span
+                            class="directory-admin-status-badge"
+                            data-status="{{ item.status|lower|replace(' ', '-') }}">
+                            {{ item.status }}
+                        </span>
+                    </div>
+
+                    <h2>
+                        {% if item.request_type == "Programme" %}
+                            {{ item.programme_name or "Unnamed programme" }}
+                        {% else %}
+                            {{ item.institution_name }}
+                        {% endif %}
+                    </h2>
+
+                    {% if item.request_type == "Programme" %}
+                    <p class="directory-admin-request-institution">
+                        {{ item.institution_name }}
+                        {% if item.city %}
+                            &middot; {{ item.city }}
+                        {% endif %}
+                    </p>
+                    {% elif item.city or item.state %}
+                    <p class="directory-admin-request-institution">
+                        {% if item.city %}{{ item.city }}{% endif %}
+                        {% if item.city and item.state %}, {% endif %}
+                        {% if item.state %}{{ item.state }}{% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <div class="directory-admin-request-date">
+                    <span>Submitted</span>
+                    <strong>
+                        {% if item.submitted_at %}
+                            {{ item.submitted_at.strftime("%d %b %Y") }}
+                        {% else %}
+                            Not recorded
+                        {% endif %}
+                    </strong>
+
+                    {% if item.submitted_at %}
+                    <small>
+                        {{ item.submitted_at.strftime("%H:%M") }} UTC
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="directory-admin-request-details">
+
+                <div class="directory-admin-detail">
+                    <span>Requester</span>
+                    <strong>
+                        {% if item.user %}
+                            {{ item.user.full_name }}
+                        {% else %}
+                            User #{{ item.user_id }}
+                        {% endif %}
+                    </strong>
+
+                    {% if item.user and item.user.email %}
+                    <small>{{ item.user.email }}</small>
+                    {% endif %}
+                </div>
+
+                {% if item.request_type == "Institution" %}
+                <div class="directory-admin-detail">
+                    <span>Institution type</span>
+                    <strong>
+                        {{ item.institution_type or "Not provided" }}
+                    </strong>
+                </div>
+                {% else %}
+                <div class="directory-admin-detail">
+                    <span>Department</span>
+                    <strong>
+                        {{ item.department_name or "Not provided" }}
+                    </strong>
+
+                    {% if item.academic_unit_name %}
+                    <small>{{ item.academic_unit_name }}</small>
+                    {% endif %}
+                </div>
+
+                <div class="directory-admin-detail">
+                    <span>Award / Qualification</span>
+                    <strong>
+                        {{ item.award or "Not provided" }}
+                    </strong>
+                </div>
+                {% endif %}
+
+                <div class="directory-admin-detail">
+                    <span>Request ID</span>
+                    <strong>#{{ item.id }}</strong>
+                </div>
+            </div>
+
+            {% if item.evidence_reference %}
+            <div class="directory-admin-evidence">
+                <span>Verification evidence</span>
+                <p>{{ item.evidence_reference }}</p>
+            </div>
+            {% endif %}
+
+            {% if item.requester_notes %}
+            <div class="directory-admin-notes">
+                <span>Requester notes</span>
+                <p>{{ item.requester_notes }}</p>
+            </div>
+            {% endif %}
+
+            <footer class="directory-admin-request-footer">
+                <p>
+                    Review actions will be handled from the secured request
+                    review page.
+                </p>
+
+                <span class="directory-admin-review-coming">
+                    Review details
+                </span>
+            </footer>
+
+        </article>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <section class="directory-admin-empty">
+        <div class="directory-admin-empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path
+                    d="M5 4h14v16H5z"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linejoin="round" />
+                <path
+                    d="M8 9h8M8 13h5"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round" />
+            </svg>
+        </div>
+
+        <h2>No matching requests</h2>
+
+        <p>
+            There are currently no academic directory requests matching these
+            filters.
+        </p>
+
+        {% if
+            search_query
+            or active_status != "Submitted"
+            or active_request_type != "all"
+        %}
+        <a
+            href="{{ url_for('admin.directory_request_queue') }}"
+            class="btn btn-outline">
+            Clear filters
+        </a>
+        {% endif %}
+    </section>
+    {% endif %}
+
+</div>
+{% endblock %}

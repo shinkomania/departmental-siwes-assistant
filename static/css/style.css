@@ -11025,3 +11025,334 @@ textarea.form-control {
         width: 100%;
     }
 }
+
+/* ==============================================================
+   PHASE 4 - PLATFORM ADMIN ACADEMIC DIRECTORY REQUESTS
+   ============================================================== */
+
+.directory-request-admin-filters {
+    width: 100%;
+    align-items: end;
+}
+
+.directory-request-filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.directory-admin-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1rem 0;
+    padding: 0.9rem 1.1rem;
+    border: 1px solid rgba(15, 38, 71, 0.08);
+    border-radius: 14px;
+    background: #ffffff;
+}
+
+.directory-admin-summary > div {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+}
+
+.directory-admin-summary-label,
+.directory-admin-summary span,
+.directory-admin-summary p {
+    color: #64748b;
+    font-size: 0.82rem;
+}
+
+.directory-admin-summary strong {
+    color: #0f2647;
+    font-size: 1.15rem;
+}
+
+.directory-admin-summary p {
+    margin: 0;
+}
+
+.directory-admin-request-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.directory-admin-request-card {
+    border: 1px solid rgba(15, 38, 71, 0.1);
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 8px 24px rgba(15, 38, 71, 0.045);
+    overflow: hidden;
+}
+
+.directory-admin-request-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.3rem 1.4rem;
+    border-bottom: 1px solid rgba(15, 38, 71, 0.07);
+}
+
+.directory-admin-request-identity {
+    min-width: 0;
+}
+
+.directory-admin-request-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 0.65rem;
+}
+
+.directory-admin-type-badge,
+.directory-admin-status-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 25px;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.035em;
+}
+
+.directory-admin-type-badge {
+    background: #eef2f7;
+    color: #334155;
+}
+
+.directory-admin-status-badge {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.directory-admin-status-badge[data-status="submitted"] {
+    background: #fff7e6;
+    color: #8a5a00;
+}
+
+.directory-admin-status-badge[data-status="under-review"] {
+    background: #eef4ff;
+    color: #315c9b;
+}
+
+.directory-admin-status-badge[data-status="more-info-required"] {
+    background: #fff3e8;
+    color: #9a4e12;
+}
+
+.directory-admin-status-badge[data-status="approved"] {
+    background: #edf8f1;
+    color: #28633d;
+}
+
+.directory-admin-status-badge[data-status="rejected"] {
+    background: #fff0f0;
+    color: #963737;
+}
+
+.directory-admin-status-badge[data-status="withdrawn"] {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.directory-admin-request-identity h2 {
+    margin: 0;
+    color: #0f2647;
+    font-size: 1.08rem;
+    line-height: 1.35;
+}
+
+.directory-admin-request-institution {
+    margin: 0.35rem 0 0;
+    color: #64748b;
+    font-size: 0.83rem;
+    line-height: 1.5;
+}
+
+.directory-admin-request-date {
+    flex: 0 0 auto;
+    text-align: right;
+}
+
+.directory-admin-request-date span,
+.directory-admin-request-date small {
+    display: block;
+    color: #94a3b8;
+    font-size: 0.68rem;
+}
+
+.directory-admin-request-date strong {
+    display: block;
+    margin: 0.15rem 0;
+    color: #334155;
+    font-size: 0.8rem;
+}
+
+.directory-admin-request-details {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    padding: 1.15rem 1.4rem;
+}
+
+.directory-admin-detail {
+    min-width: 0;
+}
+
+.directory-admin-detail > span,
+.directory-admin-evidence > span,
+.directory-admin-notes > span {
+    display: block;
+    margin-bottom: 0.3rem;
+    color: #94a3b8;
+    font-size: 0.67rem;
+    font-weight: 800;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+}
+
+.directory-admin-detail strong {
+    display: block;
+    overflow-wrap: anywhere;
+    color: #26364d;
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.directory-admin-detail small {
+    display: block;
+    margin-top: 0.2rem;
+    overflow-wrap: anywhere;
+    color: #64748b;
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+
+.directory-admin-evidence,
+.directory-admin-notes {
+    margin: 0 1.4rem 1rem;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.directory-admin-evidence p,
+.directory-admin-notes p {
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: #475569;
+    font-size: 0.8rem;
+    line-height: 1.6;
+}
+
+.directory-admin-request-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1.4rem;
+    border-top: 1px solid rgba(15, 38, 71, 0.07);
+    background: #fbfcfe;
+}
+
+.directory-admin-request-footer p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.75rem;
+}
+
+.directory-admin-review-coming {
+    flex: 0 0 auto;
+    color: #0f2647;
+    font-size: 0.76rem;
+    font-weight: 800;
+}
+
+.directory-admin-empty {
+    padding: 3rem 1.5rem;
+    border: 1px dashed rgba(15, 38, 71, 0.16);
+    border-radius: 18px;
+    background: #ffffff;
+    text-align: center;
+}
+
+.directory-admin-empty-icon {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 0.9rem;
+    place-items: center;
+    border-radius: 14px;
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.directory-admin-empty-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.directory-admin-empty h2 {
+    margin: 0;
+    color: #0f2647;
+    font-size: 1rem;
+}
+
+.directory-admin-empty p {
+    max-width: 500px;
+    margin: 0.5rem auto 1rem;
+    color: #64748b;
+    font-size: 0.82rem;
+    line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+    .directory-admin-request-details {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 680px) {
+    .directory-request-filter-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .directory-request-filter-actions .btn {
+        width: 100%;
+    }
+
+    .directory-admin-summary,
+    .directory-admin-request-top,
+    .directory-admin-request-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .directory-admin-request-date {
+        text-align: left;
+    }
+
+    .directory-admin-request-details {
+        grid-template-columns: 1fr;
+    }
+
+    .directory-admin-request-top,
+    .directory-admin-request-details,
+    .directory-admin-request-footer {
+        padding-left: 1.1rem;
+        padding-right: 1.1rem;
+    }
+
+    .directory-admin-evidence,
+    .directory-admin-notes {
+        margin-left: 1.1rem;
+        margin-right: 1.1rem;
+    }
+}
+

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Automated Test Suite for Departmental SIWES Assistant (DSA)
 ------------------------------------------------------------
 Tests database models, route endpoints, placement search,
@@ -1475,6 +1475,122 @@ class DSATestCase(unittest.TestCase):
             "managed_user_assignment": managed_user_assignment,
         }
 
+    def _create_directory_request_queue_fixture(self):
+        """Create directory requests used by Platform Admin queue tests."""
+        data = self._create_platform_admin_security_fixture()
+
+        submitted_institution = DirectoryRequest(
+            user_id=data["managed_user"].id,
+            request_type=DirectoryRequest.TYPE_INSTITUTION,
+            institution_name="Northern Test University",
+            state="Kaduna",
+            city="Zaria",
+            status=DirectoryRequest.STATUS_SUBMITTED,
+        )
+
+        submitted_programme = DirectoryRequest(
+            user_id=data["managed_user"].id,
+            request_type=DirectoryRequest.TYPE_PROGRAMME,
+            institution_name="Existing Test University",
+            academic_unit_name="Faculty of Engineering",
+            department_name="Department of Computer Engineering",
+            programme_name="Computer Engineering",
+            award="B.Eng.",
+            status=DirectoryRequest.STATUS_SUBMITTED,
+        )
+
+        approved_request = DirectoryRequest(
+            user_id=data["managed_user"].id,
+            request_type=DirectoryRequest.TYPE_INSTITUTION,
+            institution_name="Approved Test Polytechnic",
+            state="Kano",
+            city="Kano",
+            status=DirectoryRequest.STATUS_APPROVED,
+            reviewed_by_user_id=data["platform_admin"].id,
+            reviewer_notes="Test approval only.",
+            decided_at=datetime.utcnow(),
+        )
+
+        db.session.add_all([
+            submitted_institution,
+            submitted_programme,
+            approved_request,
+        ])
+        db.session.commit()
+
+        data.update({
+            "submitted_institution": submitted_institution,
+            "submitted_programme": submitted_programme,
+            "approved_request": approved_request,
+        })
+
+        return data
+
+    def test_platform_admin_can_open_directory_request_queue(self):
+        self._create_directory_request_queue_fixture()
+
+        response = self.client.get("/admin/directory-requests")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Northern Test University", response.data)
+        self.assertIn(b"Computer Engineering", response.data)
+
+    def test_directory_request_queue_defaults_to_submitted_requests(self):
+        self._create_directory_request_queue_fixture()
+
+        response = self.client.get("/admin/directory-requests")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Northern Test University", response.data)
+        self.assertIn(b"Computer Engineering", response.data)
+        self.assertNotIn(b"Approved Test Polytechnic", response.data)
+
+    def test_directory_request_queue_can_filter_by_status(self):
+        self._create_directory_request_queue_fixture()
+
+        response = self.client.get(
+            "/admin/directory-requests?status=Approved"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Approved Test Polytechnic", response.data)
+        self.assertNotIn(b"Northern Test University", response.data)
+
+    def test_directory_request_queue_can_filter_by_request_type(self):
+        self._create_directory_request_queue_fixture()
+
+        response = self.client.get(
+            "/admin/directory-requests?status=all&type=Programme"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Computer Engineering", response.data)
+        self.assertNotIn(b"Northern Test University", response.data)
+        self.assertNotIn(b"Approved Test Polytechnic", response.data)
+
+    def test_directory_request_queue_can_search_academic_fields(self):
+        self._create_directory_request_queue_fixture()
+
+        response = self.client.get(
+            "/admin/directory-requests?status=all&q=Computer"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Computer Engineering", response.data)
+        self.assertNotIn(b"Northern Test University", response.data)
+        self.assertNotIn(b"Approved Test Polytechnic", response.data)
+
+    def test_directory_request_queue_invalid_filters_fall_back_safely(self):
+        self._create_directory_request_queue_fixture()
+
+        response = self.client.get(
+            "/admin/directory-requests?status=InvalidStatus&type=InvalidType"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Northern Test University", response.data)
+        self.assertIn(b"Computer Engineering", response.data)
+        self.assertNotIn(b"Approved Test Polytechnic", response.data)
     def test_admin_can_suspend_and_reactivate_another_account(self):
         data = self._create_platform_admin_security_fixture()
         managed_user_id = data["managed_user"].id
@@ -1719,3 +1835,4 @@ class DSATestCase(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

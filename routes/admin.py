@@ -24,6 +24,8 @@ Important design rules:
 from datetime import datetime
 from functools import wraps
 
+from sqlalchemy import or_
+
 from flask import (
     Blueprint,
     abort,
@@ -38,6 +40,7 @@ from flask import (
 from models.access import UserRoleAssignment
 from models.application import PlacementApplication
 from models.db import db
+from models.directory_request import DirectoryRequest
 from models.guide import GuideTopic
 from models.organization import Organization
 from models.student import StudentProfile
@@ -415,7 +418,7 @@ def organizations():
         search_pattern = f"%{search}%"
 
         query = query.filter(
-            db.or_(
+            or_(
                 Organization.name.ilike(search_pattern),
                 Organization.city.ilike(search_pattern),
                 Organization.state.ilike(search_pattern),
@@ -467,6 +470,87 @@ def organization_review_queue():
         active_visibility="all",
         search_query="",
         review_queue_mode=True,
+    )
+
+
+@admin_bp.route("/directory-requests")
+@admin_required
+def directory_request_queue():
+    """Show academic directory requests for Platform Admin review."""
+    status_filter = request.args.get(
+        "status",
+        DirectoryRequest.STATUS_SUBMITTED,
+    ).strip()
+
+    request_type_filter = request.args.get(
+        "type",
+        "all",
+    ).strip()
+
+    search = request.args.get(
+        "q",
+        "",
+    ).strip()
+
+    valid_statuses = set(DirectoryRequest.STATUS_CHOICES)
+
+    if status_filter != "all" and status_filter not in valid_statuses:
+        status_filter = DirectoryRequest.STATUS_SUBMITTED
+
+    valid_request_types = set(DirectoryRequest.REQUEST_TYPE_CHOICES)
+
+    if (
+        request_type_filter != "all"
+        and request_type_filter not in valid_request_types
+    ):
+        request_type_filter = "all"
+
+    query = DirectoryRequest.query
+
+    if status_filter != "all":
+        query = query.filter(
+            DirectoryRequest.status == status_filter
+        )
+
+    if request_type_filter != "all":
+        query = query.filter(
+            DirectoryRequest.request_type == request_type_filter
+        )
+
+    if search:
+        search_pattern = f"%{search}%"
+
+        query = query.filter(
+            db.or_(
+                DirectoryRequest.institution_name.ilike(
+                    search_pattern
+                ),
+                DirectoryRequest.programme_name.ilike(
+                    search_pattern
+                ),
+                DirectoryRequest.department_name.ilike(
+                    search_pattern
+                ),
+                DirectoryRequest.academic_unit_name.ilike(
+                    search_pattern
+                ),
+            )
+        )
+
+    directory_requests = (
+        query
+        .order_by(DirectoryRequest.submitted_at.asc())
+        .all()
+    )
+
+    return render_template(
+        "admin/directory_requests.html",
+        directory_requests=directory_requests,
+        request_statuses=DirectoryRequest.STATUS_CHOICES,
+        request_types=DirectoryRequest.REQUEST_TYPE_CHOICES,
+        active_status=status_filter,
+        active_request_type=request_type_filter,
+        search_query=search,
     )
 
 
