@@ -1627,6 +1627,80 @@ class DSATestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 403)
 
+    def test_platform_admin_can_mark_directory_request_under_review(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+
+        response = self.client.post(
+            f"/admin/directory-requests/{directory_request.id}/under-review",
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        db.session.refresh(directory_request)
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+        )
+        self.assertEqual(
+            directory_request.reviewed_by_user_id,
+            data["platform_admin"].id,
+        )
+        self.assertIsNotNone(directory_request.review_started_at)
+
+    def test_unauthorized_user_cannot_mark_directory_request_under_review(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess["user_id"] = data["managed_user"].id
+
+        response = self.client.post(
+            f"/admin/directory-requests/{directory_request.id}/under-review"
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+        db.session.refresh(directory_request)
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_SUBMITTED,
+        )
+
+    def test_mark_directory_request_under_review_returns_404_for_missing_request(self):
+        self._create_directory_request_queue_fixture()
+
+        response = self.client.post(
+            "/admin/directory-requests/999999/under-review"
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_final_directory_request_cannot_be_marked_under_review_via_admin(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["approved_request"]
+
+        response = self.client.post(
+            f"/admin/directory-requests/{directory_request.id}/under-review",
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        db.session.refresh(directory_request)
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_APPROVED,
+        )
+        self.assertIn(
+            b"cannot be marked under review",
+            response.data,
+        )
     def test_directory_request_detail_returns_404_for_missing_request(self):
         self._create_directory_request_queue_fixture()
 
