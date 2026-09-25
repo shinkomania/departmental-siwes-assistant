@@ -1,4 +1,4 @@
-# DSA Current Checkpoint
+﻿# DSA Current Checkpoint
 
 > Read this file first when resuming DSA development.
 
@@ -14,7 +14,7 @@ migration deferred.
 
 ## Verified Test Baseline
 
-**133/133 tests passing**
+**136/136 tests passing**
 
 Protect this baseline. Do not treat the old 177-test output as genuine;
 that run included duplicate unittest discovery from a backup file whose
@@ -42,28 +42,36 @@ Implemented/tested:
 
 The six queue tests increased the genuine suite from 127 to 133 tests.
 
+Secured individual Academic Directory Request detail page completed in commit 3971f7e.
+
+Implemented/tested:
+
+- authorized Platform Admin access;
+- unauthorized authenticated user receives HTTP 403;
+- missing request returns HTTP 404;
+- request information renders correctly;
+- queue Review details now links to the secured detail page;
+- detail page remains intentionally read-only;
+- live queue-to-detail browser flow verified;
+- full regression suite now passes 136/136 tests.
+
 ## Exact Next Task
 
-**Build the secured individual Academic Directory Request review/detail
-page.**
+**Expose Academic Directory Requests from the Platform Administration overview.**
 
-The current queue template contains a non-functional **Review details**
-placeholder and says review actions will be handled from a secured
-request review page.
+The secured read-only individual DirectoryRequest detail page is complete in commit 3971f7e.
 
-Do not jump directly to Approve/Reject actions.
+Live browser verification confirmed that the queue and detail page work, but the Platform overview does not yet provide a direct entry to the Academic Directory Request workflow.
+
+Do not combine this navigation improvement with Approve, Reject, More Information, or other review-state mutations.
 
 ## First Development Step
 
-Inspect the complete existing request-card section before editing it:
+Inspect the current Platform Administration dashboard template and the admin dashboard route/context before making changes.
 
-``` powershell
-Get-Content "templates\admin\directory_requests.html" |
-Select-Object -Skip 165 -First 160
-```
+Identify the existing dashboard navigation/card pattern and add the smallest consistent entry that gives Platform Administrators direct access to /admin/directory-requests.
 
-Then inspect any current repository state needed to design the detail
-route safely.
+Do not add review-state mutations during this navigation task.
 
 ## Required Security Coverage
 
