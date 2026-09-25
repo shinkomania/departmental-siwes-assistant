@@ -1,4 +1,4 @@
-﻿"""
+"""
 Automated Test Suite for Departmental SIWES Assistant (DSA)
 ------------------------------------------------------------
 Tests database models, route endpoints, placement search,
@@ -1525,6 +1525,17 @@ class DSATestCase(unittest.TestCase):
         })
 
         return data
+
+    def test_platform_admin_dashboard_exposes_submitted_directory_requests(self):
+        self._create_directory_request_queue_fixture()
+
+        response = self.client.get("/admin/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Academic Directory Requests", response.data)
+        self.assertIn(b"2", response.data)
+        self.assertIn(b"submitted", response.data)
+        self.assertIn(b"/admin/directory-requests", response.data)
 
     def test_platform_admin_can_open_directory_request_queue(self):
         self._create_directory_request_queue_fixture()

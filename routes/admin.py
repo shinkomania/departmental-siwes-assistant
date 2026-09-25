@@ -351,6 +351,10 @@ def dashboard():
     total_applications = PlacementApplication.query.count()
     guide_topics_count = GuideTopic.query.count()
 
+    submitted_directory_requests = DirectoryRequest.query.filter_by(
+        status=DirectoryRequest.STATUS_SUBMITTED
+    ).count()
+
     recent_pending_reviews = (
         Organization.query
         .filter_by(review_status="Pending")
@@ -377,6 +381,7 @@ def dashboard():
         total_students=total_students,
         total_applications=total_applications,
         guide_topics_count=guide_topics_count,
+        submitted_directory_requests=submitted_directory_requests,
         recent_pending_reviews=recent_pending_reviews,
         recent_users=recent_users,
     )
