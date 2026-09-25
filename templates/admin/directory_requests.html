@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}
 Academic Directory Requests | Platform Administration | DSA
@@ -309,9 +309,11 @@ Academic Directory Requests | Platform Administration | DSA
                     review page.
                 </p>
 
-                <span class="directory-admin-review-coming">
+                <a
+                    href="{{ url_for('admin.directory_request_detail', request_id=item.id) }}"
+                    class="directory-admin-review-coming">
                     Review details
-                </span>
+                </a>
             </footer>
 
         </article>

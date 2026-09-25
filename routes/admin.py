@@ -554,6 +554,23 @@ def directory_request_queue():
     )
 
 
+@admin_bp.route("/directory-requests/<int:request_id>")
+@admin_required
+def directory_request_detail(request_id):
+    """
+    Show one academic directory request for Platform Admin review.
+
+    This page is read-only at this stage. Viewing a request must not create,
+    verify, approve, reject, or otherwise modify authoritative academic
+    directory records.
+    """
+    directory_request = DirectoryRequest.query.get_or_404(request_id)
+
+    return render_template(
+        "admin/directory_request_detail.html",
+        directory_request=directory_request,
+    )
+
 @admin_bp.route("/organizations/new", methods=["GET", "POST"])
 @admin_required
 def new_organization():

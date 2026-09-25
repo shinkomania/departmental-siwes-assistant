@@ -1,0 +1,263 @@
+﻿{% extends "base.html" %}
+
+{% block title %}
+Directory Request #{{ directory_request.id }} | Platform Administration | DSA
+{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+
+    <header class="admin-page-header">
+        <div>
+            <a
+                href="{{ url_for('admin.directory_request_queue') }}"
+                class="admin-back-link">
+                &larr; Academic directory requests
+            </a>
+
+            <span class="admin-eyebrow">Platform Administration</span>
+
+            <h1>Directory request #{{ directory_request.id }}</h1>
+
+            <p>
+                Review the submitted academic information and supporting evidence.
+                This page is currently read-only and does not create or verify
+                authoritative academic directory records.
+            </p>
+        </div>
+    </header>
+
+    <section class="admin-review-context">
+        <div class="admin-review-context-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path
+                    d="M5 4h14v16H5z"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linejoin="round" />
+                <path
+                    d="M8 9h8M8 13h5"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round" />
+            </svg>
+        </div>
+
+        <div>
+            <strong>This request is a review record.</strong>
+
+            <p>
+                Its status does not by itself create or verify an institution,
+                department, academic unit, or programme in the DSA directory.
+            </p>
+        </div>
+    </section>
+
+    <article class="directory-admin-request-card">
+
+        <div class="directory-admin-request-top">
+            <div class="directory-admin-request-identity">
+
+                <div class="directory-admin-request-badges">
+                    <span class="directory-admin-type-badge">
+                        {{ directory_request.request_type }}
+                    </span>
+
+                    <span
+                        class="directory-admin-status-badge"
+                        data-status="{{ directory_request.status|lower|replace(' ', '-') }}">
+                        {{ directory_request.status }}
+                    </span>
+                </div>
+
+                <h2>
+                    {% if directory_request.request_type == "Programme" %}
+                        {{ directory_request.programme_name or "Unnamed programme" }}
+                    {% else %}
+                        {{ directory_request.institution_name or "Unnamed institution" }}
+                    {% endif %}
+                </h2>
+
+                {% if directory_request.request_type == "Programme" %}
+                <p class="directory-admin-request-institution">
+                    {{ directory_request.institution_name or "Institution not provided" }}
+                </p>
+                {% elif directory_request.city or directory_request.state %}
+                <p class="directory-admin-request-institution">
+                    {% if directory_request.city %}
+                        {{ directory_request.city }}
+                    {% endif %}
+                    {% if directory_request.city and directory_request.state %}
+                        ,
+                    {% endif %}
+                    {% if directory_request.state %}
+                        {{ directory_request.state }}
+                    {% endif %}
+                </p>
+                {% endif %}
+            </div>
+
+            <div class="directory-admin-request-date">
+                <span>Submitted</span>
+
+                <strong>
+                    {% if directory_request.submitted_at %}
+                        {{ directory_request.submitted_at.strftime("%d %b %Y") }}
+                    {% else %}
+                        Not recorded
+                    {% endif %}
+                </strong>
+
+                {% if directory_request.submitted_at %}
+                <small>
+                    {{ directory_request.submitted_at.strftime("%H:%M") }} UTC
+                </small>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="directory-admin-request-details">
+
+            <div class="directory-admin-detail">
+                <span>Request ID</span>
+                <strong>#{{ directory_request.id }}</strong>
+            </div>
+
+            <div class="directory-admin-detail">
+                <span>Requester</span>
+
+                <strong>
+                    {% if directory_request.user %}
+                        {{ directory_request.user.full_name }}
+                    {% else %}
+                        User #{{ directory_request.user_id }}
+                    {% endif %}
+                </strong>
+
+                {% if directory_request.user and directory_request.user.email %}
+                <small>{{ directory_request.user.email }}</small>
+                {% endif %}
+            </div>
+
+            <div class="directory-admin-detail">
+                <span>Request type</span>
+                <strong>{{ directory_request.request_type }}</strong>
+            </div>
+
+            <div class="directory-admin-detail">
+                <span>Review status</span>
+                <strong>{{ directory_request.status }}</strong>
+            </div>
+
+            {% if directory_request.request_type == "Institution" %}
+
+            <div class="directory-admin-detail">
+                <span>Institution name</span>
+                <strong>
+                    {{ directory_request.institution_name or "Not provided" }}
+                </strong>
+            </div>
+
+            <div class="directory-admin-detail">
+                <span>Institution type</span>
+                <strong>
+                    {{ directory_request.institution_type or "Not provided" }}
+                </strong>
+            </div>
+
+            <div class="directory-admin-detail">
+                <span>City</span>
+                <strong>{{ directory_request.city or "Not provided" }}</strong>
+            </div>
+
+            <div class="directory-admin-detail">
+                <span>State</span>
+                <strong>{{ directory_request.state or "Not provided" }}</strong>
+            </div>
+
+            {% else %}
+
+            <div class="directory-admin-detail">
+                <span>Institution</span>
+                <strong>
+                    {{ directory_request.institution_name or "Not provided" }}
+                </strong>
+            </div>
+
+            <div class="directory-admin-detail">
+                <span>Academic unit</span>
+                <strong>
+                    {{ directory_request.academic_unit_name or "Not provided" }}
+                </strong>
+
+                {% if directory_request.academic_unit_type %}
+                <small>{{ directory_request.academic_unit_type }}</small>
+                {% endif %}
+            </div>
+
+            <div class="directory-admin-detail">
+                <span>Department</span>
+                <strong>
+                    {{ directory_request.department_name or "Not provided" }}
+                </strong>
+            </div>
+
+            <div class="directory-admin-detail">
+                <span>Programme</span>
+                <strong>
+                    {{ directory_request.programme_name or "Not provided" }}
+                </strong>
+            </div>
+
+            <div class="directory-admin-detail">
+                <span>Award / Qualification</span>
+                <strong>{{ directory_request.award or "Not provided" }}</strong>
+            </div>
+
+            {% endif %}
+        </div>
+
+        {% if directory_request.official_website %}
+        <div class="directory-admin-evidence">
+            <span>Official website</span>
+            <p>{{ directory_request.official_website }}</p>
+        </div>
+        {% endif %}
+
+        {% if directory_request.evidence_reference %}
+        <div class="directory-admin-evidence">
+            <span>Verification evidence</span>
+            <p>{{ directory_request.evidence_reference }}</p>
+        </div>
+        {% endif %}
+
+        {% if directory_request.requester_notes %}
+        <div class="directory-admin-notes">
+            <span>Requester notes</span>
+            <p>{{ directory_request.requester_notes }}</p>
+        </div>
+        {% endif %}
+
+        {% if directory_request.reviewer_notes %}
+        <div class="directory-admin-notes">
+            <span>Reviewer notes</span>
+            <p>{{ directory_request.reviewer_notes }}</p>
+        </div>
+        {% endif %}
+
+        <footer class="directory-admin-request-footer">
+            <p>
+                Review actions are not enabled on this page yet.
+            </p>
+
+            <a
+                href="{{ url_for('admin.directory_request_queue') }}"
+                class="btn btn-outline">
+                Back to request queue
+            </a>
+        </footer>
+
+    </article>
+
+</div>
+{% endblock %}

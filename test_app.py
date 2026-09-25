@@ -1591,6 +1591,39 @@ class DSATestCase(unittest.TestCase):
         self.assertIn(b"Northern Test University", response.data)
         self.assertIn(b"Computer Engineering", response.data)
         self.assertNotIn(b"Approved Test Polytechnic", response.data)
+    def test_platform_admin_can_open_directory_request_detail(self):
+        data = self._create_directory_request_queue_fixture()
+        request_id = data["submitted_institution"].id
+
+        response = self.client.get(
+            f"/admin/directory-requests/{request_id}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Northern Test University", response.data)
+
+    def test_unauthorized_user_cannot_open_directory_request_detail(self):
+        data = self._create_directory_request_queue_fixture()
+        request_id = data["submitted_institution"].id
+
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess["user_id"] = data["managed_user"].id
+
+        response = self.client.get(
+            f"/admin/directory-requests/{request_id}"
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_directory_request_detail_returns_404_for_missing_request(self):
+        self._create_directory_request_queue_fixture()
+
+        response = self.client.get(
+            "/admin/directory-requests/999999"
+        )
+
+        self.assertEqual(response.status_code, 404)
     def test_admin_can_suspend_and_reactivate_another_account(self):
         data = self._create_platform_admin_security_fixture()
         managed_user_id = data["managed_user"].id
