@@ -1,4 +1,4 @@
-﻿# DSA Current Checkpoint
+# DSA Current Checkpoint
 
 > Read this file first when resuming DSA development.
 
@@ -14,7 +14,7 @@ migration deferred.
 
 ## Verified Test Baseline
 
-**136/136 tests passing**
+**137/137 tests passing**
 
 Protect this baseline. Do not treat the old 177-test output as genuine;
 that run included duplicate unittest discovery from a backup file whose
@@ -55,23 +55,50 @@ Implemented/tested:
 - live queue-to-detail browser flow verified;
 - full regression suite now passes 136/136 tests.
 
+### Platform Administration dashboard integration
+
+Completed in commit `70fcb01`:
+
+- Platform Administration now exposes a distinct Academic Directory Requests Quick Action;
+- dashboard count shows requests currently in Submitted status;
+- Academic Directory Requests remain separate from the organization review queue;
+- Quick Action links to `/admin/directory-requests`;
+- targeted dashboard integration test passes;
+- full regression suite passes 137/137 tests;
+- live browser verification confirmed Platform Administration → Academic Directory Requests → request queue navigation;
+- no DirectoryRequest review-state mutations were added.
+
 ## Exact Next Task
 
-**Expose Academic Directory Requests from the Platform Administration overview.**
+**Design the secured Platform Admin DirectoryRequest review-state workflow.**
 
-The secured read-only individual DirectoryRequest detail page is complete in commit 3971f7e.
+The queue, secured read-only detail page, and Platform Administration
+navigation are now complete.
 
-Live browser verification confirmed that the queue and detail page work, but the Platform overview does not yet provide a direct entry to the Academic Directory Request workflow.
+Before exposing any state-changing controls, inspect the existing
+DirectoryRequest transition methods, current admin route patterns, CSRF
+protection, authorization conventions, and relevant tests.
 
-Do not combine this navigation improvement with Approve, Reject, More Information, or other review-state mutations.
+Potential review states include Under Review, More Info Required,
+Approved, and Rejected, but do not assume every transition is valid
+until the current model rules have been inspected.
 
 ## First Development Step
 
-Inspect the current Platform Administration dashboard template and the admin dashboard route/context before making changes.
+Inspect, without modifying code:
 
-Identify the existing dashboard navigation/card pattern and add the smallest consistent entry that gives Platform Administrators direct access to /admin/directory-requests.
+- `models/directory_request.py`;
+- the current DirectoryRequest routes in `routes/admin.py`;
+- `templates/admin/directory_request_detail.html`;
+- existing CSRF-protected POST route patterns;
+- existing review workflow/service patterns that may inform this implementation;
+- current DirectoryRequest tests and fixtures.
 
-Do not add review-state mutations during this navigation task.
+Then define the smallest secure first mutation milestone and write its
+targeted tests before implementation.
+
+Do not implement multiple review actions at once unless inspection shows
+that a shared transition service is required for correctness.
 
 ## Required Security Coverage
 
