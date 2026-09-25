@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}
 Directory Request #{{ directory_request.id }} | Platform Administration | DSA
@@ -246,9 +246,29 @@ Directory Request #{{ directory_request.id }} | Platform Administration | DSA
         {% endif %}
 
         <footer class="directory-admin-request-footer">
-            <p>
-                Review actions are not enabled on this page yet.
-            </p>
+            <div>
+                {% if directory_request.status == "Submitted" %}
+                <p>
+                    Start the formal review of this request. This does not create
+                    or verify an academic directory record.
+                </p>
+
+                <form
+                    method="POST"
+                    action="{{ url_for('admin.mark_directory_request_under_review_route', request_id=directory_request.id) }}"
+                    onsubmit="return confirm('Mark this academic directory request as Under Review?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <button type="submit" class="btn btn-primary">
+                        Mark Under Review
+                    </button>
+                </form>
+                {% else %}
+                <p>
+                    This request is currently {{ directory_request.status }}.
+                </p>
+                {% endif %}
+            </div>
 
             <a
                 href="{{ url_for('admin.directory_request_queue') }}"

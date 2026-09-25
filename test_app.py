@@ -1613,6 +1613,37 @@ class DSATestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Northern Test University", response.data)
 
+    def test_submitted_directory_request_detail_shows_mark_under_review_action(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+
+        response = self.client.get(
+            f"/admin/directory-requests/{directory_request.id}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Mark Under Review", response.data)
+        self.assertIn(
+            f"/admin/directory-requests/{directory_request.id}/under-review".encode(),
+            response.data,
+        )
+        self.assertIn(b'name="csrf_token"', response.data)
+
+    def test_final_directory_request_detail_hides_mark_under_review_action(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["approved_request"]
+
+        response = self.client.get(
+            f"/admin/directory-requests/{directory_request.id}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(b"Mark Under Review", response.data)
+        self.assertNotIn(
+            f"/admin/directory-requests/{directory_request.id}/under-review".encode(),
+            response.data,
+        )
+
     def test_unauthorized_user_cannot_open_directory_request_detail(self):
         data = self._create_directory_request_queue_fixture()
         request_id = data["submitted_institution"].id
