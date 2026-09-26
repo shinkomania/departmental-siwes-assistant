@@ -2132,6 +2132,7 @@ class DSATestCase(unittest.TestCase):
         data = self._create_directory_request_queue_fixture()
         directory_request = data["submitted_institution"]
         directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        directory_request.reviewed_by_user_id = data["platform_admin"].id
         db.session.commit()
 
         response = self.client.post(
