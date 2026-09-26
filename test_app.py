@@ -1742,6 +1742,56 @@ class DSATestCase(unittest.TestCase):
             f"/admin/directory-requests/{directory_request.id}/approve".encode(),
             response.data,
         )
+    def test_under_review_directory_request_detail_shows_reject_action(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        db.session.commit()
+
+        response = self.client.get(
+            f"/admin/directory-requests/{directory_request.id}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Reject Request", response.data)
+        self.assertIn(
+            f"/admin/directory-requests/{directory_request.id}/reject".encode(),
+            response.data,
+        )
+        self.assertIn(b'name="csrf_token"', response.data)
+        self.assertIn(b'id="rejection_reviewer_notes"', response.data)
+        self.assertIn(b'name="reviewer_notes"', response.data)
+        self.assertIn(b"required", response.data)
+
+    def test_submitted_directory_request_detail_hides_reject_action(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+
+        response = self.client.get(
+            f"/admin/directory-requests/{directory_request.id}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(b"Reject Request", response.data)
+        self.assertNotIn(
+            f"/admin/directory-requests/{directory_request.id}/reject".encode(),
+            response.data,
+        )
+
+    def test_final_directory_request_detail_hides_reject_action(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["approved_request"]
+
+        response = self.client.get(
+            f"/admin/directory-requests/{directory_request.id}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(b"Reject Request", response.data)
+        self.assertNotIn(
+            f"/admin/directory-requests/{directory_request.id}/reject".encode(),
+            response.data,
+        )
     def test_unauthorized_user_cannot_open_directory_request_detail(self):
         data = self._create_directory_request_queue_fixture()
         request_id = data["submitted_institution"].id
@@ -1979,6 +2029,119 @@ class DSATestCase(unittest.TestCase):
         )
         self.assertIn(
             b"cannot be approved",
+            response.data,
+        )
+    def test_platform_admin_can_reject_directory_request(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        db.session.commit()
+
+        response = self.client.post(
+            f"/admin/directory-requests/{directory_request.id}/reject",
+            data={
+                "reviewer_notes": "Submitted evidence could not be verified."
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        db.session.refresh(directory_request)
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_REJECTED,
+        )
+        self.assertEqual(
+            directory_request.reviewed_by_user_id,
+            data["platform_admin"].id,
+        )
+        self.assertEqual(
+            directory_request.reviewer_notes,
+            "Submitted evidence could not be verified.",
+        )
+        self.assertIsNotNone(directory_request.decided_at)
+
+    def test_reject_directory_request_requires_notes(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        db.session.commit()
+
+        response = self.client.post(
+            f"/admin/directory-requests/{directory_request.id}/reject",
+            data={"reviewer_notes": "   "},
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        db.session.refresh(directory_request)
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+        )
+        self.assertIn(
+            b"Reviewer notes are required",
+            response.data,
+        )
+
+    def test_unauthorized_user_cannot_reject_directory_request(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess["user_id"] = data["managed_user"].id
+
+        response = self.client.post(
+            f"/admin/directory-requests/{directory_request.id}/reject",
+            data={"reviewer_notes": "Rejected."},
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+        db.session.refresh(directory_request)
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+        )
+
+    def test_reject_directory_request_returns_404_for_missing_request(self):
+        self._create_directory_request_queue_fixture()
+
+        response = self.client.post(
+            "/admin/directory-requests/999999/reject",
+            data={"reviewer_notes": "Rejected."},
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_final_directory_request_cannot_be_rejected_via_admin(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["approved_request"]
+
+        response = self.client.post(
+            f"/admin/directory-requests/{directory_request.id}/reject",
+            data={"reviewer_notes": "Attempted rejection."},
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        db.session.refresh(directory_request)
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_APPROVED,
+        )
+        self.assertIn(
+            b"cannot be rejected",
             response.data,
         )
     def test_final_directory_request_cannot_be_marked_under_review_via_admin(self):

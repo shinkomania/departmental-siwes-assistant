@@ -310,5 +310,91 @@ class DirectoryRequestReviewServiceTestCase(unittest.TestCase):
             DirectoryRequest.STATUS_REJECTED,
         )
 
+    def test_platform_admin_can_reject_under_review_request(self):
+        from services.directory_request_review import (
+            reject_directory_request,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_UNDER_REVIEW
+        )
+
+        result = reject_directory_request(
+            directory_request,
+            self.reviewer,
+            "Submitted evidence could not be verified.",
+        )
+
+        self.assertEqual(
+            result.status,
+            DirectoryRequest.STATUS_REJECTED,
+        )
+        self.assertEqual(
+            result.reviewer_notes,
+            "Submitted evidence could not be verified.",
+        )
+
+    def test_reject_records_reviewer_and_decision_time(self):
+        from services.directory_request_review import (
+            reject_directory_request,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_UNDER_REVIEW
+        )
+
+        result = reject_directory_request(
+            directory_request,
+            self.reviewer,
+            "Request does not meet directory requirements.",
+        )
+
+        self.assertEqual(result.reviewed_by_user_id, self.reviewer.id)
+        self.assertIsNotNone(result.review_started_at)
+        self.assertIsNotNone(result.decided_at)
+
+    def test_reject_requires_reviewer_notes(self):
+        from services.directory_request_review import (
+            DirectoryRequestReviewError,
+            reject_directory_request,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_UNDER_REVIEW
+        )
+
+        with self.assertRaises(DirectoryRequestReviewError):
+            reject_directory_request(
+                directory_request,
+                self.reviewer,
+                "   ",
+            )
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+        )
+
+    def test_final_request_cannot_be_rejected(self):
+        from services.directory_request_review import (
+            DirectoryRequestReviewError,
+            reject_directory_request,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_APPROVED
+        )
+
+        with self.assertRaises(DirectoryRequestReviewError):
+            reject_directory_request(
+                directory_request,
+                self.reviewer,
+                "Attempted rejection.",
+            )
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_APPROVED,
+        )
 if __name__ == "__main__":
     unittest.main()

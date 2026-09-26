@@ -30,6 +30,10 @@ APPROVE_FROM = {
     DirectoryRequest.STATUS_UNDER_REVIEW,
 }
 
+REJECT_FROM = {
+    DirectoryRequest.STATUS_UNDER_REVIEW,
+}
+
 
 class DirectoryRequestReviewError(ValueError):
     """Raised when a DirectoryRequest review action is not permitted."""
@@ -138,6 +142,38 @@ def approve_directory_request(
     reviewer_notes = (reviewer_notes or "").strip() or None
 
     directory_request.status = DirectoryRequest.STATUS_APPROVED
+    directory_request.reviewed_by_user_id = reviewer_user.id
+    directory_request.reviewer_notes = reviewer_notes
+
+    if directory_request.review_started_at is None:
+        directory_request.review_started_at = _utcnow()
+
+    directory_request.decided_at = _utcnow()
+
+    _commit()
+    return directory_request
+
+def reject_directory_request(
+    directory_request,
+    reviewer_user,
+    reviewer_notes,
+):
+    """Reject a DirectoryRequest under review without modifying the directory."""
+    _require_persisted_request(directory_request)
+    _require_platform_admin(reviewer_user)
+    _require_status(
+        directory_request,
+        REJECT_FROM,
+        "rejected",
+    )
+
+    reviewer_notes = (reviewer_notes or "").strip()
+    if not reviewer_notes:
+        raise DirectoryRequestReviewError(
+            "Reviewer notes are required when rejecting a directory request."
+        )
+
+    directory_request.status = DirectoryRequest.STATUS_REJECTED
     directory_request.reviewed_by_user_id = reviewer_user.id
     directory_request.reviewer_notes = reviewer_notes
 

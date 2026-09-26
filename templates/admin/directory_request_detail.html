@@ -317,6 +317,36 @@ Directory Request #{{ directory_request.id }} | Platform Administration | DSA
                         </button>
                     </form>
                 </div>
+
+                <div class="directory-admin-review-decision">
+                    <p>
+                        Reject this request only when the submitted information or
+                        evidence does not satisfy the directory review requirements.
+                        Rejection records the review decision only and does not modify
+                        the authoritative academic directory.
+                    </p>
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('admin.reject_directory_request_route', request_id=directory_request.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <label for="rejection_reviewer_notes">
+                            Rejection reason
+                        </label>
+
+                        <textarea
+                            id="rejection_reviewer_notes"
+                            name="reviewer_notes"
+                            rows="4"
+                            required
+                            placeholder="Explain clearly why this request is being rejected."></textarea>
+
+                        <button type="submit" class="btn btn-outline">
+                            Reject Request
+                        </button>
+                    </form>
+                </div>
                 {% else %}
                 <p>
                     This request is currently {{ directory_request.status }}.
