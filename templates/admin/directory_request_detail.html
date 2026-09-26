@@ -289,6 +289,34 @@ Directory Request #{{ directory_request.id }} | Platform Administration | DSA
                         Request More Information
                     </button>
                 </form>
+
+                <div class="directory-admin-review-decision">
+                    <p>
+                        Approve this review request after the submitted information
+                        has been assessed. Approval records the review decision only;
+                        it does not create or verify an authoritative academic directory record.
+                    </p>
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('admin.approve_directory_request_route', request_id=directory_request.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <label for="approval_reviewer_notes">
+                            Approval notes <span>(optional)</span>
+                        </label>
+
+                        <textarea
+                            id="approval_reviewer_notes"
+                            name="reviewer_notes"
+                            rows="3"
+                            placeholder="Add optional notes about the approval decision."></textarea>
+
+                        <button type="submit" class="btn btn-primary">
+                            Approve Request
+                        </button>
+                    </form>
+                </div>
                 {% else %}
                 <p>
                     This request is currently {{ directory_request.status }}.

@@ -226,5 +226,89 @@ class DirectoryRequestReviewServiceTestCase(unittest.TestCase):
             DirectoryRequest.STATUS_APPROVED,
         )
 
+    def test_platform_admin_can_approve_under_review_request(self):
+        from services.directory_request_review import (
+            approve_directory_request,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_UNDER_REVIEW
+        )
+
+        result = approve_directory_request(
+            directory_request,
+            self.reviewer,
+            "Official evidence reviewed.",
+        )
+
+        self.assertEqual(
+            result.status,
+            DirectoryRequest.STATUS_APPROVED,
+        )
+        self.assertEqual(
+            result.reviewer_notes,
+            "Official evidence reviewed.",
+        )
+
+    def test_approve_records_reviewer_and_decision_time(self):
+        from services.directory_request_review import (
+            approve_directory_request,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_UNDER_REVIEW
+        )
+
+        result = approve_directory_request(
+            directory_request,
+            self.reviewer,
+        )
+
+        self.assertEqual(result.reviewed_by_user_id, self.reviewer.id)
+        self.assertIsNotNone(result.review_started_at)
+        self.assertIsNotNone(result.decided_at)
+
+    def test_approve_allows_blank_reviewer_notes(self):
+        from services.directory_request_review import (
+            approve_directory_request,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_UNDER_REVIEW
+        )
+
+        result = approve_directory_request(
+            directory_request,
+            self.reviewer,
+            "   ",
+        )
+
+        self.assertEqual(
+            result.status,
+            DirectoryRequest.STATUS_APPROVED,
+        )
+        self.assertIsNone(result.reviewer_notes)
+
+    def test_final_request_cannot_be_approved(self):
+        from services.directory_request_review import (
+            DirectoryRequestReviewError,
+            approve_directory_request,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_REJECTED
+        )
+
+        with self.assertRaises(DirectoryRequestReviewError):
+            approve_directory_request(
+                directory_request,
+                self.reviewer,
+            )
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_REJECTED,
+        )
+
 if __name__ == "__main__":
     unittest.main()
