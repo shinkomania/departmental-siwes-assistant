@@ -264,6 +264,7 @@ Directory Request #{{ directory_request.id }} | Platform Administration | DSA
                     </button>
                 </form>
                 {% elif directory_request.status == "Under Review" %}
+                {% if can_review_directory_request %}
                 <p>
                     Request additional information before making a final review
                     decision. This does not create or verify an academic directory record.
@@ -347,6 +348,12 @@ Directory Request #{{ directory_request.id }} | Platform Administration | DSA
                         </button>
                     </form>
                 </div>
+                {% else %}
+                <p>
+                    This request is currently being reviewed by another Platform Admin.
+                    You can view the request, but only the assigned reviewer can take review actions.
+                </p>
+                {% endif %}
                 {% else %}
                 <p>
                     This request is currently {{ directory_request.status }}.

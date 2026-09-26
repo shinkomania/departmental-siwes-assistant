@@ -69,6 +69,13 @@ def _require_status(directory_request, allowed_statuses, action_label):
         )
 
 
+def _require_review_owner(directory_request, reviewer_user):
+    """Require the active reviewer to own the current review cycle."""
+    if directory_request.reviewed_by_user_id != reviewer_user.id:
+        raise DirectoryRequestReviewError(
+            "This directory request is currently assigned to another reviewer."
+        )
+
 def _commit():
     try:
         db.session.commit()
@@ -108,6 +115,7 @@ def request_directory_request_more_information(
         REQUEST_MORE_INFO_FROM,
         "sent back for more information",
     )
+    _require_review_owner(directory_request, reviewer_user)
 
     reviewer_notes = (reviewer_notes or "").strip()
     if not reviewer_notes:
@@ -138,6 +146,7 @@ def approve_directory_request(
         APPROVE_FROM,
         "approved",
     )
+    _require_review_owner(directory_request, reviewer_user)
 
     reviewer_notes = (reviewer_notes or "").strip() or None
 
@@ -166,6 +175,7 @@ def reject_directory_request(
         REJECT_FROM,
         "rejected",
     )
+    _require_review_owner(directory_request, reviewer_user)
 
     reviewer_notes = (reviewer_notes or "").strip()
     if not reviewer_notes:

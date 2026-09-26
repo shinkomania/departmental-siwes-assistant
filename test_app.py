@@ -1648,6 +1648,7 @@ class DSATestCase(unittest.TestCase):
         data = self._create_directory_request_queue_fixture()
         directory_request = data["submitted_institution"]
         directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        directory_request.reviewed_by_user_id = data["platform_admin"].id
         db.session.commit()
 
         response = self.client.get(
@@ -1699,6 +1700,7 @@ class DSATestCase(unittest.TestCase):
         data = self._create_directory_request_queue_fixture()
         directory_request = data["submitted_institution"]
         directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        directory_request.reviewed_by_user_id = data["platform_admin"].id
         db.session.commit()
 
         response = self.client.get(
@@ -1746,6 +1748,7 @@ class DSATestCase(unittest.TestCase):
         data = self._create_directory_request_queue_fixture()
         directory_request = data["submitted_institution"]
         directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        directory_request.reviewed_by_user_id = data["platform_admin"].id
         db.session.commit()
 
         response = self.client.get(
@@ -1792,6 +1795,65 @@ class DSATestCase(unittest.TestCase):
             f"/admin/directory-requests/{directory_request.id}/reject".encode(),
             response.data,
         )
+    def test_other_platform_admin_can_view_claimed_request_without_review_actions(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        directory_request.reviewed_by_user_id = data["platform_admin"].id
+
+        platform_role = Role.query.filter_by(slug="platform_administrator").one()
+
+        second_admin = User(
+            full_name="Second Platform Admin",
+            email="second-platform-admin@example.com",
+            account_status="Active",
+        )
+        second_admin.set_password("second-platform-admin-password")
+        db.session.add(second_admin)
+        db.session.flush()
+
+        second_assignment = UserRoleAssignment(
+            user_id=second_admin.id,
+            role_id=platform_role.id,
+            institution_id=None,
+            department_id=None,
+            programme_id=None,
+            status="Approved",
+            approved_at=datetime.utcnow(),
+        )
+        db.session.add(second_assignment)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess["user_id"] = second_admin.id
+
+        response = self.client.get(
+            f"/admin/directory-requests/{directory_request.id}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Northern Test University", response.data)
+        self.assertIn(
+            b"currently being reviewed by another Platform Admin",
+            response.data,
+        )
+        self.assertNotIn(b"Request More Information", response.data)
+        self.assertNotIn(b"Approve Request", response.data)
+        self.assertNotIn(b"Reject Request", response.data)
+        self.assertNotIn(
+            f"/admin/directory-requests/{directory_request.id}/more-information".encode(),
+            response.data,
+        )
+        self.assertNotIn(
+            f"/admin/directory-requests/{directory_request.id}/approve".encode(),
+            response.data,
+        )
+        self.assertNotIn(
+            f"/admin/directory-requests/{directory_request.id}/reject".encode(),
+            response.data,
+        )
+
     def test_unauthorized_user_cannot_open_directory_request_detail(self):
         data = self._create_directory_request_queue_fixture()
         request_id = data["submitted_institution"].id
@@ -1863,6 +1925,7 @@ class DSATestCase(unittest.TestCase):
         data = self._create_directory_request_queue_fixture()
         directory_request = data["submitted_institution"]
         directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        directory_request.reviewed_by_user_id = data["platform_admin"].id
         db.session.commit()
 
         response = self.client.post(
@@ -1949,6 +2012,7 @@ class DSATestCase(unittest.TestCase):
         data = self._create_directory_request_queue_fixture()
         directory_request = data["submitted_institution"]
         directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        directory_request.reviewed_by_user_id = data["platform_admin"].id
         db.session.commit()
 
         response = self.client.post(
@@ -2035,6 +2099,7 @@ class DSATestCase(unittest.TestCase):
         data = self._create_directory_request_queue_fixture()
         directory_request = data["submitted_institution"]
         directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        directory_request.reviewed_by_user_id = data["platform_admin"].id
         db.session.commit()
 
         response = self.client.post(

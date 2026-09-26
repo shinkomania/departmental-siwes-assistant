@@ -578,9 +578,17 @@ def directory_request_detail(request_id):
     """
     directory_request = DirectoryRequest.query.get_or_404(request_id)
 
+    current_admin = _current_platform_administrator()
+    can_review_directory_request = (
+        current_admin is not None
+        and directory_request.status == DirectoryRequest.STATUS_UNDER_REVIEW
+        and directory_request.reviewed_by_user_id == current_admin.id
+    )
+
     return render_template(
         "admin/directory_request_detail.html",
         directory_request=directory_request,
+        can_review_directory_request=can_review_directory_request,
     )
 
 @admin_bp.route(

@@ -77,6 +77,9 @@ class DirectoryRequestReviewServiceTestCase(unittest.TestCase):
             institution_name="Review Test University",
             status=status,
         )
+
+        if status == DirectoryRequest.STATUS_UNDER_REVIEW:
+            directory_request.reviewed_by_user_id = self.reviewer.id
         db.session.add(directory_request)
         db.session.commit()
         return directory_request
@@ -396,5 +399,147 @@ class DirectoryRequestReviewServiceTestCase(unittest.TestCase):
             directory_request.status,
             DirectoryRequest.STATUS_APPROVED,
         )
+    def _second_platform_admin(self):
+        from datetime import datetime
+
+        from models import Permission, Role, User, UserRoleAssignment
+
+        permission = Permission.query.filter_by(
+            slug="access_platform_admin_panel"
+        ).first()
+
+        if permission is None:
+            permission = Permission(
+                name="Access Platform Admin Panel",
+                slug="access_platform_admin_panel",
+                description="Test permission for Platform Admin access.",
+                is_active=True,
+            )
+            db.session.add(permission)
+            db.session.flush()
+
+        role = Role(
+            name="Second Test Platform Administrator",
+            slug="second_test_platform_administrator",
+            description="Second Platform Admin used for review ownership tests.",
+            is_active=True,
+        )
+        role.permissions.append(permission)
+
+        second_admin = User(
+            full_name="Second Review Administrator",
+            email="second-review-admin@example.com",
+            password_hash="test-password-hash",
+            account_status="Active",
+        )
+
+        db.session.add_all([role, second_admin])
+        db.session.flush()
+
+        assignment = UserRoleAssignment(
+            user_id=second_admin.id,
+            role_id=role.id,
+            institution_id=None,
+            department_id=None,
+            programme_id=None,
+            status="Approved",
+            approved_at=datetime.utcnow(),
+        )
+
+        db.session.add(assignment)
+        db.session.commit()
+
+        return second_admin
+
+    def test_different_platform_admin_cannot_request_more_information(self):
+        from services.directory_request_review import (
+            DirectoryRequestReviewError,
+            request_directory_request_more_information,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_UNDER_REVIEW
+        )
+        directory_request.reviewed_by_user_id = self.reviewer.id
+        db.session.commit()
+
+        second_admin = self._second_platform_admin()
+
+        with self.assertRaises(DirectoryRequestReviewError):
+            request_directory_request_more_information(
+                directory_request,
+                second_admin,
+                "Please provide additional evidence.",
+            )
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+        )
+        self.assertEqual(
+            directory_request.reviewed_by_user_id,
+            self.reviewer.id,
+        )
+
+    def test_different_platform_admin_cannot_approve_claimed_request(self):
+        from services.directory_request_review import (
+            DirectoryRequestReviewError,
+            approve_directory_request,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_UNDER_REVIEW
+        )
+        directory_request.reviewed_by_user_id = self.reviewer.id
+        db.session.commit()
+
+        second_admin = self._second_platform_admin()
+
+        with self.assertRaises(DirectoryRequestReviewError):
+            approve_directory_request(
+                directory_request,
+                second_admin,
+                "Attempted approval by another reviewer.",
+            )
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+        )
+        self.assertEqual(
+            directory_request.reviewed_by_user_id,
+            self.reviewer.id,
+        )
+
+    def test_different_platform_admin_cannot_reject_claimed_request(self):
+        from services.directory_request_review import (
+            DirectoryRequestReviewError,
+            reject_directory_request,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_UNDER_REVIEW
+        )
+        directory_request.reviewed_by_user_id = self.reviewer.id
+        db.session.commit()
+
+        second_admin = self._second_platform_admin()
+
+        with self.assertRaises(DirectoryRequestReviewError):
+            reject_directory_request(
+                directory_request,
+                second_admin,
+                "Attempted rejection by another reviewer.",
+            )
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+        )
+        self.assertEqual(
+            directory_request.reviewed_by_user_id,
+            self.reviewer.id,
+        )
+
 if __name__ == "__main__":
     unittest.main()
