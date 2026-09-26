@@ -56,6 +56,7 @@ from services.authorization import user_has_permission
 from services.directory_request_review import (
     DirectoryRequestReviewError,
     mark_directory_request_under_review,
+    request_directory_request_more_information,
 )
 
 
@@ -604,6 +605,42 @@ def mark_directory_request_under_review_route(request_id):
     else:
         flash(
             "Academic directory request marked as Under Review.",
+            "success",
+        )
+
+    return redirect(
+        url_for(
+            "admin.directory_request_detail",
+            request_id=directory_request.id,
+        )
+    )
+
+@admin_bp.route(
+    "/directory-requests/<int:request_id>/more-information",
+    methods=["POST"],
+)
+@admin_required
+def request_directory_request_more_information_route(request_id):
+    """Request additional information for an academic directory request."""
+    current_admin = _current_platform_administrator()
+
+    if current_admin is None:
+        abort(403)
+
+    directory_request = DirectoryRequest.query.get_or_404(request_id)
+    reviewer_notes = request.form.get("reviewer_notes", "")
+
+    try:
+        request_directory_request_more_information(
+            directory_request,
+            current_admin,
+            reviewer_notes,
+        )
+    except DirectoryRequestReviewError as exc:
+        flash(str(exc), "warning")
+    else:
+        flash(
+            "Additional information requested from the student.",
             "success",
         )
 

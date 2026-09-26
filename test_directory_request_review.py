@@ -140,6 +140,91 @@ class DirectoryRequestReviewServiceTestCase(unittest.TestCase):
 
         self.assertEqual(directory_request.status, DirectoryRequest.STATUS_APPROVED)
 
+    def test_platform_admin_can_request_more_information(self):
+        from services.directory_request_review import (
+            request_directory_request_more_information,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_UNDER_REVIEW
+        )
+
+        result = request_directory_request_more_information(
+            directory_request,
+            self.reviewer,
+            "Please provide an official university webpage.",
+        )
+
+        self.assertEqual(
+            result.status,
+            DirectoryRequest.STATUS_MORE_INFO_REQUIRED,
+        )
+        self.assertEqual(
+            result.reviewer_notes,
+            "Please provide an official university webpage.",
+        )
+
+    def test_request_more_information_records_reviewer_and_start_time(self):
+        from services.directory_request_review import (
+            request_directory_request_more_information,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_UNDER_REVIEW
+        )
+
+        result = request_directory_request_more_information(
+            directory_request,
+            self.reviewer,
+            "Please provide additional official evidence.",
+        )
+
+        self.assertEqual(result.reviewed_by_user_id, self.reviewer.id)
+        self.assertIsNotNone(result.review_started_at)
+
+    def test_request_more_information_requires_reviewer_notes(self):
+        from services.directory_request_review import (
+            DirectoryRequestReviewError,
+            request_directory_request_more_information,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_UNDER_REVIEW
+        )
+
+        with self.assertRaises(DirectoryRequestReviewError):
+            request_directory_request_more_information(
+                directory_request,
+                self.reviewer,
+                "   ",
+            )
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+        )
+
+    def test_final_request_cannot_request_more_information(self):
+        from services.directory_request_review import (
+            DirectoryRequestReviewError,
+            request_directory_request_more_information,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_APPROVED
+        )
+
+        with self.assertRaises(DirectoryRequestReviewError):
+            request_directory_request_more_information(
+                directory_request,
+                self.reviewer,
+                "Please provide more information.",
+            )
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_APPROVED,
+        )
 
 if __name__ == "__main__":
     unittest.main()

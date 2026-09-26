@@ -22,6 +22,11 @@ MARK_UNDER_REVIEW_FROM = {
 }
 
 
+REQUEST_MORE_INFO_FROM = {
+    DirectoryRequest.STATUS_UNDER_REVIEW,
+}
+
+
 class DirectoryRequestReviewError(ValueError):
     """Raised when a DirectoryRequest review action is not permitted."""
 
@@ -77,6 +82,37 @@ def mark_directory_request_under_review(directory_request, reviewer_user):
     directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
     directory_request.review_started_at = _utcnow()
     directory_request.reviewed_by_user_id = reviewer_user.id
+
+    _commit()
+    return directory_request
+
+
+def request_directory_request_more_information(
+    directory_request,
+    reviewer_user,
+    reviewer_notes,
+):
+    """Request additional information for a DirectoryRequest under review."""
+    _require_persisted_request(directory_request)
+    _require_platform_admin(reviewer_user)
+    _require_status(
+        directory_request,
+        REQUEST_MORE_INFO_FROM,
+        "sent back for more information",
+    )
+
+    reviewer_notes = (reviewer_notes or "").strip()
+    if not reviewer_notes:
+        raise DirectoryRequestReviewError(
+            "Reviewer notes are required when requesting more information."
+        )
+
+    directory_request.status = DirectoryRequest.STATUS_MORE_INFO_REQUIRED
+    directory_request.reviewed_by_user_id = reviewer_user.id
+    directory_request.reviewer_notes = reviewer_notes
+
+    if directory_request.review_started_at is None:
+        directory_request.review_started_at = _utcnow()
 
     _commit()
     return directory_request

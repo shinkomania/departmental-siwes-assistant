@@ -263,6 +263,32 @@ Directory Request #{{ directory_request.id }} | Platform Administration | DSA
                         Mark Under Review
                     </button>
                 </form>
+                {% elif directory_request.status == "Under Review" %}
+                <p>
+                    Request additional information before making a final review
+                    decision. This does not create or verify an academic directory record.
+                </p>
+
+                <form
+                    method="POST"
+                    action="{{ url_for('admin.request_directory_request_more_information_route', request_id=directory_request.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <label for="reviewer_notes">
+                        Reviewer notes
+                    </label>
+
+                    <textarea
+                        id="reviewer_notes"
+                        name="reviewer_notes"
+                        rows="4"
+                        required
+                        placeholder="Explain what additional information or evidence is required."></textarea>
+
+                    <button type="submit" class="btn btn-primary">
+                        Request More Information
+                    </button>
+                </form>
                 {% else %}
                 <p>
                     This request is currently {{ directory_request.status }}.

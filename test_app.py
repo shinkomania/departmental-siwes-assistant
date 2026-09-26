@@ -1644,6 +1644,57 @@ class DSATestCase(unittest.TestCase):
             response.data,
         )
 
+    def test_under_review_directory_request_detail_shows_more_information_action(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        db.session.commit()
+
+        response = self.client.get(
+            f"/admin/directory-requests/{directory_request.id}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Request More Information", response.data)
+        self.assertIn(
+            f"/admin/directory-requests/{directory_request.id}/more-information".encode(),
+            response.data,
+        )
+        self.assertIn(b'name="reviewer_notes"', response.data)
+        self.assertIn(b'name="csrf_token"', response.data)
+        self.assertNotIn(b"Mark Under Review", response.data)
+
+    def test_submitted_directory_request_detail_hides_more_information_action(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+
+        response = self.client.get(
+            f"/admin/directory-requests/{directory_request.id}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(b"Request More Information", response.data)
+        self.assertNotIn(
+            f"/admin/directory-requests/{directory_request.id}/more-information".encode(),
+            response.data,
+        )
+
+    def test_final_directory_request_detail_hides_more_information_action(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["approved_request"]
+
+        response = self.client.get(
+            f"/admin/directory-requests/{directory_request.id}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(b"Request More Information", response.data)
+        self.assertNotIn(
+            f"/admin/directory-requests/{directory_request.id}/more-information".encode(),
+            response.data,
+        )
+        self.assertNotIn(b"Mark Under Review", response.data)
+
     def test_unauthorized_user_cannot_open_directory_request_detail(self):
         data = self._create_directory_request_queue_fixture()
         request_id = data["submitted_institution"].id
@@ -1707,6 +1758,92 @@ class DSATestCase(unittest.TestCase):
 
         response = self.client.post(
             "/admin/directory-requests/999999/under-review"
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_platform_admin_can_request_more_directory_information(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        db.session.commit()
+
+        response = self.client.post(
+            f"/admin/directory-requests/{directory_request.id}/more-information",
+            data={
+                "reviewer_notes": "Please provide an official university webpage."
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        db.session.refresh(directory_request)
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_MORE_INFO_REQUIRED,
+        )
+        self.assertEqual(
+            directory_request.reviewed_by_user_id,
+            data["platform_admin"].id,
+        )
+        self.assertEqual(
+            directory_request.reviewer_notes,
+            "Please provide an official university webpage.",
+        )
+
+    def test_request_more_directory_information_requires_notes(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        db.session.commit()
+
+        response = self.client.post(
+            f"/admin/directory-requests/{directory_request.id}/more-information",
+            data={"reviewer_notes": "   "},
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        db.session.refresh(directory_request)
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+        )
+
+    def test_unauthorized_user_cannot_request_more_directory_information(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess["user_id"] = data["managed_user"].id
+
+        response = self.client.post(
+            f"/admin/directory-requests/{directory_request.id}/more-information",
+            data={"reviewer_notes": "Please provide more information."},
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+        db.session.refresh(directory_request)
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+        )
+
+    def test_request_more_directory_information_returns_404_for_missing_request(self):
+        self._create_directory_request_queue_fixture()
+
+        response = self.client.post(
+            "/admin/directory-requests/999999/more-information",
+            data={"reviewer_notes": "Please provide more information."},
         )
 
         self.assertEqual(response.status_code, 404)
