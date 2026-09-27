@@ -7,6 +7,10 @@ from models.db import db
 from models.directory_request import DirectoryRequest
 from models.user import User
 from models.access import Role, Permission, UserRoleAssignment
+from services.directory_request_review import (
+    DirectoryRequestReviewError,
+    withdraw_directory_request,
+)
 
 
 class DirectoryRequestReviewServiceTestCase(unittest.TestCase):
@@ -711,3 +715,148 @@ class DirectoryRequestReviewServiceTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class DirectoryRequestWithdrawalTestCase(unittest.TestCase):
+    """Tests requester-owned withdrawal of open directory requests."""
+
+    def setUp(self):
+        self.app = create_app("testing")
+        self.app.config["TESTING"] = True
+
+        self.context = self.app.app_context()
+        self.context.push()
+        db.create_all()
+
+        self.requester = User(
+            full_name="Withdrawal Requester",
+            email="withdraw_requester@example.com",
+            password_hash="test-password-hash",
+            account_status="Active",
+        )
+
+        self.other_user = User(
+            full_name="Withdrawal Other User",
+            email="withdraw_other_user@example.com",
+            password_hash="test-password-hash",
+            account_status="Active",
+        )
+
+        db.session.add_all([self.requester, self.other_user])
+        db.session.commit()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.context.pop()
+
+    def _request(self, status):
+        directory_request = DirectoryRequest(
+            user_id=self.requester.id,
+            request_type=DirectoryRequest.TYPE_INSTITUTION,
+            institution_name="Withdrawal Test University",
+            status=status,
+        )
+        db.session.add(directory_request)
+        db.session.commit()
+        return directory_request
+
+    def test_requester_can_withdraw_submitted_directory_request(self):
+        directory_request = self._request(
+            DirectoryRequest.STATUS_SUBMITTED
+        )
+
+        withdraw_directory_request(directory_request, self.requester)
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_WITHDRAWN,
+        )
+        self.assertIsNotNone(directory_request.decided_at)
+
+    def test_requester_can_withdraw_under_review_directory_request(self):
+        directory_request = self._request(
+            DirectoryRequest.STATUS_UNDER_REVIEW
+        )
+
+        withdraw_directory_request(directory_request, self.requester)
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_WITHDRAWN,
+        )
+
+    def test_requester_can_withdraw_more_info_required_directory_request(self):
+        directory_request = self._request(
+            DirectoryRequest.STATUS_MORE_INFO_REQUIRED
+        )
+
+        withdraw_directory_request(directory_request, self.requester)
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_WITHDRAWN,
+        )
+
+    def test_different_user_cannot_withdraw_directory_request(self):
+        directory_request = self._request(
+            DirectoryRequest.STATUS_SUBMITTED
+        )
+
+        with self.assertRaises(DirectoryRequestReviewError):
+            withdraw_directory_request(
+                directory_request,
+                self.other_user,
+            )
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_SUBMITTED,
+        )
+
+    def test_approved_directory_request_cannot_be_withdrawn(self):
+        directory_request = self._request(
+            DirectoryRequest.STATUS_APPROVED
+        )
+
+        with self.assertRaises(DirectoryRequestReviewError):
+            withdraw_directory_request(
+                directory_request,
+                self.requester,
+            )
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_APPROVED,
+        )
+
+    def test_rejected_directory_request_cannot_be_withdrawn(self):
+        directory_request = self._request(
+            DirectoryRequest.STATUS_REJECTED
+        )
+
+        with self.assertRaises(DirectoryRequestReviewError):
+            withdraw_directory_request(
+                directory_request,
+                self.requester,
+            )
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_REJECTED,
+        )
+
+    def test_withdrawn_directory_request_cannot_be_withdrawn_again(self):
+        directory_request = self._request(
+            DirectoryRequest.STATUS_WITHDRAWN
+        )
+
+        with self.assertRaises(DirectoryRequestReviewError):
+            withdraw_directory_request(
+                directory_request,
+                self.requester,
+            )
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_WITHDRAWN,
+        )

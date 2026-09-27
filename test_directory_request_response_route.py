@@ -300,5 +300,157 @@ class DirectoryRequestResponseRouteTestCase(unittest.TestCase):
             response.location,
         )
 
+
+    def test_requester_can_withdraw_open_directory_request(self):
+        self._login(self.requester)
+
+        response = self.client.post(
+            (
+                f"/academic/directory-requests/"
+                f"{self.directory_request.id}/withdraw"
+            ),
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(
+            f"/academic/directory-requests/{self.directory_request.id}",
+            response.location,
+        )
+
+        db.session.refresh(self.directory_request)
+
+        self.assertEqual(
+            self.directory_request.status,
+            DirectoryRequest.STATUS_WITHDRAWN,
+        )
+        self.assertIsNotNone(self.directory_request.decided_at)
+        self.assertEqual(
+            self.directory_request.reviewed_by_user_id,
+            self.reviewer.id,
+        )
+        self.assertEqual(
+            self.directory_request.reviewer_notes,
+            "Please provide official evidence.",
+        )
+
+    def test_other_user_cannot_withdraw_directory_request(self):
+        self._login(self.other_user)
+
+        response = self.client.post(
+            (
+                f"/academic/directory-requests/"
+                f"{self.directory_request.id}/withdraw"
+            ),
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+        db.session.refresh(self.directory_request)
+
+        self.assertEqual(
+            self.directory_request.status,
+            DirectoryRequest.STATUS_MORE_INFO_REQUIRED,
+        )
+
+    def test_unauthenticated_user_cannot_withdraw_directory_request(self):
+        response = self.client.post(
+            (
+                f"/academic/directory-requests/"
+                f"{self.directory_request.id}/withdraw"
+            ),
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login", response.location)
+
+        db.session.refresh(self.directory_request)
+
+        self.assertEqual(
+            self.directory_request.status,
+            DirectoryRequest.STATUS_MORE_INFO_REQUIRED,
+        )
+
+    def test_final_directory_requests_cannot_be_withdrawn(self):
+        self._login(self.requester)
+
+        final_statuses = (
+            DirectoryRequest.STATUS_APPROVED,
+            DirectoryRequest.STATUS_REJECTED,
+            DirectoryRequest.STATUS_WITHDRAWN,
+        )
+
+        for status in final_statuses:
+            with self.subTest(status=status):
+                self.directory_request.status = status
+                db.session.commit()
+
+                response = self.client.post(
+                    (
+                        f"/academic/directory-requests/"
+                        f"{self.directory_request.id}/withdraw"
+                    ),
+                    follow_redirects=False,
+                )
+
+                self.assertEqual(response.status_code, 302)
+
+                db.session.refresh(self.directory_request)
+
+                self.assertEqual(
+                    self.directory_request.status,
+                    status,
+                )
+
+    def test_withdraw_action_visible_for_open_directory_request_statuses(self):
+        self._login(self.requester)
+
+        open_statuses = (
+            DirectoryRequest.STATUS_SUBMITTED,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+            DirectoryRequest.STATUS_MORE_INFO_REQUIRED,
+        )
+
+        for status in open_statuses:
+            with self.subTest(status=status):
+                self.directory_request.status = status
+                db.session.commit()
+
+                response = self.client.get(
+                    f"/academic/directory-requests/{self.directory_request.id}"
+                )
+
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(b"Withdraw Request", response.data)
+                self.assertIn(
+                    (
+                        f"/academic/directory-requests/"
+                        f"{self.directory_request.id}/withdraw"
+                    ).encode(),
+                    response.data,
+                )
+
+    def test_withdraw_action_hidden_for_final_directory_request_statuses(self):
+        self._login(self.requester)
+
+        final_statuses = (
+            DirectoryRequest.STATUS_APPROVED,
+            DirectoryRequest.STATUS_REJECTED,
+            DirectoryRequest.STATUS_WITHDRAWN,
+        )
+
+        for status in final_statuses:
+            with self.subTest(status=status):
+                self.directory_request.status = status
+                db.session.commit()
+
+                response = self.client.get(
+                    f"/academic/directory-requests/{self.directory_request.id}"
+                )
+
+                self.assertEqual(response.status_code, 200)
+                self.assertNotIn(b"Withdraw Request", response.data)
 if __name__ == "__main__":
     unittest.main()

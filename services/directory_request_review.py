@@ -250,3 +250,36 @@ def reject_directory_request(
 
     _commit()
     return directory_request
+
+def withdraw_directory_request(directory_request, requester_user):
+    """
+    Withdraw an open DirectoryRequest owned by the requester.
+
+    Withdrawal closes the request while preserving its review and
+    clarification history. It does not modify the authoritative
+    academic directory.
+    """
+    _require_persisted_request(directory_request)
+
+    if requester_user is None or getattr(requester_user, "id", None) is None:
+        raise DirectoryRequestReviewError("Requester user is required.")
+
+    if directory_request.user_id != requester_user.id:
+        raise DirectoryRequestReviewError(
+            "You cannot withdraw another user's directory request."
+        )
+
+    _require_status(
+        directory_request,
+        {
+            DirectoryRequest.STATUS_SUBMITTED,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+            DirectoryRequest.STATUS_MORE_INFO_REQUIRED,
+        },
+        "withdrawn",
+    )
+
+    directory_request.withdraw()
+
+    _commit()
+    return directory_request

@@ -295,6 +295,45 @@
                     </div>
                 </section>
 
+                {% if directory_request.status in ["Submitted", "Under Review", "More Info Required"] %}
+                <section class="directory-case-card directory-withdraw-card">
+                    <span class="directory-card-eyebrow">
+                        REQUEST ACTIONS
+                    </span>
+
+                    <h2>Manage this request</h2>
+
+                    <p>
+                        If you no longer want this request reviewed, you can
+                        withdraw it. Its submission and review history will
+                        remain available for record purposes.
+                    </p>
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('student.withdraw_directory_request_route', request_id=directory_request.id) }}"
+                        class="directory-withdraw-form"
+                        onsubmit="return confirm('Withdraw this directory request? This will close the pending request.');"
+                    >
+                        <input
+                            type="hidden"
+                            name="csrf_token"
+                            value="{{ csrf_token() }}"
+                        >
+
+                        <button
+                            type="submit"
+                            class="directory-withdraw-button"
+                        >
+                            Withdraw Request
+                        </button>
+                    </form>
+
+                    <span class="directory-withdraw-note">
+                        This does not delete your request or its review history.
+                    </span>
+                </section>
+                {% endif %}
                 <section class="directory-case-card directory-info-card">
                     <span class="directory-card-eyebrow">
                         HOW REVIEW WORKS

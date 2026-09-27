@@ -31,6 +31,7 @@ from models.directory_request import DirectoryRequest, DirectoryRequestMessage
 from services.directory_request_review import (
     DirectoryRequestReviewError,
     respond_to_directory_request_more_information,
+    withdraw_directory_request,
 )
 
 
@@ -581,6 +582,51 @@ def respond_to_directory_request_clarification(request_id):
     else:
         flash(
             "Your clarification has been submitted for review.",
+            "success",
+        )
+
+    return redirect(
+        url_for(
+            "student.directory_request_detail",
+            request_id=directory_request.id,
+        )
+    )
+
+@student_bp.route(
+    "/academic/directory-requests/<int:request_id>/withdraw",
+    methods=["POST"],
+)
+def withdraw_directory_request_route(request_id):
+    """Withdraw an open directory request owned by the authenticated user."""
+    user = _require_authenticated_user()
+
+    if not user:
+        flash(
+            "Please sign in to withdraw an academic directory request.",
+            "warning",
+        )
+        return redirect(
+            url_for(
+                "auth.login",
+                next=url_for(
+                    "student.directory_request_detail",
+                    request_id=request_id,
+                ),
+            )
+        )
+
+    directory_request = DirectoryRequest.query.filter_by(
+        id=request_id,
+        user_id=user.id,
+    ).first_or_404()
+
+    try:
+        withdraw_directory_request(directory_request, user)
+    except DirectoryRequestReviewError as exc:
+        flash(str(exc), "warning")
+    else:
+        flash(
+            "Your academic directory request has been withdrawn.",
             "success",
         )
 
