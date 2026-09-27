@@ -169,12 +169,31 @@
                         </div>
 
                         <div class="form-group profile-field-full">
-                            <span class="form-hint">
-                                Can't find your institution or programme? DSA's verified
-                                academic directory is being expanded. A formal directory
-                                request workflow will be added as institutional coverage grows.
-                            </span>
-                        </div>
+    <div class="profile-directory-support">
+        <div class="profile-directory-support-copy">
+            <span class="profile-directory-support-label">
+                ACADEMIC DIRECTORY SUPPORT
+            </span>
+
+            <strong>Can't find your institution or programme?</strong>
+
+            <p>
+                Submit the missing academic record for review, or track
+                directory requests you have already submitted.
+            </p>
+        </div>
+
+        <div class="profile-directory-actions">
+
+            <a
+                href="{{ url_for('student.directory_requests') }}"
+                class="btn btn-outline"
+            >
+                My Directory Requests
+            </a>
+        </div>
+    </div>
+</div>
                     </div>
                 </section>
 

@@ -271,3 +271,81 @@ class DirectoryRequest(db.Model):
             f"Type:{self.request_type} "
             f"Status:{self.status}>"
         )
+
+class DirectoryRequestMessage(db.Model):
+    """
+    Preserves clarification exchanges for an academic directory request.
+
+    These messages supplement the original request and review fields rather
+    than overwriting them, providing an auditable clarification history.
+    """
+
+    __tablename__ = "directory_request_messages"
+
+    AUTHOR_REQUESTER = "Requester"
+    AUTHOR_REVIEWER = "Reviewer"
+
+    AUTHOR_TYPE_CHOICES = [
+        AUTHOR_REQUESTER,
+        AUTHOR_REVIEWER,
+    ]
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    directory_request_id = db.Column(
+        db.Integer,
+        db.ForeignKey("directory_requests.id"),
+        nullable=False,
+        index=True,
+    )
+
+    author_user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
+
+    author_type = db.Column(
+        db.String(50),
+        nullable=False,
+        index=True,
+    )
+
+    message = db.Column(
+        db.Text,
+        nullable=False,
+    )
+
+    evidence_reference = db.Column(
+        db.String(500),
+        nullable=True,
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        index=True,
+    )
+
+    directory_request = db.relationship(
+        "DirectoryRequest",
+        backref=db.backref(
+            "clarification_messages",
+            lazy="dynamic",
+            order_by="DirectoryRequestMessage.created_at",
+        ),
+    )
+
+    author = db.relationship(
+        "User",
+        foreign_keys=[author_user_id],
+    )
+
+    def __repr__(self):
+        return (
+            f"<DirectoryRequestMessage "
+            f"Request:{self.directory_request_id} "
+            f"Author:{self.author_type}>"
+        )

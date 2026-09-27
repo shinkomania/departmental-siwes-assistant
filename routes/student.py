@@ -27,7 +27,11 @@ from models.user import User
 from models.student import StudentProfile
 from models.application import SavedOrganization, PlacementApplication
 from models.academic import Institution, AcademicUnit, Department, Programme
-from models.directory_request import DirectoryRequest
+from models.directory_request import DirectoryRequest, DirectoryRequestMessage
+from services.directory_request_review import (
+    DirectoryRequestReviewError,
+    respond_to_directory_request_more_information,
+)
 
 
 student_bp = Blueprint("student", __name__)
@@ -529,6 +533,127 @@ def submit_directory_request():
 
     return redirect(url_for("student.profile"))
 
+
+@student_bp.route(
+    "/academic/directory-requests/<int:request_id>/respond",
+    methods=["POST"],
+)
+def respond_to_directory_request_clarification(request_id):
+    """Submit clarification for the authenticated user's directory request."""
+    user = _require_authenticated_user()
+
+    if not user:
+        flash(
+            "Please sign in to respond to an academic directory request.",
+            "warning",
+        )
+        return redirect(
+            url_for(
+                "auth.login",
+                next=url_for("student.profile"),
+            )
+        )
+
+    directory_request = DirectoryRequest.query.filter_by(
+        id=request_id,
+        user_id=user.id,
+    ).first_or_404()
+
+    clarification_message = request.form.get(
+        "clarification_message",
+        "",
+    )
+
+    evidence_reference = request.form.get(
+        "evidence_reference",
+        "",
+    )
+
+    try:
+        respond_to_directory_request_more_information(
+            directory_request,
+            user,
+            clarification_message,
+            evidence_reference,
+        )
+    except DirectoryRequestReviewError as exc:
+        flash(str(exc), "warning")
+    else:
+        flash(
+            "Your clarification has been submitted for review.",
+            "success",
+        )
+
+    return redirect(
+        url_for(
+            "student.directory_request_detail",
+            request_id=directory_request.id,
+        )
+    )
+
+@student_bp.route("/academic/directory-requests")
+def directory_requests():
+    """Show directory requests submitted by the authenticated user."""
+    user = _require_authenticated_user()
+
+    if not user:
+        flash(
+            "Please sign in to view your academic directory requests.",
+            "warning",
+        )
+        return redirect(
+            url_for(
+                "auth.login",
+                next=url_for("student.directory_requests"),
+            )
+        )
+
+    requests = (
+        DirectoryRequest.query
+        .filter_by(user_id=user.id)
+        .order_by(DirectoryRequest.created_at.desc())
+        .all()
+    )
+
+    return render_template(
+        "directory_requests.html",
+        directory_requests=requests,
+    )
+
+
+@student_bp.route("/academic/directory-requests/<int:request_id>")
+def directory_request_detail(request_id):
+    """Show one directory request owned by the authenticated user."""
+    user = _require_authenticated_user()
+
+    if not user:
+        flash(
+            "Please sign in to view your academic directory request.",
+            "warning",
+        )
+        return redirect(
+            url_for(
+                "auth.login",
+                next=request.path,
+            )
+        )
+
+    directory_request = DirectoryRequest.query.filter_by(
+        id=request_id,
+        user_id=user.id,
+    ).first_or_404()
+
+    clarification_messages = (
+        directory_request.clarification_messages
+        .order_by(DirectoryRequestMessage.created_at.asc())
+        .all()
+    )
+
+    return render_template(
+        "directory_request_detail.html",
+        directory_request=directory_request,
+        clarification_messages=clarification_messages,
+    )
 
 @student_bp.route("/profile", methods=["GET", "POST"])
 def profile():

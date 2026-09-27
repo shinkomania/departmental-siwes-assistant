@@ -18,7 +18,7 @@ from .academic import (
 from .user import User
 from .access import Role, Permission, UserRoleAssignment, role_permissions
 from .role_application import RoleApplication
-from .directory_request import DirectoryRequest
+from .directory_request import DirectoryRequest, DirectoryRequestMessage
 
 
 __all__ = [
@@ -40,4 +40,5 @@ __all__ = [
     'role_permissions',
     'RoleApplication',
     'DirectoryRequest',
+    'DirectoryRequestMessage',
 ]

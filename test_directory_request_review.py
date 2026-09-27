@@ -167,6 +167,38 @@ class DirectoryRequestReviewServiceTestCase(unittest.TestCase):
             "Please provide an official university webpage.",
         )
 
+    def test_request_more_information_creates_reviewer_history_message(self):
+        from models.directory_request import DirectoryRequestMessage
+        from services.directory_request_review import (
+            request_directory_request_more_information,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_UNDER_REVIEW
+        )
+
+        request_directory_request_more_information(
+            directory_request,
+            self.reviewer,
+            "Please provide an official university webpage.",
+        )
+
+        messages = directory_request.clarification_messages.all()
+
+        self.assertEqual(len(messages), 1)
+
+        message = messages[0]
+
+        self.assertEqual(
+            message.author_type,
+            DirectoryRequestMessage.AUTHOR_REVIEWER,
+        )
+        self.assertEqual(message.author_user_id, self.reviewer.id)
+        self.assertEqual(
+            message.message,
+            "Please provide an official university webpage.",
+        )
+        self.assertIsNone(message.evidence_reference)
     def test_request_more_information_records_reviewer_and_start_time(self):
         from services.directory_request_review import (
             request_directory_request_more_information,
@@ -229,6 +261,142 @@ class DirectoryRequestReviewServiceTestCase(unittest.TestCase):
             DirectoryRequest.STATUS_APPROVED,
         )
 
+    def test_requester_can_respond_to_more_information_request(self):
+        from models.directory_request import DirectoryRequestMessage
+        from services.directory_request_review import (
+            respond_to_directory_request_more_information,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_MORE_INFO_REQUIRED
+        )
+        directory_request.reviewed_by_user_id = self.reviewer.id
+        db.session.commit()
+
+        result = respond_to_directory_request_more_information(
+            directory_request,
+            self.requester,
+            "The official university directory confirms the institution.",
+            "https://example.edu/directory",
+        )
+
+        self.assertEqual(
+            result.status,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+        )
+        self.assertEqual(
+            result.reviewed_by_user_id,
+            self.reviewer.id,
+        )
+
+        messages = directory_request.clarification_messages.all()
+        self.assertEqual(len(messages), 1)
+
+        message = messages[0]
+        self.assertEqual(
+            message.author_type,
+            DirectoryRequestMessage.AUTHOR_REQUESTER,
+        )
+        self.assertEqual(message.author_user_id, self.requester.id)
+        self.assertEqual(
+            message.message,
+            "The official university directory confirms the institution.",
+        )
+        self.assertEqual(
+            message.evidence_reference,
+            "https://example.edu/directory",
+        )
+
+    def test_requester_clarification_requires_message(self):
+        from services.directory_request_review import (
+            DirectoryRequestReviewError,
+            respond_to_directory_request_more_information,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_MORE_INFO_REQUIRED
+        )
+        directory_request.reviewed_by_user_id = self.reviewer.id
+        db.session.commit()
+
+        with self.assertRaises(DirectoryRequestReviewError):
+            respond_to_directory_request_more_information(
+                directory_request,
+                self.requester,
+                "   ",
+            )
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_MORE_INFO_REQUIRED,
+        )
+        self.assertEqual(
+            directory_request.clarification_messages.count(),
+            0,
+        )
+
+    def test_different_user_cannot_respond_to_directory_request(self):
+        from models.user import User
+        from services.directory_request_review import (
+            DirectoryRequestReviewError,
+            respond_to_directory_request_more_information,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_MORE_INFO_REQUIRED
+        )
+        directory_request.reviewed_by_user_id = self.reviewer.id
+
+        other_user = User(
+            full_name="Different Requester",
+            email="different.requester@example.com",
+        )
+        other_user.set_password("DifferentPass123!")
+
+        db.session.add(other_user)
+        db.session.commit()
+
+        with self.assertRaises(DirectoryRequestReviewError):
+            respond_to_directory_request_more_information(
+                directory_request,
+                other_user,
+                "Attempted response.",
+            )
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_MORE_INFO_REQUIRED,
+        )
+        self.assertEqual(
+            directory_request.clarification_messages.count(),
+            0,
+        )
+
+    def test_requester_cannot_respond_when_more_information_not_required(self):
+        from services.directory_request_review import (
+            DirectoryRequestReviewError,
+            respond_to_directory_request_more_information,
+        )
+
+        directory_request = self._directory_request(
+            status=DirectoryRequest.STATUS_UNDER_REVIEW
+        )
+
+        with self.assertRaises(DirectoryRequestReviewError):
+            respond_to_directory_request_more_information(
+                directory_request,
+                self.requester,
+                "Additional information.",
+            )
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+        )
+        self.assertEqual(
+            directory_request.clarification_messages.count(),
+            0,
+        )
     def test_platform_admin_can_approve_under_review_request(self):
         from services.directory_request_review import (
             approve_directory_request,

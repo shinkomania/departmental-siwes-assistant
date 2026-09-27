@@ -10,7 +10,7 @@ academic-directory creation or verification.
 from datetime import datetime
 
 from models.db import db
-from models.directory_request import DirectoryRequest
+from models.directory_request import DirectoryRequest, DirectoryRequestMessage
 from services.authorization import user_has_permission
 
 
@@ -129,6 +129,62 @@ def request_directory_request_more_information(
 
     if directory_request.review_started_at is None:
         directory_request.review_started_at = _utcnow()
+
+    clarification_message = DirectoryRequestMessage(
+        directory_request_id=directory_request.id,
+        author_user_id=reviewer_user.id,
+        author_type=DirectoryRequestMessage.AUTHOR_REVIEWER,
+        message=reviewer_notes,
+    )
+    db.session.add(clarification_message)
+
+    _commit()
+    return directory_request
+
+def respond_to_directory_request_more_information(
+    directory_request,
+    requester_user,
+    message,
+    evidence_reference=None,
+):
+    """
+    Submit requester clarification and return the request to its assigned
+    reviewer without changing review ownership.
+    """
+    _require_persisted_request(directory_request)
+
+    if requester_user is None or getattr(requester_user, "id", None) is None:
+        raise DirectoryRequestReviewError("Requester user is required.")
+
+    if directory_request.user_id != requester_user.id:
+        raise DirectoryRequestReviewError(
+            "You cannot respond to another user's directory request."
+        )
+
+    _require_status(
+        directory_request,
+        {DirectoryRequest.STATUS_MORE_INFO_REQUIRED},
+        "responded to with additional information",
+    )
+
+    message = (message or "").strip()
+    if not message:
+        raise DirectoryRequestReviewError(
+            "Clarification message is required."
+        )
+
+    evidence_reference = (evidence_reference or "").strip() or None
+
+    directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+
+    clarification_message = DirectoryRequestMessage(
+        directory_request_id=directory_request.id,
+        author_user_id=requester_user.id,
+        author_type=DirectoryRequestMessage.AUTHOR_REQUESTER,
+        message=message,
+        evidence_reference=evidence_reference,
+    )
+    db.session.add(clarification_message)
 
     _commit()
     return directory_request

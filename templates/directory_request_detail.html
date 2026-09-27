@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block title %}Directory Request #{{ directory_request.id }} | Departmental SIWES Assistant{% endblock %}
+
+{% block content %}
+<section class="directory-workspace-page">
+    <div class="container">
+
+        <header class="directory-workspace-header">
+            <div>
+                <div class="section-eyebrow">
+                    <span class="section-eyebrow-dot"></span>
+                    DIRECTORY REQUEST #{{ directory_request.id }}
+                </div>
+
+                <h1>
+                    {% if directory_request.request_type == "Programme" %}
+                        {{ directory_request.programme_name }}
+                    {% else %}
+                        {{ directory_request.institution_name }}
+                    {% endif %}
+                </h1>
+
+                <p>
+                    Review your submission, follow its status and respond
+                    when the directory team needs additional information.
+                </p>
+            </div>
+
+            <a
+                href="{{ url_for('student.directory_requests') }}"
+                class="btn btn-outline"
+            >
+                All Requests
+            </a>
+        </header>
+
+        <div class="directory-case-layout">
+
+            <main class="directory-case-main">
+
+                {% if directory_request.status == "More Info Required" %}
+                <section class="directory-attention-card">
+                    <span class="directory-attention-label">
+                        ACTION REQUIRED
+                    </span>
+
+                    <h2>The reviewer needs more information</h2>
+
+                    <p>
+                        Read the reviewer's message below and provide the
+                        requested clarification so review can continue.
+                    </p>
+                </section>
+                {% endif %}
+
+                <section class="directory-case-card">
+                    <div class="directory-card-heading">
+                        <div>
+                            <span class="directory-card-eyebrow">
+                                ORIGINAL SUBMISSION
+                            </span>
+                            <h2>Request details</h2>
+                        </div>
+
+                        <span class="directory-status directory-status-{{ directory_request.status|lower|replace(' ', '-') }}">
+                            {{ directory_request.status }}
+                        </span>
+                    </div>
+
+                    <dl class="directory-detail-grid">
+                        <div>
+                            <dt>Request type</dt>
+                            <dd>{{ directory_request.request_type }}</dd>
+                        </div>
+
+                        <div>
+                            <dt>Institution</dt>
+                            <dd>{{ directory_request.institution_name or "Not provided" }}</dd>
+                        </div>
+
+                        {% if directory_request.request_type == "Programme" %}
+                        <div>
+                            <dt>Academic unit</dt>
+                            <dd>{{ directory_request.academic_unit_name or "Not provided" }}</dd>
+                        </div>
+
+                        <div>
+                            <dt>Department</dt>
+                            <dd>{{ directory_request.department_name or "Not provided" }}</dd>
+                        </div>
+
+                        <div>
+                            <dt>Programme</dt>
+                            <dd>{{ directory_request.programme_name or "Not provided" }}</dd>
+                        </div>
+
+                        <div>
+                            <dt>Award</dt>
+                            <dd>{{ directory_request.award or "Not provided" }}</dd>
+                        </div>
+                        {% else %}
+                        <div>
+                            <dt>Institution type</dt>
+                            <dd>{{ directory_request.institution_type or "Not provided" }}</dd>
+                        </div>
+
+                        <div>
+                            <dt>Location</dt>
+                            <dd>
+                                {{ directory_request.city or "Not provided" }}
+                                {% if directory_request.state %}
+                                    &middot; {{ directory_request.state }}
+                                {% endif %}
+                            </dd>
+                        </div>
+                        {% endif %}
+                    </dl>
+
+                    {% if directory_request.evidence_reference %}
+                    <div class="directory-original-block">
+                        <span>Evidence / reference</span>
+                        <p>{{ directory_request.evidence_reference }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if directory_request.requester_notes %}
+                    <div class="directory-original-block">
+                        <span>Additional notes</span>
+                        <p>{{ directory_request.requester_notes }}</p>
+                    </div>
+                    {% endif %}
+                </section>
+
+                <section class="directory-case-card">
+                    <div class="directory-card-heading">
+                        <div>
+                            <span class="directory-card-eyebrow">
+                                REVIEW ACTIVITY
+                            </span>
+                            <h2>Clarification history</h2>
+                        </div>
+                    </div>
+
+                    {% if clarification_messages %}
+                    <div class="directory-timeline">
+                        {% for message in clarification_messages %}
+                        <article class="directory-timeline-item">
+                            <div class="directory-timeline-marker"></div>
+
+                            <div class="directory-timeline-content">
+                                <div class="directory-timeline-header">
+                                    <strong>
+                                        {% if message.author_type == "Reviewer" %}
+                                            DSA Directory Reviewer
+                                        {% else %}
+                                            Your response
+                                        {% endif %}
+                                    </strong>
+
+                                    {% if message.created_at %}
+                                    <time>
+                                        {{ message.created_at.strftime("%d %b %Y, %H:%M") }}
+                                    </time>
+                                    {% endif %}
+                                </div>
+
+                                <p>{{ message.message }}</p>
+
+                                {% if message.evidence_reference %}
+                                <div class="directory-evidence-reference">
+                                    <strong>Evidence:</strong>
+                                    {{ message.evidence_reference }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="directory-history-empty">
+                        <p>
+                            No clarification messages yet. Updates from the
+                            review process will appear here.
+                        </p>
+                    </div>
+                    {% endif %}
+                </section>
+
+                {% if directory_request.status == "More Info Required" %}
+                <section class="directory-case-card directory-response-card">
+                    <div class="directory-card-heading">
+                        <div>
+                            <span class="directory-card-eyebrow">
+                                YOUR RESPONSE
+                            </span>
+                            <h2>Provide clarification</h2>
+                        </div>
+                    </div>
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('student.respond_to_directory_request_clarification', request_id=directory_request.id) }}"
+                        class="directory-response-form"
+                    >
+                        <input
+                            type="hidden"
+                            name="csrf_token"
+                            value="{{ csrf_token() }}"
+                        >
+
+                        <div class="form-group">
+                            <label
+                                class="form-label"
+                                for="clarificationMessage"
+                            >
+                                Clarification
+                                <span class="required-mark">*</span>
+                            </label>
+
+                            <textarea
+                                id="clarificationMessage"
+                                name="clarification_message"
+                                class="form-control"
+                                rows="6"
+                                placeholder="Provide the information requested by the reviewer..."
+                                required
+                            ></textarea>
+
+                            <span class="form-hint">
+                                Be specific and provide only information relevant
+                                to this directory request.
+                            </span>
+                        </div>
+
+                        <div class="form-group">
+                            <label
+                                class="form-label"
+                                for="clarificationEvidence"
+                            >
+                                Evidence / reference
+                            </label>
+
+                            <input
+                                type="text"
+                                id="clarificationEvidence"
+                                name="evidence_reference"
+                                class="form-control"
+                                placeholder="Official webpage, document reference or other supporting source"
+                            >
+                        </div>
+
+                        <div class="directory-response-actions">
+                            <button type="submit" class="btn btn-primary">
+                                Submit Clarification
+                            </button>
+                        </div>
+                    </form>
+                </section>
+                {% endif %}
+
+            </main>
+
+            <aside class="directory-case-sidebar">
+                <section class="directory-case-card">
+                    <span class="directory-card-eyebrow">
+                        REQUEST STATUS
+                    </span>
+
+                    <div class="directory-sidebar-status">
+                        <span class="directory-status directory-status-{{ directory_request.status|lower|replace(' ', '-') }}">
+                            {{ directory_request.status }}
+                        </span>
+                    </div>
+
+                    <div class="directory-sidebar-meta">
+                        <div>
+                            <span>Request ID</span>
+                            <strong>#{{ directory_request.id }}</strong>
+                        </div>
+
+                        {% if directory_request.created_at %}
+                        <div>
+                            <span>Submitted</span>
+                            <strong>
+                                {{ directory_request.created_at.strftime("%d %b %Y") }}
+                            </strong>
+                        </div>
+                        {% endif %}
+
+                        <div>
+                            <span>Request type</span>
+                            <strong>{{ directory_request.request_type }}</strong>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="directory-case-card directory-info-card">
+                    <span class="directory-card-eyebrow">
+                        HOW REVIEW WORKS
+                    </span>
+
+                    <p>
+                        Directory requests are reviewed before any academic
+                        record can become part of DSA's controlled directory.
+                    </p>
+
+                    <p>
+                        Approval of this request does not by itself create or
+                        verify an authoritative institution or programme record.
+                    </p>
+                </section>
+            </aside>
+
+        </div>
+    </div>
+</section>
+{% endblock %}

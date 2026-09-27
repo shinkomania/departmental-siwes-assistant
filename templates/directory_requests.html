@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}My Directory Requests | Departmental SIWES Assistant{% endblock %}
+
+{% block content %}
+<section class="directory-workspace-page">
+    <div class="container">
+
+        <header class="directory-workspace-header">
+            <div>
+                <div class="section-eyebrow">
+                    <span class="section-eyebrow-dot"></span>
+                    ACADEMIC DIRECTORY
+                </div>
+
+                <h1>My Directory Requests</h1>
+
+                <p>
+                    Track institutions and programmes you have submitted
+                    for review by the DSA academic directory team.
+                </p>
+            </div>
+
+            <div class="directory-header-actions">
+                <a href="{{ url_for('student.profile') }}" class="btn btn-outline">
+                    Back to Profile
+                </a>
+
+                <a href="{{ url_for('student.dashboard') }}" class="btn btn-primary">
+                    Dashboard
+                </a>
+            </div>
+        </header>
+
+        {% if directory_requests %}
+        <div class="directory-request-list">
+            {% for item in directory_requests %}
+            <article class="directory-request-card">
+                <div class="directory-request-card-main">
+                    <div class="directory-request-card-top">
+                        <span class="directory-request-type">
+                            {{ item.request_type }}
+                        </span>
+
+                        <span class="directory-status directory-status-{{ item.status|lower|replace(' ', '-') }}">
+                            {{ item.status }}
+                        </span>
+                    </div>
+
+                    <h2>
+                        {% if item.request_type == "Programme" %}
+                            {{ item.programme_name }}
+                        {% else %}
+                            {{ item.institution_name }}
+                        {% endif %}
+                    </h2>
+
+                    <p>
+                        {% if item.request_type == "Programme" %}
+                            {{ item.institution_name }}
+                            {% if item.department_name %}
+                                &middot; {{ item.department_name }}
+                            {% endif %}
+                        {% else %}
+                            {% if item.city %}{{ item.city }}{% endif %}
+                            {% if item.city and item.state %}, {% endif %}
+                            {% if item.state %}{{ item.state }}{% endif %}
+                        {% endif %}
+                    </p>
+
+                    <div class="directory-request-meta">
+                        <span>Request #{{ item.id }}</span>
+
+                        {% if item.created_at %}
+                        <span>
+                            Submitted {{ item.created_at.strftime("%d %b %Y") }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <a
+                    href="{{ url_for('student.directory_request_detail', request_id=item.id) }}"
+                    class="btn btn-outline"
+                >
+                    View Request
+                </a>
+            </article>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <section class="directory-empty-state">
+            <div class="directory-empty-icon" aria-hidden="true">
+                &#128193;
+            </div>
+
+            <h2>No directory requests yet</h2>
+
+            <p>
+                If your institution or programme is missing from DSA's
+                controlled academic directory, you can submit it from your profile.
+            </p>
+
+            <a href="{{ url_for('student.profile') }}" class="btn btn-primary">
+                Go to Profile
+            </a>
+        </section>
+        {% endif %}
+
+    </div>
+</section>
+{% endblock %}
