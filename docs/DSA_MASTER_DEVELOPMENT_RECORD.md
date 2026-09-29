@@ -40,7 +40,7 @@ The original useful features should be preserved and evolved:
 
 The application pipeline concept includes:
 
-Interested → Contacted → Submitted → Interview → Accepted
+Interested â†’ Contacted â†’ Submitted â†’ Interview â†’ Accepted
 
 DSA must not fabricate organization listings or present unverified
 submissions as verified facts.
@@ -49,9 +49,9 @@ submissions as verified facts.
 
 Use this workflow for future development:
 
-**Inspect current state → understand the historical decision/context →
-make one controlled change → run targeted tests → run regression tests
-when appropriate → confirm the checkpoint → proceed.**
+**Inspect current state â†’ understand the historical decision/context â†’
+make one controlled change â†’ run targeted tests â†’ run regression tests
+when appropriate â†’ confirm the checkpoint â†’ proceed.**
 
 Additional rules:
 
@@ -77,7 +77,7 @@ into a multi-institution architecture.
 
 Academic hierarchy:
 
-**Institution → AcademicUnit (Faculty/College/School) → Department →
+**Institution â†’ AcademicUnit (Faculty/College/School) â†’ Department â†’
 Programme**
 
 Programme-level SIWES eligibility is authoritative. Programme SIWES
@@ -433,3 +433,219 @@ documentation if they disagree.
 
 **Record initialized from the recovered historical DSA development
 conversation and the verified current checkpoint.**
+
+------------------------------------------------------------------------
+
+## 18. Directory Review Workflow Through Milestone A
+
+The Academic Directory Request workflow has progressed substantially
+beyond the earlier 133-test checkpoint.
+
+Completed capabilities now include:
+
+- secured Platform Administrator request detail/review;
+- controlled review claiming and ownership;
+- approval and rejection;
+- More Info Required clarification workflow;
+- requester responses with chronological history;
+- reviewer ownership preservation after requester response;
+- requester withdrawal for open requests;
+- student request list/detail experience;
+- state-aware Profile Academic Directory Support.
+
+The authoritative-directory invariant remains unchanged:
+
+**DirectoryRequest approval is review state only. It does not
+automatically create, publish, activate, or verify authoritative academic
+directory records.**
+
+Authoritative directory publication remains a separate future Platform
+Administration operation.
+
+### Review Ownership
+
+Review ownership intentionally remains lightweight.
+
+A Submitted request begins in the general queue. Once a Platform
+Administrator begins review, the request is assigned to that reviewer.
+Only that reviewer may perform controlled review actions.
+
+When clarification is requested and the requester responds, the request
+returns to Under Review while remaining assigned to the same reviewer.
+
+A future release/reassign capability may be introduced if operational
+need justifies it, but it is not required for the current workflow.
+
+### Withdrawal Semantics
+
+DirectoryRequest withdrawal and authoritative-record deactivation are
+different concepts.
+
+A requester may withdraw an open request.
+
+An approved request should not later be rewritten as Withdrawn merely
+because an authoritative record is eventually suspended or deactivated.
+
+Authoritative records must own their own lifecycle independently of the
+historical review record.
+
+## 19. Directory Request Eligibility and Profile Cleanup
+
+Milestone A was completed in commit:
+
+`8654703 Enforce directory request eligibility and streamline profile support`
+
+The full regression suite passed:
+
+**223 tests**
+
+Eligibility rules now include:
+
+- maximum one open DirectoryRequest per user;
+- Submitted, Under Review, and More Info Required are open states;
+- final request states do not permanently block future eligible requests;
+- an already-linked structured programme blocks the normal
+  missing-Institution/missing-Programme workflow;
+- Programme requests require an appropriate authoritative Institution;
+- eligibility is enforced server-side.
+
+The Student Profile Academic Directory Support interface is state-aware:
+
+- eligible/unlinked;
+- open request;
+- linked academic directory.
+
+The previous duplicate Profile request experience was consolidated.
+
+Desktop and 390x844 mobile UI verification passed for all important
+states.
+
+No migration was required for this milestone.
+
+## 20. Account, Student Profile, and Staff Authority Architecture
+
+DSA will use a single account identity model rather than permanently
+separate Student and Staff accounts.
+
+The durable distinction is:
+
+- `User` - identity/account;
+- `StudentProfile` - optional student academic context;
+- staff-role application - request for institutional authority;
+- `UserRoleAssignment` - approved authority.
+
+A DSA account does not automatically imply that the person is a student.
+
+Future onboarding should ask the person's immediate purpose, such as:
+
+- Student;
+- SIWES Staff / Coordinator.
+
+The Student path creates a StudentProfile.
+
+The staff path uses **Request Staff Access** and must not force lecturers
+or coordinators through student-specific fields.
+
+A user who initially joins as a student may later request staff access if
+they genuinely hold an official SIWES responsibility. This does not
+require a second DSA account.
+
+A person may legitimately hold both a StudentProfile and one or more
+approved scoped roles.
+
+This should be represented through workspace switching rather than
+duplicate accounts.
+
+Staff-role authority must always be separately verified and scoped.
+
+Platform Administrator is not a self-requestable role.
+
+## 21. Workspace and Platform Authority Direction
+
+Future multi-role accounts should use explicit workspace context.
+
+Examples:
+
+- Student Workspace;
+- Departmental SIWES Coordinator Workspace;
+- Institution Workspace;
+- Platform Administration.
+
+The interface should eventually expose permission-aware
+**Switch Workspace** behavior rather than relying on a generic permanent
+Admin button.
+
+High-authority actions must remain auditable by actor, action, scope,
+time, and reason where appropriate.
+
+The Primary Platform Administrator / Platform Owner is the highest
+platform authority, but this must be represented by roles/permissions
+rather than hard-coding a person's name.
+
+Delegated platform aides should receive only the permissions they need.
+
+Examples:
+
+- Organization Review Officer;
+- User & Access Administrator.
+
+Use least privilege.
+
+## 22. Notification and Evidence Direction
+
+A reusable Notification System should be centered on `User`, not
+StudentProfile, so it can serve students, reviewers, institution staff,
+coordinators, and Platform Administrators.
+
+Notifications should eventually support:
+
+- unread/read state;
+- category/source;
+- title/message;
+- timestamp;
+- direct action destination.
+
+Directory clarification responses are an early example of an event that
+should later generate an actionable reviewer notification.
+
+Evidence remains supporting material and must never automatically verify
+or publish academic records.
+
+A future reusable evidence architecture should support reference URLs,
+attachments, and supporting notes without adding ad-hoc fields such as
+attachment1, attachment2, and so on.
+
+This evidence subsystem is deferred until its proper milestone.
+
+## 23. Next Development Milestone
+
+The next milestone is:
+
+**Reviewer Case Workspace**
+
+The admin review page must evolve from a static request/review page into
+a clear case workspace containing:
+
+1. Request Summary.
+2. Chronological Review Conversation.
+3. Current Review State.
+4. Derived Response Received cue when appropriate.
+5. Assigned reviewer context.
+6. A clean Decision Panel containing only valid actions.
+
+The requester clarification is already persisted correctly; the current
+gap is primarily reviewer presentation and workflow visibility.
+
+Do not introduce a new persisted "Response Received" request status
+unless implementation inspection demonstrates a real need.
+
+After Reviewer Case Workspace, the planned sequence is:
+
+1. Reusable DSA Notifications Foundation.
+2. Platform Administration refresh.
+3. Controlled Directory Publication.
+4. Staff Access Requests and scoped workspaces.
+5. General account/profile/onboarding/workspace-switching experience.
+
+At this checkpoint the verified implementation baseline is commit
+`8654703` with **223 passing tests**.

@@ -1,154 +1,328 @@
-# DSA Current Checkpoint
+# DSA CURRENT CHECKPOINT
 
-> Read this file first when resuming DSA development.
+## Current Repository State
 
-## Project
+Project:
 
-**Current name:** Departmental SIWES Assistant (DSA)\
-**Leading future name:** Digital SIWES Assistant (DSA) --- branding
-migration deferred.
+**DSA - currently Departmental SIWES Assistant**
+Leading future brand direction: **Digital SIWES Assistant**
 
-## Current Phase
+Branch:
 
-**Phase 4 --- Academic Directory / Platform Admin Review Workflow**
+`phase4-programme-siwes-config`
 
-## Verified Test Baseline
+Latest implementation commit:
 
-**137/137 tests passing**
+`8654703 Enforce directory request eligibility and streamline profile support`
 
-Protect this baseline. Do not treat the old 177-test output as genuine;
-that run included duplicate unittest discovery from a backup file whose
-filename began with `test_`.
+Milestone A - **Directory Request Eligibility + Profile Cleanup** - is complete.
 
-A non-failing SQLAlchemy `Query.get()` LegacyAPIWarning is known
-technical debt.
+Verified full regression baseline:
 
-## Last Completed Work
+**223 tests passing**
 
-Platform Admin Academic Directory Request queue:
+No migration was added for Milestone A.
 
-``` text
-/admin/directory-requests
-```
+At the time this checkpoint was prepared, the implementation working
+tree was clean immediately after commit `8654703`.
 
-Implemented/tested:
+## Completed Directory Request Workflow
 
--   Platform Admin can open queue;
--   default filter shows Submitted requests;
--   filter by status;
--   filter by request type;
--   search academic fields;
--   invalid filters fall back safely.
+The Academic Directory Request workflow currently supports:
 
-The six queue tests increased the genuine suite from 127 to 133 tests.
+- student submission of Institution and Programme requests;
+- Platform Administrator review queue;
+- secured individual review/detail page;
+- reviewer ownership/claiming;
+- Under Review workflow;
+- More Info Required workflow;
+- requester clarification responses;
+- approval;
+- rejection;
+- requester withdrawal of open requests;
+- chronological clarification history on the student side;
+- ownership-safe student request access.
 
-Secured individual Academic Directory Request detail page completed in commit 3971f7e.
+Review ownership remains lightweight:
 
-Implemented/tested:
+- Submitted requests begin in the general review queue;
+- a Platform Administrator claims a request by beginning review;
+- only the assigned reviewer may perform controlled review actions;
+- clarification responses return the request to Under Review while
+  preserving the assigned reviewer.
 
-- authorized Platform Admin access;
-- unauthorized authenticated user receives HTTP 403;
-- missing request returns HTTP 404;
-- request information renders correctly;
-- queue Review details now links to the secured detail page;
-- detail page remains intentionally read-only;
-- live queue-to-detail browser flow verified;
-- full regression suite now passes 136/136 tests.
-
-### Platform Administration dashboard integration
-
-Completed in commit `70fcb01`:
-
-- Platform Administration now exposes a distinct Academic Directory Requests Quick Action;
-- dashboard count shows requests currently in Submitted status;
-- Academic Directory Requests remain separate from the organization review queue;
-- Quick Action links to `/admin/directory-requests`;
-- targeted dashboard integration test passes;
-- full regression suite passes 137/137 tests;
-- live browser verification confirmed Platform Administration → Academic Directory Requests → request queue navigation;
-- no DirectoryRequest review-state mutations were added.
-
-## Exact Next Task
-
-**Design the secured Platform Admin DirectoryRequest review-state workflow.**
-
-The queue, secured read-only detail page, and Platform Administration
-navigation are now complete.
-
-Before exposing any state-changing controls, inspect the existing
-DirectoryRequest transition methods, current admin route patterns, CSRF
-protection, authorization conventions, and relevant tests.
-
-Potential review states include Under Review, More Info Required,
-Approved, and Rejected, but do not assume every transition is valid
-until the current model rules have been inspected.
-
-## First Development Step
-
-Inspect, without modifying code:
-
-- `models/directory_request.py`;
-- the current DirectoryRequest routes in `routes/admin.py`;
-- `templates/admin/directory_request_detail.html`;
-- existing CSRF-protected POST route patterns;
-- existing review workflow/service patterns that may inform this implementation;
-- current DirectoryRequest tests and fixtures.
-
-Then define the smallest secure first mutation milestone and write its
-targeted tests before implementation.
-
-Do not implement multiple review actions at once unless inspection shows
-that a shared transition service is required for correctness.
-
-## Required Security Coverage
-
-Reuse the existing `_create_platform_admin_security_fixture()`.
-
-For the detail/review workflow, explicitly test:
-
--   authorized Platform Admin access;
--   unauthenticated/unauthorized access;
--   invalid or missing request ID behavior;
--   correct request data rendering.
-
-Do not weaken `@admin_required` or bypass the existing permission
-system.
-
-## Critical Data Rule
+## Critical Directory Invariant
 
 A `DirectoryRequest` is a review record.
 
-**Approving a DirectoryRequest must not automatically create or verify
-Institution, AcademicUnit, Department, or Programme records.**
+Approval does **not** automatically create, publish, activate, or verify
+an Institution, AcademicUnit, Department, or Programme.
 
-Authoritative academic-directory changes remain a separate deliberate
-operation.
+Authoritative academic-directory publication remains a separate,
+deliberate Platform Administration operation.
+
+## Milestone A Rules Now Enforced
+
+Directory-request eligibility now enforces:
+
+- one user may have at most one open DirectoryRequest at a time;
+- Submitted, Under Review, and More Info Required count as open;
+- final request states do not permanently block a future eligible request;
+- a student whose structured `programme_id` is already linked cannot use
+  the normal missing-directory workflow to request another Institution
+  or Programme;
+- Programme requests require an appropriate authoritative Institution;
+- server-side enforcement is authoritative; UI hiding is not relied upon
+  for security or correctness.
+
+Changing an already-established academic identity must eventually use a
+separate profile correction/change workflow rather than abusing the
+missing-directory request workflow.
+
+## Student Profile Directory Support UI
+
+The duplicate Academic Directory experience on `/profile` has been
+consolidated into a state-aware Academic Directory Support component.
+
+States:
+
+1. Eligible/unlinked:
+   - Request Missing Record;
+   - My Directory Requests;
+   - expandable directory submission workspace.
+
+2. Open request:
+   - Directory request in progress;
+   - request type and status;
+   - View Active Request;
+   - My Directory Requests;
+   - no second submission workspace.
+
+3. Structured programme linked:
+   - Academic directory linked;
+   - My Directory Requests;
+   - no normal missing-record request action.
+
+The profile account message is also state-aware:
+
+- existing StudentProfile -> Account-linked profile;
+- no StudentProfile -> No student profile yet.
+
+The no-profile message explicitly avoids implying that every DSA account
+must be a student account.
+
+## UI Verification Completed
+
+Milestone A was manually verified on desktop and mobile.
+
+Verified states:
+
+- eligible/unlinked - desktop PASS;
+- eligible/unlinked - 390x844 mobile PASS;
+- active directory request - desktop PASS;
+- active directory request - 390x844 mobile PASS;
+- linked programme/no active request - desktop PASS;
+- linked programme/no active request - 390x844 mobile PASS.
+
+The Profile directory workspace received scoped responsive styling
+without changing generic directory-request card behavior.
+
+## Identity and Access Architecture Decision
+
+DSA should use **one user account with multiple separately controlled
+profiles/roles**, not permanently separate Student and Staff accounts.
+
+Core distinction:
+
+- `User` = account identity;
+- `StudentProfile` = optional student/academic context;
+- staff-role application = request for institutional authority;
+- `UserRoleAssignment` = approved authority.
+
+Registration should eventually lead to a purpose-based onboarding step
+such as:
+
+**How will you use DSA?**
+
+Primary paths:
+
+- Student -> create Student Profile;
+- SIWES Staff / Coordinator -> Request Staff Access.
+
+A lecturer/coordinator choosing the staff path must not be forced through
+student matriculation, level, placement-preference, or other
+student-profile fields.
+
+A user who initially creates a Student Profile may later request staff
+access if they genuinely hold an official SIWES responsibility.
+
+Student status must not automatically grant staff authority, and staff
+authority must not automatically create a StudentProfile.
+
+## Staff Access Direction
+
+Use the terminology:
+
+**Request Staff Access**
+
+rather than presenting ordinary users with a generic "Apply for a role"
+experience.
+
+Staff access is for lecturers or other authorized institutional
+personnel who already hold an official SIWES responsibility.
+
+Requested roles require verification before authority is granted.
+
+Platform Administrator must never be self-requestable.
+
+A user may legitimately hold both:
+
+- Student Profile;
+- approved scoped staff role.
+
+Such users should eventually use **Switch Workspace** rather than
+separate accounts.
+
+Possible workspaces include:
+
+- Student Workspace;
+- Departmental SIWES Coordinator Workspace;
+- Institution Workspace;
+- Platform Administration.
+
+Actions must remain permission- and scope-controlled and auditable.
+
+## Platform Authority Direction
+
+The intended initial highest authority is the Primary Platform
+Administrator / Platform Owner.
+
+Do not hard-code a person's name into the authority model.
+
+The Primary Platform Administrator may eventually delegate specific
+platform permissions to aides without making every aide a full root
+administrator.
+
+Examples include:
+
+- Organization Review Officer;
+- User & Access Administrator.
+
+Use permission-based delegation and least privilege.
+
+Global Platform Administration authority should permit support across
+scopes without pretending that the Platform Administrator is actually a
+member of every institutional or departmental role.
+
+## Notifications Direction
+
+A reusable DSA Notification System is planned around the `User`
+recipient rather than StudentProfile.
+
+Future notification data should support:
+
+- unread/read state;
+- category/source;
+- title/message;
+- timestamp;
+- direct action destination.
+
+It should support students, Platform Administrators, institution staff,
+coordinators, and future scoped roles.
+
+## Evidence Direction
+
+Current directory-request evidence remains text/reference based.
+
+Future evidence should support reusable evidence items such as:
+
+- official/reference URL;
+- document/image attachment;
+- supporting note.
+
+Evidence is supporting material only and must never automatically verify
+or publish an academic-directory record.
+
+Do not implement this evidence subsystem as part of the current review
+workspace milestone.
+
+## Next Milestone
+
+**Milestone B - Reviewer Case Workspace**
+
+The current problem to solve:
+
+Requester clarification responses are correctly stored and displayed on
+the student side, but the Platform Administrator review detail page does
+not yet present the full clarification conversation clearly.
+
+The Reviewer Case Workspace should provide:
+
+1. Request Summary.
+2. Chronological Review Conversation.
+3. Clear current review state.
+4. Derived "Response received" cue when the latest relevant
+   clarification is from the requester.
+5. Assigned reviewer context.
+6. Clean Decision Panel for the actions valid in the current state.
+7. Existing review ownership enforcement preserved.
+
+Do not create a new database status merely for "Response received".
+Derive it from the existing request/message state unless inspection
+proves a persisted field is required.
+
+## Planned Sequence After Milestone B
+
+1. Reusable DSA Notifications Foundation.
+2. Platform Administration dashboard/navigation refresh.
+3. Controlled Directory Publication.
+4. Staff Access Requests and scoped workspace development.
+5. Broader account/profile/onboarding/workspace-switching experience.
+
+This order may be adjusted when implementation dependencies require it,
+but do not silently collapse approval and authoritative publication.
 
 ## Development Workflow
 
-**Inspect → one controlled change → targeted tests → regression tests →
-checkpoint → proceed.**
+Use:
 
-Use the current repository as implementation truth and the recovered old
-conversation/Master Development Record as historical context.
+**inspect -> one controlled change -> targeted test -> broader/full test
+-> desktop UI test -> mobile/responsive UI test -> commit -> checkpoint
+at meaningful milestones.**
 
-On Windows, prefer direct venv execution:
+Prefer direct Windows venv execution:
 
-``` powershell
-.\venv\Scripts\python.exe -m unittest -v
-```
+`.\venv\Scripts\python.exe`
 
-## Continuity Rule
+Prefer guarded PowerShell changes when practical.
 
-After the next meaningful milestone:
+Do not perform large uncontrolled rewrites.
 
--   update this checkpoint;
--   update the Master Development Record if a durable decision/milestone
-    changed;
--   commit the documentation with the related project work where
-    appropriate.
+The repository and current tests override stale documentation.
 
-------------------------------------------------------------------------
+## Current Test Baseline
 
-**Checkpoint initialized at the clean 133/133 baseline before the
-individual directory-request review page implementation.**
+At commit `8654703`:
+
+**223 tests passed in the full unittest suite.**
+
+Known non-failing warning:
+
+SQLAlchemy `Query.get()` is a legacy API under SQLAlchemy 2.x and should
+eventually migrate toward `Session.get()`. It is not a blocker for the
+current milestone.
+
+## Immediate Next Step
+
+Before modifying Milestone B code, inspect:
+
+- `routes/admin.py` directory-request detail/review routes;
+- `templates/admin/directory_request_detail.html`;
+- `models/directory_request.py`;
+- clarification-message model/relationship;
+- directory-request review service;
+- current review ownership tests;
+- current admin review/detail tests.
+
+Then define the smallest Reviewer Case Workspace change and its targeted
+tests before implementation.
