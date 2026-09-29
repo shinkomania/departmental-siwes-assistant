@@ -169,30 +169,63 @@
                         </div>
 
                         <div class="form-group profile-field-full">
-    <div class="profile-directory-support">
-        <div class="profile-directory-support-copy">
-            <span class="profile-directory-support-label">
-                ACADEMIC DIRECTORY SUPPORT
-            </span>
+                            <div class="profile-directory-support">
+                                <div class="profile-directory-support-copy">
+                                    <span class="profile-directory-support-label">
+                                        ACADEMIC DIRECTORY SUPPORT
+                                    </span>
 
-            <strong>Can't find your institution or programme?</strong>
+                                    {% if active_directory_request %}                                        <strong>Directory request in progress</strong>
+                                        <div class="profile-directory-request-state">
+                                            <span>{{ active_directory_request.request_type }} request</span>
+                                            <span class="profile-directory-status">
+                                                {{ active_directory_request.status }}
+                                            </span>
+                                        </div>
+                                        <p>
+                                            Continue from the existing request instead of submitting another one.
+                                        </p>
+                                    {% elif academic_directory_linked %}
+                                        <strong>Academic directory linked</strong>
+                                        <p>
+                                            Your programme is connected to the verified DSA academic directory.
+                                            Missing-record requests are not needed for this profile.
+                                        </p>
+                                    {% else %}
+                                        <strong>Can't find your institution or programme?</strong>
+                                        <p>
+                                            Request a missing academic record for review before it can become
+                                            part of the verified DSA directory.
+                                        </p>
+                                    {% endif %}
+                                </div>
 
-            <p>
-                Submit the missing academic record for review, or track
-                directory requests you have already submitted.
-            </p>
-        </div>
+                                <div class="profile-directory-actions">
+                                    {% if active_directory_request %}
+                                        <a
+                                            href="{{ url_for('student.directory_request_detail', request_id=active_directory_request.id) }}"
+                                            class="btn btn-primary">
+                                            View Active Request
+                                        </a>
+                                    {% elif not academic_directory_linked %}
+                                        <button
+                                            type="button"
+                                            class="btn btn-primary"
+                                            id="directoryRequestLauncher"
+                                            aria-controls="directoryRequestPanel"
+                                            aria-expanded="false">
+                                            Request Missing Record
+                                        </button>
+                                    {% endif %}
 
-        <div class="profile-directory-actions">
-
-            <a
-                href="{{ url_for('student.directory_requests') }}"
-                class="btn btn-outline"
-            >
-                My Directory Requests
-            </a>
-        </div>
-    </div>
+                                    <a
+                                        href="{{ url_for('student.directory_requests') }}"
+                                        class="btn btn-outline">
+                                        My Directory Requests
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
 </div>
                     </div>
                 </section>
@@ -427,37 +460,36 @@
                     </div>
 
                     <div>
+                        {% if student %}
                         <strong>Account-linked profile</strong>
                         <p>
                             Your student profile is linked to your signed-in DSA
                             account. Keep your information accurate and avoid sharing
                             your account credentials.
                         </p>
+                        {% else %}
+                        <strong>No student profile yet</strong>
+                        <p>
+                            Create a student profile only if you use DSA as a student.
+                            Staff access will be handled separately through verified roles.
+                        </p>
+                        {% endif %}
                     </div>
                 </div>
             </aside>
         </form>
 
-        <section class="directory-request-card" aria-labelledby="directoryRequestTitle">
+        {% if not active_directory_request and not academic_directory_linked %}
+        <section class="directory-request-card directory-request-workspace" aria-labelledby="directoryRequestTitle">
             <div class="directory-request-intro">
                 <div>
-                    <span class="directory-request-eyebrow">Academic Directory</span>
-                    <h2 id="directoryRequestTitle">Can't find your institution or programme?</h2>
+                    <span class="directory-request-eyebrow">Missing Academic Record</span>
+                    <h2 id="directoryRequestTitle">Request directory review</h2>
                     <p>
-                        Help us improve the DSA academic directory. Submit the missing
-                        information and it will be reviewed before being added to the
-                        verified directory.
+                        Use this only when your institution or programme is genuinely missing
+                        from the verified DSA academic directory.
                     </p>
                 </div>
-
-                <button
-                    type="button"
-                    class="directory-request-toggle"
-                    id="directoryRequestToggle"
-                    aria-expanded="false"
-                    aria-controls="directoryRequestPanel">
-                    Submit a request
-                </button>
             </div>
 
             <div class="directory-request-panel" id="directoryRequestPanel" hidden>
@@ -711,6 +743,7 @@
                 </form>
             </div>
         </section>
+        {% endif %}
 
     </div>
 </section>
@@ -726,7 +759,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const programme = document.getElementById("programme");
     const programmeStatus = document.getElementById("programmeStatus");
 
-    const directoryRequestToggle = document.getElementById("directoryRequestToggle");
+    const directoryRequestLauncher = document.getElementById("directoryRequestLauncher");
     const directoryRequestPanel = document.getElementById("directoryRequestPanel");
     const directoryRequestForm = document.getElementById("directoryRequestForm");
     const institutionRequestFields = document.getElementById("institutionRequestFields");
@@ -734,7 +767,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const requestProgrammeInstitution = document.getElementById("requestProgrammeInstitution");
 
     if (
-        directoryRequestToggle &&
+        directoryRequestLauncher &&
         directoryRequestPanel &&
         directoryRequestForm &&
         institutionRequestFields &&
@@ -784,25 +817,70 @@ document.addEventListener("DOMContentLoaded", async function () {
             if (programmeName) {
                 programmeName.required = isProgramme;
             }
+
+            requestTypeInputs.forEach(function (input) {
+                input.checked = input.value === type;
+            });
         }
 
-        directoryRequestToggle.addEventListener("click", function () {
+        function syncProgrammeInstitution() {
+            if (
+                !institution ||
+                !institution.value ||
+                !requestProgrammeInstitution
+            ) {
+                return false;
+            }
+
+            const matchingOption = Array.from(
+                requestProgrammeInstitution.options
+            ).find(function (option) {
+                return option.value === institution.value;
+            });
+
+            if (!matchingOption) {
+                return false;
+            }
+
+            requestProgrammeInstitution.value = institution.value;
+            return true;
+        }
+
+        directoryRequestLauncher.addEventListener("click", function () {
             const willOpen = directoryRequestPanel.hidden;
 
             directoryRequestPanel.hidden = !willOpen;
-            directoryRequestToggle.setAttribute(
+            directoryRequestLauncher.setAttribute(
                 "aria-expanded",
                 String(willOpen)
             );
 
-            directoryRequestToggle.textContent = willOpen
-                ? "Close request"
-                : "Submit a request";
+            if (!willOpen) {
+                return;
+            }
+
+            const hasSelectedInstitution = syncProgrammeInstitution();
+            const initialType = hasSelectedInstitution
+                ? "Programme"
+                : "Institution";
+
+            setDirectoryRequestType(initialType);
+
+            window.requestAnimationFrame(function () {
+                directoryRequestPanel.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                });
+            });
         });
 
         requestTypeInputs.forEach(function (input) {
             input.addEventListener("change", function () {
                 setDirectoryRequestType(input.value);
+
+                if (input.value === "Programme") {
+                    syncProgrammeInstitution();
+                }
             });
         });
 

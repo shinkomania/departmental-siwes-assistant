@@ -506,6 +506,228 @@ class DSATestCase(unittest.TestCase):
 
         self.assertEqual(request_count, 1)
 
+    def test_phase4_any_open_directory_request_blocks_another_request(self):
+        """One open request blocks a different directory request."""
+        user = User(
+            full_name="Single Open Request Student",
+            email="single-open-request@example.com",
+            password_hash="test-password-hash",
+            account_status="Active",
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        existing_request = DirectoryRequest(
+            user_id=user.id,
+            request_type=DirectoryRequest.TYPE_INSTITUTION,
+            institution_name="First Missing University",
+            status=DirectoryRequest.STATUS_SUBMITTED,
+        )
+
+        db.session.add(existing_request)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = user.id
+
+        response = self.client.post(
+            "/academic/directory-request",
+            data={
+                "request_type": DirectoryRequest.TYPE_INSTITUTION,
+                "institution_name": "Second Missing University",
+                "institution_type": "University",
+                "state": "Kaduna",
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.location.endswith("/profile"))
+        self.assertEqual(
+            DirectoryRequest.query.filter_by(user_id=user.id).count(),
+            1,
+        )
+
+    def test_phase4_all_open_directory_request_statuses_block_new_request(self):
+        """Every non-final review status counts as an open request."""
+        open_statuses = (
+            DirectoryRequest.STATUS_SUBMITTED,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+            DirectoryRequest.STATUS_MORE_INFO_REQUIRED,
+        )
+
+        for index, status in enumerate(open_statuses):
+            with self.subTest(status=status):
+                user = User(
+                    full_name=f"Open Status Student {index}",
+                    email=f"open-status-{index}@example.com",
+                    password_hash="test-password-hash",
+                    account_status="Active",
+                )
+
+                db.session.add(user)
+                db.session.commit()
+
+                existing_request = DirectoryRequest(
+                    user_id=user.id,
+                    request_type=DirectoryRequest.TYPE_INSTITUTION,
+                    institution_name=f"Existing Institution {index}",
+                    status=status,
+                )
+
+                db.session.add(existing_request)
+                db.session.commit()
+
+                with self.client.session_transaction() as sess:
+                    sess["user_id"] = user.id
+
+                response = self.client.post(
+                    "/academic/directory-request",
+                    data={
+                        "request_type": DirectoryRequest.TYPE_INSTITUTION,
+                        "institution_name": f"New Institution {index}",
+                    },
+                    follow_redirects=False,
+                )
+
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(
+                    DirectoryRequest.query.filter_by(
+                        user_id=user.id
+                    ).count(),
+                    1,
+                )
+
+    def test_phase4_final_directory_request_statuses_do_not_block_new_request(self):
+        """Completed request history does not permanently block new requests."""
+        final_statuses = (
+            DirectoryRequest.STATUS_APPROVED,
+            DirectoryRequest.STATUS_REJECTED,
+            DirectoryRequest.STATUS_WITHDRAWN,
+        )
+
+        for index, status in enumerate(final_statuses):
+            with self.subTest(status=status):
+                user = User(
+                    full_name=f"Final Status Student {index}",
+                    email=f"final-status-{index}@example.com",
+                    password_hash="test-password-hash",
+                    account_status="Active",
+                )
+
+                db.session.add(user)
+                db.session.commit()
+
+                old_request = DirectoryRequest(
+                    user_id=user.id,
+                    request_type=DirectoryRequest.TYPE_INSTITUTION,
+                    institution_name=f"Old Institution {index}",
+                    status=status,
+                )
+
+                db.session.add(old_request)
+                db.session.commit()
+
+                with self.client.session_transaction() as sess:
+                    sess["user_id"] = user.id
+
+                response = self.client.post(
+                    "/academic/directory-request",
+                    data={
+                        "request_type": DirectoryRequest.TYPE_INSTITUTION,
+                        "institution_name": f"New Institution {index}",
+                        "institution_type": "University",
+                        "state": "Kaduna",
+                    },
+                    follow_redirects=False,
+                )
+
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(
+                    DirectoryRequest.query.filter_by(
+                        user_id=user.id
+                    ).count(),
+                    2,
+                )
+
+    def test_phase4_structured_programme_blocks_missing_directory_requests(self):
+        """Linked academic identity cannot use the missing-record workflow."""
+        fixture = self._create_authorization_fixture()
+
+        user = User(
+            full_name="Linked Programme Student",
+            email="linked-programme-request@example.com",
+            password_hash="test-password-hash",
+            account_status="Active",
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = user.id
+
+        profile_response = self.client.post(
+            "/profile",
+            data={
+                "full_name": "Linked Programme Student",
+                "matric_no": "PHASE4/DIR/001",
+                "institution_id": str(fixture["institution_a"].id),
+                "academic_unit_id": str(fixture["faculty_a"].id),
+                "department_id": str(fixture["department_a"].id),
+                "programme_id": str(fixture["programme_a"].id),
+                "level": "400 level",
+                "siwes_session": "2026",
+                "preferred_state": "Kaduna",
+                "preferred_city": "Zaria",
+                "area_of_interest": "Software Development",
+                "preferred_org_type": "Technology company",
+                "skills": "Python, SQL",
+                "bio": "Directory request eligibility test",
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(profile_response.status_code, 302)
+
+        student = StudentProfile.query.filter_by(
+            user_id=user.id
+        ).first()
+
+        self.assertIsNotNone(student)
+        self.assertEqual(
+            student.programme_id,
+            fixture["programme_a"].id,
+        )
+
+
+        institution_response = self.client.post(
+            "/academic/directory-request",
+            data={
+                "request_type": DirectoryRequest.TYPE_INSTITUTION,
+                "institution_name": "Another University",
+            },
+            follow_redirects=False,
+        )
+
+        programme_response = self.client.post(
+            "/academic/directory-request",
+            data={
+                "request_type": DirectoryRequest.TYPE_PROGRAMME,
+                "institution_id": str(fixture["institution_a"].id),
+                "programme_name": "B.Eng. Another Engineering",
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(institution_response.status_code, 302)
+        self.assertEqual(programme_response.status_code, 302)
+        self.assertEqual(
+            DirectoryRequest.query.filter_by(user_id=user.id).count(),
+            0,
+        )
+
     def test_phase4_directory_request_requires_authentication(self):
         """Unauthenticated users cannot submit academic directory requests."""
         response = self.client.post(
@@ -652,6 +874,115 @@ class DSATestCase(unittest.TestCase):
             student.institution_display_name,
             "Institution A, Zaria",
         )
+
+    def test_phase4_profile_directory_support_eligible_state(self):
+        """Eligible profile shows the missing-directory request workspace."""
+        user = User(
+            full_name="Directory UI Eligible Student",
+            email="directory-ui-eligible@example.com",
+            password_hash="test-password-hash",
+            account_status="Active",
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = user.id
+
+        response = self.client.get("/profile")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Request Missing Record", response.data)
+        self.assertIn(b'id="directoryRequestLauncher"', response.data)
+        self.assertIn(b'id="directoryRequestPanel"', response.data)
+        self.assertNotIn(b"View Active Request", response.data)
+        self.assertNotIn(b"Academic directory linked", response.data)
+
+    def test_phase4_profile_directory_support_active_request_state(self):
+        """Open request replaces the new-request workspace with tracking actions."""
+        user = User(
+            full_name="Directory UI Active Request Student",
+            email="directory-ui-active@example.com",
+            password_hash="test-password-hash",
+            account_status="Active",
+        )
+
+        db.session.add(user)
+        db.session.flush()
+
+        directory_request = DirectoryRequest(
+            user_id=user.id,
+            request_type=DirectoryRequest.TYPE_INSTITUTION,
+            institution_name="Missing UI Test University",
+            institution_type="University",
+            state="Kaduna",
+            status=DirectoryRequest.STATUS_SUBMITTED,
+        )
+
+        db.session.add(directory_request)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = user.id
+
+        response = self.client.get("/profile")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Directory request in progress", response.data)
+        self.assertIn(b"View Active Request", response.data)
+        self.assertNotIn(b'id="directoryRequestLauncher"', response.data)
+        self.assertNotIn(b'id="directoryRequestPanel"', response.data)
+
+    def test_phase4_profile_directory_support_linked_state(self):
+        """Linked academic identity does not render the missing-record workspace."""
+        fixture = self._create_authorization_fixture()
+
+        user = User(
+            full_name="Directory UI Linked Student",
+            email="directory-ui-linked@example.com",
+            password_hash="test-password-hash",
+            account_status="Active",
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = user.id
+
+        profile_response = self.client.post(
+            "/profile",
+            data={
+                "full_name": "Directory UI Linked Student",
+                "matric_no": "PHASE4/DIR/UI/001",
+                "institution_id": str(fixture["institution_a"].id),
+                "academic_unit_id": str(fixture["faculty_a"].id),
+                "department_id": str(fixture["department_a"].id),
+                "programme_id": str(fixture["programme_a"].id),
+                "level": "400 level",
+                "siwes_session": "2026",
+                "preferred_state": "Kaduna",
+                "preferred_city": "Zaria",
+                "area_of_interest": "Software Development",
+                "preferred_org_type": "Technology company",
+                "skills": "Python, SQL",
+                "bio": "Directory support linked-state test",
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(profile_response.status_code, 302)
+
+        response = self.client.get("/profile")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Academic directory linked", response.data)
+        self.assertIn(b"My Directory Requests", response.data)
+        self.assertNotIn(b"Request Missing Record", response.data)
+        self.assertNotIn(b'id="directoryRequestLauncher"', response.data)
+        self.assertNotIn(b'id="directoryRequestPanel"', response.data)
+
 
     def test_phase4_profile_rejects_mismatched_academic_hierarchy(self):
         """A student cannot combine IDs belonging to different hierarchies."""

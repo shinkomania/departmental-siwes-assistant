@@ -471,27 +471,26 @@ def submit_directory_request():
         DirectoryRequest.STATUS_MORE_INFO_REQUIRED,
     ]
 
-    duplicate_query = DirectoryRequest.query.filter(
+    open_directory_request = DirectoryRequest.query.filter(
         DirectoryRequest.user_id == user.id,
-        DirectoryRequest.request_type == request_type,
         DirectoryRequest.status.in_(open_statuses),
-    )
+    ).first()
 
-    if request_type == DirectoryRequest.TYPE_INSTITUTION:
-        duplicate_query = duplicate_query.filter(
-            db.func.lower(DirectoryRequest.institution_name)
-            == institution_name.lower()
-        )
-    else:
-        duplicate_query = duplicate_query.filter(
-            DirectoryRequest.institution_id == institution_id,
-            db.func.lower(DirectoryRequest.programme_name)
-            == programme_name.lower(),
-        )
-
-    if duplicate_query.first():
+    if open_directory_request:
         flash(
-            "You already have an open request for this academic directory item.",
+            "You already have an open academic directory request. "
+            "Please complete or withdraw it before submitting another one.",
+            "info",
+        )
+        return redirect(url_for("student.profile"))
+
+    student = StudentProfile.query.filter_by(user_id=user.id).first()
+
+    if student and student.programme_id:
+        flash(
+            "Your structured academic programme is already linked to your "
+            "student profile. Directory requests are only for academic "
+            "records that are missing from DSA.",
             "info",
         )
         return redirect(url_for("student.profile"))
@@ -735,6 +734,17 @@ def profile():
         selected_department_id = None
         selected_programme_id = None
 
+        open_directory_statuses = [
+            DirectoryRequest.STATUS_SUBMITTED,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+            DirectoryRequest.STATUS_MORE_INFO_REQUIRED,
+        ]
+
+        active_directory_request = DirectoryRequest.query.filter(
+            DirectoryRequest.user_id == user.id,
+            DirectoryRequest.status.in_(open_directory_statuses),
+        ).order_by(DirectoryRequest.created_at.desc()).first()
+
         if student and student.programme:
             selected_programme_id = student.programme.id
 
@@ -760,6 +770,8 @@ def profile():
             selected_academic_unit_id=selected_academic_unit_id,
             selected_department_id=selected_department_id,
             selected_programme_id=selected_programme_id,
+            active_directory_request=active_directory_request,
+            academic_directory_linked=bool(selected_programme_id),
         )
 
     if request.method == "POST":
