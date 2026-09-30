@@ -922,3 +922,59 @@ The next development target is **Controlled Directory Publication**: a deliberat
 Platform Administration should remain separate from future Institution and Department Coordinator workspaces.
 
 As platform volume and attention signals grow, dashboard aggregation should eventually move from route-level count queries toward a dedicated service/read model with appropriate indexes rather than accumulating increasingly complex overview queries.
+
+## 29. Trusted Academic Directory Strategy - Architectural Decision
+
+Before beginning Controlled Directory Publication, the DSA directory strategy was expanded into Milestone E - Trusted Academic Directory Foundation.
+
+The reason for this change is that student-submitted missing-institution requests should not be the primary mechanism through which DSA discovers Nigerian tertiary institutions. DSA should begin with a strong source-backed national baseline and use DirectoryRequest primarily for genuine omissions, corrections and exceptional cases.
+
+Official-source direction:
+
+- NUC for universities and relevant university/programme recognition;
+- NBTE for polytechnics and relevant TVET institutions/programmes;
+- NCCE for Colleges of Education;
+- JAMB IBASS for institution/programme discovery and cross-checking;
+- official institution sources for internal academic structure;
+- institution SIWES offices, institutional documentation and relevant ITF evidence for SIWES-specific configuration.
+
+Official-source information must not be copied blindly. A source may be authoritative for institution recognition while individual contact, website, internal-structure or other fields may still require separate validation.
+
+DSA must distinguish:
+
+1. institution recognition/verification;
+2. programme recognition/availability;
+3. internal academic-structure verification;
+4. SIWES eligibility/configuration.
+
+Recognition of a programme must never automatically mark it as SIWES-enabled.
+
+The architecture should support reusable source provenance so authoritative records can retain information about the supporting authority/reference, verification purpose, review time, responsible actor/process and appropriate source version/snapshot information.
+
+Preferred controlled-import direction:
+
+Official Source -> Import Candidate -> Normalize -> Match/Compare -> Review -> Publish
+
+External-source changes must not silently overwrite production directory records.
+
+The future "Can't find your institution?" and "Can't find your programme?" experience should first use strong canonical search, aliases/abbreviations and later safe fuzzy matching before opening a missing-directory request.
+
+Directory aliases should preserve one canonical Institution record while supporting official abbreviations, former names, common abbreviations and alternative spellings.
+
+DirectoryRequest remains the review/correction layer. Approval remains separate from authoritative publication.
+
+Milestone E progression:
+
+- E1 - Source and Provenance Architecture;
+- E2 - Controlled National Institution Seed / Import;
+- E3 - Controlled DirectoryRequest Publication;
+- E4 - Programme and Academic-Hierarchy Enrichment;
+- E5 - Directory Discovery and Missing-Data UX.
+
+Controlled publication requirements from the previous roadmap remain valid inside E3: explicit authorized publication, hierarchy validation, duplicate prevention, preserved request history, actor/provenance accountability and no automatic publication from approval.
+
+Verified, active, suspended and inactive directory lifecycle states should remain conceptually distinct. Historical authoritative records should normally be preserved rather than deleted simply because their current operating state changes.
+
+Future Platform Administration may include a real Academic Directory / Source Sync workspace once the underlying workflows exist. Fake navigation routes must not be created in advance.
+
+This architectural change expands rather than discards the previously planned Controlled Directory Publication milestone.

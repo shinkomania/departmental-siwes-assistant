@@ -152,38 +152,139 @@ Approved requests are review decisions only.
 
 Authoritative academic records require a separate deliberate publication workflow.
 
-## Immediate Next Step - Controlled Directory Publication
+## Immediate Next Step - Milestone E: Trusted Academic Directory Foundation
 
-The next major development target is the controlled authoritative academic-directory workflow.
+The next major development target is no longer publication in isolation. DSA should first establish a trusted, source-backed national academic-directory foundation so that student requests become an exception and correction mechanism rather than the primary way the platform discovers Nigerian institutions.
 
-The goal is to move from an approved request to a deliberate, auditable authoritative directory action without weakening the review/publication boundary.
+### Core Directory Strategy
 
-Before implementation, inspect the existing:
+DSA should progressively seed and maintain its authoritative directory from recognized official sources.
 
-- `Institution`;
-- `AcademicUnit`;
-- `Department`;
-- `Programme`;
-- verification/status fields;
-- current Platform Administrator authorization;
-- approved DirectoryRequest data contract.
+Current source-authority direction:
 
-Design requirements:
+- NUC for universities and university/programme recognition;
+- NBTE for polytechnics and relevant TVET institutions/programmes;
+- NCCE for Colleges of Education;
+- JAMB IBASS as an important institution/programme discovery and cross-check source;
+- official institution sources for internal Faculty/College/School, Department and programme structure;
+- institution SIWES offices, approved institutional documentation and relevant ITF evidence for SIWES-specific configuration.
+
+Official-source data must not be copied blindly. Recognition of an institution or programme does not prove every contact field, internal academic structure or SIWES rule.
+
+### Separate Verification Claims
+
+DSA must keep these concepts distinct:
+
+1. Institution recognition/verification.
+2. Programme recognition/availability.
+3. Internal academic-structure verification.
+4. Programme SIWES eligibility/configuration.
+
+A programme appearing in NUC, NBTE, NCCE, JAMB or another recognition source must never automatically make that programme SIWES-enabled.
+
+### Source Provenance
+
+Authoritative directory data should be traceable to its supporting source.
+
+Design for reusable source/provenance records capable of recording:
+
+- source authority;
+- source/reference URL or identifier;
+- entity type and entity;
+- verification purpose;
+- checked/reviewed timestamp;
+- responsible reviewer or import process;
+- source version/snapshot/hash where practical;
+- notes.
+
+Do not scatter unrelated publication metadata across every academic model if a reusable provenance/audit architecture provides a cleaner solution.
+
+### Controlled Import Direction
+
+Do not build production directory maintenance around fragile live scraping or automatic source overwrites.
+
+Preferred flow:
+
+Official Source -> Import Candidate -> Normalize -> Match/Compare -> Review -> Publish
+
+Source changes should be reviewable before changing authoritative DSA records.
+
+Future source synchronization may identify:
+
+- new records;
+- matched/unchanged records;
+- changed records;
+- possible duplicates;
+- records requiring human review.
+
+### Missing Institution / Programme UX
+
+"Can't find your institution?" and "Can't find your programme?" should become exception workflows.
+
+Before offering a request:
+
+- provide strong search;
+- support canonical names and aliases/abbreviations;
+- later support safe fuzzy matching;
+- search by relevant location/context where useful.
+
+Institution aliases should eventually support official abbreviations, former names, common abbreviations and alternative spellings while preserving one canonical Institution record.
+
+If a genuinely missing institution or programme remains, the user may submit a DirectoryRequest for review.
+
+A DirectoryRequest must never directly become authoritative directory data.
+
+### Milestone E Progression
+
+#### E1 - Source and Provenance Architecture
+
+Inspect and design the reusable source/provenance and authoritative-directory data contract.
+
+#### E2 - Controlled National Institution Seed / Import
+
+Build a reviewed import path for establishing a strong Nigerian institution baseline from recognized official sources without silent production overwrites.
+
+#### E3 - Controlled DirectoryRequest Publication
+
+Build the deliberate Platform Administrator workflow that can turn an approved request into authoritative directory data through the same trusted publication principles.
+
+Requirements remain:
 
 - no automatic publication on request approval;
-- explicit Platform Administrator publication action;
-- validate hierarchy before creation;
-- prevent duplicate authoritative records;
-- preserve request history;
-- record who performed the publication action;
-- make publication auditable;
-- expose only valid active/verified authoritative records to student selection flows;
-- preserve programme-level SIWES configuration and eligibility rules;
-- design for later institution-managed directory maintenance without granting it prematurely.
+- explicit authorized publication action;
+- hierarchy validation;
+- duplicate prevention;
+- preserved request history;
+- publication provenance and actor accountability;
+- atomic authoritative changes where practical.
 
-Do not create fake navigation routes for directory areas that do not yet exist.
+#### E4 - Programme and Academic-Hierarchy Enrichment
 
-After Controlled Directory Publication:
+Progressively enrich Institution -> AcademicUnit -> Department -> Programme data from reliable sources.
+
+Do not infer an institution's internal hierarchy merely from a programme name when an authoritative institutional structure has not been established.
+
+#### E5 - Directory Discovery and Missing-Data UX
+
+Improve canonical search, aliases, safe fuzzy discovery and the "Can't find..." workflows so requests handle genuine omissions/corrections rather than ordinary search failures.
+
+### Lifecycle Principle
+
+Verified, active, suspended and inactive are not interchangeable concepts.
+
+Historical authoritative records should generally be preserved rather than deleted merely because an institution or programme later becomes inactive or changes status.
+
+### Scalability Direction
+
+As DSA matures, Platform Administration may gain an Academic Directory workspace such as:
+
+Overview | Institutions | Academic Units | Departments | Programmes | Requests | Source Sync
+
+Do not create navigation or routes for these areas until their real workflows exist.
+
+### After Milestone E
+
+Current broader roadmap remains:
 
 1. Staff Access Requests and scoped staff workspaces.
 2. Broader account/profile/onboarding and workspace switching.
