@@ -815,3 +815,61 @@ requested, requester response received, approval and rejection.
 
 Directory review state remains separate from authoritative directory
 publication. Notifications must not weaken that invariant.
+
+## 27. Directory Workflow Notification Integrations - Completed
+
+Milestone C4 connected real academic-directory review events to the reusable DSA notification subsystem.
+
+Implementation commit:
+
+`1361f41 Integrate directory workflow notifications`
+
+The following real workflow events now generate recipient-specific notifications:
+
+1. Reviewer requests clarification -> requester.
+2. Requester submits clarification response -> assigned reviewer.
+3. Reviewer approves request -> requester.
+4. Reviewer rejects request -> requester.
+
+Implemented notification types:
+
+- `directory_clarification_requested`
+- `directory_clarification_response_received`
+- `directory_request_approved`
+- `directory_request_rejected`
+
+These notifications use the `Directory & Reviews` category, generic `DirectoryRequest` source metadata and controlled internal DSA action destinations.
+
+Requester-facing events link to the requester's protected academic-directory request detail route.
+
+Reviewer-facing clarification responses link to the Platform Administrator reviewer case workspace.
+
+Notification links remain navigation only. Their destination routes independently enforce requester ownership or Platform Administrator authorization.
+
+Sensitive reviewer notes, requester clarification text and evidence references are deliberately excluded from notification preview messages. This reduces unnecessary disclosure in the global bell/notification centre and creates a safer foundation for possible future external delivery such as email or push notifications.
+
+Where integrated, notification creation uses `commit=False` so the notification participates in the same database transaction as the directory-review state change and clarification message.
+
+The established directory-review invariant remains unchanged:
+
+**Approving a DirectoryRequest does not itself create or verify an authoritative Institution, AcademicUnit, Department or Programme.**
+
+C4 added focused end-to-end regression coverage for notification recipients, metadata, action destinations, privacy, reviewer assignment retention, invalid-transition behavior and the approval/publication boundary.
+
+Verification at completion:
+
+- 5 focused C4 workflow-notification tests passed;
+- 44 directory-request regression tests passed;
+- 2 clarification regression tests passed;
+- 20 notification regression tests passed;
+- 251 full-suite tests passed in 80.378 seconds;
+- Python compilation checks passed;
+- `git diff --check` reported no whitespace errors;
+- known Windows LF/CRLF warning remained non-failing;
+- real desktop directory-review notification flow passed;
+- real approximately 390 x 844 mobile flow passed;
+- bell unread count, notification centre, safe notification preview and protected destination navigation were manually validated.
+
+The current evidence/reference field remains text based. A later evidence/file-handling milestone should support reusable official/reference URLs, document/image attachments and supporting notes with safe server-side validation and storage abstraction. Evidence must never automatically verify or publish directory data.
+
+The next development target is **Milestone D - Platform Administration Refresh**, followed by Controlled Directory Publication.
