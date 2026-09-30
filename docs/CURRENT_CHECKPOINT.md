@@ -8,7 +8,7 @@
 
 Latest implementation commit:
 
-`1361f41 Integrate directory workflow notifications`
+`796c7de Refresh platform administration attention dashboard`
 
 Recent completed milestones:
 
@@ -16,28 +16,25 @@ Recent completed milestones:
 - `06bd46f` - Reviewer Case Workspace
 - `5714446` - Reusable User Notification System
 - `1361f41` - Directory Workflow Notification Integrations
+- `796c7de` - Platform Administration Attention Dashboard
 
-The repository working tree was clean immediately after commit `1361f41`.
+The implementation working tree was clean immediately after commit `796c7de`.
 
 ## Verification Baseline
 
-At completion of Milestone C4:
+At completion of Milestone D:
 
-- 5 focused C4 workflow-notification tests passed;
-- 44 directory-request regression tests passed;
-- 2 clarification regression tests passed;
-- 20 notification regression tests passed;
-- 251 full-suite tests passed in 80.378 seconds;
-- Python compilation checks passed;
+- 252 full-suite tests passed in 82.292 seconds;
+- focused Platform Administration dashboard tests passed;
+- the previously existing admin authentication/dashboard regression test passed after updating its stale heading expectation;
 - `git diff --check` reported no whitespace errors;
-- only the known Windows LF/CRLF conversion warning remained;
-- real directory-review notification flow passed on desktop;
-- real directory-review notification flow passed at approximately 390 x 844 mobile size;
-- notification bell unread count, notification centre, safe preview text and protected destination navigation were manually validated.
+- desktop Platform Administration UI was manually validated;
+- responsive UI at approximately 390 x 844 was manually validated;
+- Attention Centre cards, counts, action hierarchy and responsive stacking were manually validated.
 
 Known non-failing technical debt:
 
-- SQLAlchemy legacy `Query.get()` warnings remain elsewhere in the application.
+- SQLAlchemy legacy `Query.get()` warnings remain elsewhere in the application and should be migrated deliberately to SQLAlchemy 2.x-style session access later.
 - Windows Git may report LF/CRLF working-tree conversion warnings.
 
 ## Completed Milestone C - Reusable DSA Notifications
@@ -46,89 +43,36 @@ DSA has a reusable user-level notification subsystem.
 
 Notifications belong to `User`, not `StudentProfile`.
 
-Core implementation:
+Core behavior includes:
 
-- `models/notification.py`
-- migration `8f5d74b88835_add_reusable_user_notifications.py`
-- `services/notification_service.py`
-- `routes/notifications.py`
-- `templates/notifications/index.html`
-- global signed-in notification bell and unread-count badge.
-
-Notification data supports:
-
-- recipient user;
-- category;
-- notification type;
-- title;
-- message;
-- priority;
-- controlled internal action URL;
-- generic source type and source ID;
-- read timestamp;
-- creation timestamp.
-
-Read state is derived from `read_at`.
+- recipient-scoped notification ownership;
+- category, type, title, message and priority;
+- controlled internal action URLs;
+- generic source metadata;
+- read state derived from `read_at`;
+- notification bell and unread count;
+- notification centre with individual and bulk read actions.
 
 ### Notification Security Contract
 
-Notification ownership is a hard authorization boundary.
-
-User A must never be able to view, count, mark as read, open, or bulk-modify User B's notifications.
-
-This is enforced in service and HTTP-route layers.
+User A must never be able to view, count, mark as read, open or bulk-modify User B's notifications.
 
 Platform Administrator authority does not automatically grant access to another user's private notification inbox.
-
-Inactive/suspended accounts cannot use stale sessions to access notification routes.
 
 Notification action URLs provide navigation only. Destination routes independently enforce ownership, permission and scope.
 
 ## Completed Milestone C4 - Directory Workflow Notifications
 
-Real directory-review events now use the reusable notification system.
+Real directory-review events use the reusable notification system.
 
 Implemented events:
 
-1. Reviewer requests clarification -> requester receives notification.
-2. Requester submits clarification -> assigned reviewer receives notification.
-3. Reviewer approves request -> requester receives notification.
-4. Reviewer rejects request -> requester receives notification.
+1. Reviewer requests clarification -> requester.
+2. Requester submits clarification -> assigned reviewer.
+3. Reviewer approves request -> requester.
+4. Reviewer rejects request -> requester.
 
-Current notification types:
-
-- `directory_clarification_requested`
-- `directory_clarification_response_received`
-- `directory_request_approved`
-- `directory_request_rejected`
-
-Directory workflow notifications use:
-
-- category `Directory & Reviews`;
-- recipient-specific notification rows;
-- `DirectoryRequest` source metadata;
-- permission-safe internal action destinations;
-- the same database transaction as the associated workflow change where implemented.
-
-Sensitive reviewer notes, clarification text, evidence references and similar private workflow content are not copied into notification preview messages.
-
-The requester notification links to:
-
-`/academic/directory-requests/<request_id>`
-
-The reviewer notification links to:
-
-`/admin/directory-requests/<request_id>`
-
-Those destination routes independently enforce requester ownership or Platform Administrator authorization.
-
-### Directory Review Invariant
-
-DirectoryRequest review state remains separate from authoritative academic directory publication.
-
-Approving a DirectoryRequest must not automatically create or verify an Institution, AcademicUnit, Department or Programme.
-
-C4 includes regression coverage protecting this boundary.
+Sensitive reviewer notes, clarification text and evidence references are not copied into notification preview messages.
 
 Clarification ownership remains:
 
@@ -139,6 +83,111 @@ Clarification ownership remains:
 - requester responds;
 - request returns to Under Review;
 - original reviewer remains assigned.
+
+## Completed Milestone D - Platform Administration Refresh
+
+Implementation commit:
+
+`796c7de Refresh platform administration attention dashboard`
+
+The Platform Administration overview now answers:
+
+**What needs my attention? What is happening on DSA? Where do I need to go?**
+
+### Attention Centre
+
+The dashboard now surfaces:
+
+- pending organization reviews;
+- new Submitted academic-directory requests;
+- the current Platform Administrator's active directory reviews;
+- cases assigned to the current Platform Administrator that are awaiting requester clarification;
+- clarification responses that are ready for the assigned reviewer.
+
+Assignment-sensitive directory counts are scoped to the current Platform Administrator.
+
+`Response Received` is a derived operational signal, not a persisted DirectoryRequest status.
+
+It is derived when:
+
+- the request is `Under Review`;
+- it remains assigned to the current reviewer; and
+- the latest clarification message was authored by the requester.
+
+The actionable total deliberately does not add `Response Received` separately because it is a subset of active reviews. This prevents double counting.
+
+The current latest-response derivation uses the latest `DirectoryRequestMessage` ID as the append-only ordering signal. If imported or externally sequenced events are introduced later, move to an explicit event sequence/timestamp contract.
+
+### Platform Administration UI
+
+The dashboard heading is now:
+
+`Platform Administration`
+
+The former organization-heavy overview has been rebalanced around operational attention while preserving:
+
+- platform metrics;
+- recent organization review preview;
+- recent users;
+- quick administration actions;
+- evidence/governance guidance.
+
+The Attention Centre has dedicated responsive behavior for desktop, tablet and mobile layouts and respects reduced-motion preferences.
+
+Do not mix Platform Administration with future Institution or Department Coordinator workspaces.
+
+### Scalability Direction
+
+The current dashboard uses several focused count queries plus a latest-message subquery. This is appropriate for the present scale.
+
+As attention signals and platform volume grow, consider moving dashboard aggregation into a dedicated service/read model with appropriate database indexes rather than expanding route-level query logic indefinitely.
+
+## Directory Review / Publication Invariant
+
+DirectoryRequest review state remains separate from authoritative academic directory creation, verification and publication.
+
+**Approving a DirectoryRequest must not automatically create or verify an Institution, AcademicUnit, Department or Programme.**
+
+Approved requests are review decisions only.
+
+Authoritative academic records require a separate deliberate publication workflow.
+
+## Immediate Next Step - Controlled Directory Publication
+
+The next major development target is the controlled authoritative academic-directory workflow.
+
+The goal is to move from an approved request to a deliberate, auditable authoritative directory action without weakening the review/publication boundary.
+
+Before implementation, inspect the existing:
+
+- `Institution`;
+- `AcademicUnit`;
+- `Department`;
+- `Programme`;
+- verification/status fields;
+- current Platform Administrator authorization;
+- approved DirectoryRequest data contract.
+
+Design requirements:
+
+- no automatic publication on request approval;
+- explicit Platform Administrator publication action;
+- validate hierarchy before creation;
+- prevent duplicate authoritative records;
+- preserve request history;
+- record who performed the publication action;
+- make publication auditable;
+- expose only valid active/verified authoritative records to student selection flows;
+- preserve programme-level SIWES configuration and eligibility rules;
+- design for later institution-managed directory maintenance without granting it prematurely.
+
+Do not create fake navigation routes for directory areas that do not yet exist.
+
+After Controlled Directory Publication:
+
+1. Staff Access Requests and scoped staff workspaces.
+2. Broader account/profile/onboarding and workspace switching.
+3. Evidence/attachment architecture where it best fits the workflow.
 
 ## Evidence / Attachment Future Requirement
 
@@ -152,53 +201,7 @@ Future evidence handling should support reusable evidence items such as:
 
 Evidence must remain supporting material only and must never automatically verify or publish an academic record.
 
-Future file handling should include server-side file validation, safe generated filenames, size/type restrictions, protected access where necessary and storage abstraction suitable for later object/cloud storage.
-
-Do not expand this into C4 retroactively.
-
-## Immediate Next Step - Milestone D
-
-Begin the Platform Administration refresh.
-
-The Platform Administration dashboard should answer:
-
-**What needs my attention? What is happening on DSA? Where do I need to go?**
-
-Planned direction:
-
-- Admin Attention Centre;
-- concise overview rather than organization-review dominance;
-- dedicated Platform Administration navigation;
-- clearer separation of reviews, academic directory, organizations, users/access and SIWES content;
-- recent/urgent items on Overview with links to dedicated queues;
-- preserve permission-based Platform Administration authorization;
-- maintain modern, sharp, responsive and professional DSA design.
-
-Planned Platform Administration navigation direction:
-
-**Overview | Reviews | Academic Directory | Organizations | Users & Access | SIWES Content**
-
-Academic Directory direction:
-
-**Requests | Institutions | Academic Units | Departments | Programmes**
-
-Request views should eventually support useful states such as:
-
-- Submitted
-- Assigned to Me
-- Awaiting Student
-- Response Received
-- Approved
-- Rejected
-- Withdrawn
-
-Do not mix Platform Administration with Institution or Department Coordinator workspaces.
-
-After Milestone D:
-
-1. Controlled Directory Publication.
-2. Staff Access Requests and scoped workspaces.
-3. Broader account/profile/onboarding/workspace-switching development.
+Future file handling should include server-side validation, safe generated filenames, size/type restrictions, protected access where necessary and storage abstraction suitable for later object/cloud storage.
 
 ## Standing Identity / Authority Direction
 

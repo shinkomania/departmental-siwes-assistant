@@ -873,3 +873,52 @@ Verification at completion:
 The current evidence/reference field remains text based. A later evidence/file-handling milestone should support reusable official/reference URLs, document/image attachments and supporting notes with safe server-side validation and storage abstraction. Evidence must never automatically verify or publish directory data.
 
 The next development target is **Milestone D - Platform Administration Refresh**, followed by Controlled Directory Publication.
+
+## 28. Platform Administration Refresh - Completed
+
+Milestone D refreshed the Platform Administration overview around operational attention rather than allowing organization review to dominate the dashboard.
+
+Implementation commit:
+
+`796c7de Refresh platform administration attention dashboard`
+
+The dashboard now includes a responsive Attention Centre covering:
+
+- pending organization reviews;
+- new Submitted academic-directory requests;
+- the current Platform Administrator's active directory reviews;
+- assigned cases awaiting requester clarification;
+- clarification responses ready for the assigned reviewer.
+
+Directory workload counts are assignment-sensitive and scoped to the current Platform Administrator.
+
+`Response Received` remains a derived operational signal rather than a new persisted DirectoryRequest status. It represents an Under Review request assigned to the current reviewer whose latest clarification message was authored by the requester.
+
+The actionable total does not count Response Received separately because those cases are already included in active reviews. This avoids double counting.
+
+The current latest-message derivation uses the maximum DirectoryRequestMessage ID as the append-only ordering signal. An explicit event sequence should be considered later if imported or externally ordered workflow events are introduced.
+
+The dashboard heading is now `Platform Administration`, and the overview has been rebalanced while retaining platform metrics, recent organization-review items, recent users, quick actions and evidence/governance guidance.
+
+The Attention Centre includes responsive desktop, tablet and mobile behavior plus reduced-motion handling.
+
+Desktop and approximately 390 x 844 mobile layouts were manually validated.
+
+Verification at completion:
+
+- focused Platform Administration dashboard tests passed;
+- the admin authentication/dashboard regression test passed;
+- 252 full-suite tests passed in 82.292 seconds;
+- `git diff --check` reported no whitespace errors;
+- only the known Windows LF/CRLF conversion warning remained;
+- the existing SQLAlchemy legacy Query.get() warning remained non-failing.
+
+The directory-review/publication boundary remains unchanged:
+
+**Approving a DirectoryRequest does not itself create or verify an authoritative Institution, AcademicUnit, Department or Programme.**
+
+The next development target is **Controlled Directory Publication**: a deliberate, auditable Platform Administrator workflow for turning an approved request into authoritative academic-directory data while validating hierarchy, preventing duplicates and preserving request history.
+
+Platform Administration should remain separate from future Institution and Department Coordinator workspaces.
+
+As platform volume and attention signals grow, dashboard aggregation should eventually move from route-level count queries toward a dedicated service/read model with appropriate indexes rather than accumulating increasingly complex overview queries.
