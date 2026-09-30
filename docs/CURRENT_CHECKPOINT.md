@@ -1,4 +1,4 @@
-# DSA Current Development Checkpoint
+﻿# DSA Current Development Checkpoint
 
 ## Current Branch
 
@@ -8,7 +8,7 @@
 
 Latest implementation commit:
 
-`796c7de Refresh platform administration attention dashboard`
+`eadb609 Add canonical academic directory identity`
 
 Recent completed milestones:
 
@@ -22,12 +22,29 @@ The implementation working tree was clean immediately after commit `796c7de`.
 
 ## Verification Baseline
 
-At completion of Milestone D:
+Current verified implementation baseline:
+
+- implementation commit: `eadb609 Add canonical academic directory identity`;
+- migration revision: `5f733fe82e7c` (`head`);
+- real development database successfully migrated from E1.1 `0f5b0cfdfb95` to E1.2 `5f733fe82e7c`;
+- 267 full-suite tests passed;
+- 11 focused canonical academic-directory identity tests passed;
+- migration round-trip E1.1 -> E1.2 -> E1.1 -> E1.2 passed on a disposable database;
+- Institution, AcademicUnit, Department and Programme canonical-collision cases were each rejected before E1.2 DDL mutation;
+- academic-directory records were preserved during real migration;
+- canonical identity fields were backfilled correctly;
+- SQLite `integrity_check` returned `ok`;
+- SQLite foreign-key verification passed;
+- ORM models and physical E1.2 schema were verified synchronized;
+- `git diff --check` reported no whitespace errors before commit;
+- repository was clean after deployment;
+- verified physical E1.1 recovery backup is being retained.
+
+Historical Milestone D verification included:
 
 - 252 full-suite tests passed in 82.292 seconds;
 - focused Platform Administration dashboard tests passed;
 - the previously existing admin authentication/dashboard regression test passed after updating its stale heading expectation;
-- `git diff --check` reported no whitespace errors;
 - desktop Platform Administration UI was manually validated;
 - responsive UI at approximately 390 x 844 was manually validated;
 - Attention Centre cards, counts, action hierarchy and responsive stacking were manually validated.
@@ -88,7 +105,7 @@ Clarification ownership remains:
 
 Implementation commit:
 
-`796c7de Refresh platform administration attention dashboard`
+`eadb609 Add canonical academic directory identity`
 
 The Platform Administration overview now answers:
 
@@ -151,6 +168,88 @@ DirectoryRequest review state remains separate from authoritative academic direc
 Approved requests are review decisions only.
 
 Authoritative academic records require a separate deliberate publication workflow.
+
+## Completed E1.2 - Canonical Academic Directory Identity
+
+Implementation commit:
+
+`eadb609 Add canonical academic directory identity`
+
+Migration:
+
+`5f733fe82e7c Add canonical academic directory identity`
+
+E1.2 establishes database-backed canonical identity for the authoritative academic hierarchy.
+
+Canonical identity contract:
+
+- Institution identity: `normalized_name`;
+- AcademicUnit identity: `(institution_id, normalized_name)`;
+- Department identity: `(academic_unit_id, normalized_name)`;
+- Programme identity: `(department_id, normalized_name, normalized_award)`.
+
+Normalization is deliberately conservative. It provides stable identity matching without attempting unsafe semantic equivalence between genuinely different academic names or awards.
+
+The canonical identity keys are derived automatically by the academic models and resynchronize when their display identity values change.
+
+Database uniqueness constraints enforce the same identity contract used by the application.
+
+### Legacy Migration Safety
+
+E1.2 performs legacy canonical-collision validation before schema-changing DDL.
+
+The migration deliberately refuses to proceed when legacy records would collapse into the same canonical identity.
+
+Failure-path testing verified this independently for:
+
+- Institution;
+- AcademicUnit;
+- Department;
+- Programme.
+
+For every collision class:
+
+- the migration failed with a controlled diagnostic;
+- the Alembic revision remained at E1.1;
+- no E1.2 canonical columns were introduced;
+- the failure therefore occurred before E1.2 DDL mutation.
+
+This pre-DDL validation is particularly important for SQLite because migration DDL must not be assumed to provide fully transactional rollback behavior.
+
+### Real Database Deployment
+
+The development database was backed up and the backup SHA256 was verified against the source before deployment.
+
+The real development database was then migrated successfully:
+
+`0f5b0cfdfb95 -> 5f733fe82e7c`
+
+Post-deployment verification confirmed:
+
+- all existing academic-directory records were preserved;
+- all canonical identity fields were backfilled correctly;
+- SQLite integrity passed;
+- foreign-key verification passed;
+- ORM/schema synchronization passed;
+- repository remained clean.
+
+The verified E1.1 pre-migration backup must be retained for now.
+
+### Architectural Significance
+
+Canonical identity is infrastructure for the trusted national academic directory rather than a user-facing search heuristic.
+
+It provides a stable basis for later:
+
+- controlled source imports;
+- deterministic matching of source candidates against authoritative records;
+- duplicate prevention;
+- aliases and abbreviations without creating duplicate canonical entities;
+- DirectoryRequest publication;
+- academic-directory enrichment;
+- stronger discovery and missing-data UX.
+
+Canonical identity does not itself establish recognition, verification, publication authority or SIWES eligibility. Those remain separate trust claims governed by source/provenance and publication workflows.
 
 ## Immediate Next Step - Milestone E: Trusted Academic Directory Foundation
 
