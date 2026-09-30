@@ -246,41 +246,127 @@ or publish an academic-directory record.
 Do not implement this evidence subsystem as part of the current review
 workspace milestone.
 
+## Milestone B Completion
+
+**Milestone B - Reviewer Case Workspace is complete.**
+
+Implementation commit:
+
+`06bd46f Add directory request reviewer case workspace`
+
+The Platform Administrator directory-request detail page now provides:
+
+1. Request summary and academic context.
+2. Chronological Review Conversation.
+3. Reviewer and Requester message identity.
+4. Supporting clarification references where supplied.
+5. Assigned reviewer context.
+6. A derived **Response received** state when:
+   - the request is Under Review; and
+   - the latest clarification message is from the requester.
+7. A responsive Decision Panel for:
+   - Request More Information;
+   - Approve Request;
+   - Reject Request.
+
+No new persisted "Response Received" request status was introduced.
+
+The existing review ownership model remains intact. A requester response
+returns the request to Under Review while preserving the assigned
+reviewer.
+
+Approval remains a review decision only. It does not create, verify, or
+publish an authoritative Institution, AcademicUnit, Department, or
+Programme record.
+
+## Milestone B Verification
+
+Verified at commit `06bd46f`:
+
+- focused Reviewer Case Workspace tests: **4 passed**;
+- directory-request regression tests: **44 passed**;
+- full unittest suite: **227 passed**;
+- desktop reviewer workspace UI: **PASS**;
+- mobile reviewer workspace at 390 x 844: **PASS**;
+- responsive Decision Panel: **PASS**;
+- mobile global footer inspection: **PASS**.
+
+Known non-failing warning:
+
+SQLAlchemy `Query.get()` is a legacy API under SQLAlchemy 2.x and should
+eventually migrate toward `Session.get()`. This is not a blocker for the
+current development sequence.
+
+## Current Repository Baseline
+
+Branch:
+
+`phase4-programme-siwes-config`
+
+Current implementation baseline:
+
+`06bd46f Add directory request reviewer case workspace`
+
+Previous meaningful checkpoints:
+
+- `c3898ce Update DSA checkpoint after directory eligibility milestone`
+- `8654703 Enforce directory request eligibility and streamline profile support`
+- `31b8f28 Add directory request withdrawal workflow`
+- `e477f74 Add directory request clarification workflow`
+
+The working tree was clean immediately after commit `06bd46f`.
+
 ## Next Milestone
 
-**Milestone B - Reviewer Case Workspace**
+**Milestone C - Reusable DSA Notifications Foundation**
 
-The current problem to solve:
+The notification architecture must be reusable across DSA rather than
+being built specifically for students or directory requests.
 
-Requester clarification responses are correctly stored and displayed on
-the student side, but the Platform Administrator review detail page does
-not yet present the full clarification conversation clearly.
+Core direction:
 
-The Reviewer Case Workspace should provide:
+- notifications belong to `User`, not `StudentProfile`;
+- support read/unread state;
+- support notification category/type/source;
+- support title and message;
+- support creation timestamp;
+- support a direct action destination/URL;
+- provide a global signed-in notification entry point;
+- preserve authorization at the destination rather than treating a
+  notification link as authorization.
 
-1. Request Summary.
-2. Chronological Review Conversation.
-3. Clear current review state.
-4. Derived "Response received" cue when the latest relevant
-   clarification is from the requester.
-5. Assigned reviewer context.
-6. Clean Decision Panel for the actions valid in the current state.
-7. Existing review ownership enforcement preserved.
+The first practical integration should support the existing directory
+clarification workflow, especially notifying the assigned reviewer when
+a requester submits a clarification response.
 
-Do not create a new database status merely for "Response received".
-Derive it from the existing request/message state unless inspection
-proves a persisted field is required.
+Example:
 
-## Planned Sequence After Milestone B
+**Directory Request #2 - Response received**
 
-1. Reusable DSA Notifications Foundation.
-2. Platform Administration dashboard/navigation refresh.
-3. Controlled Directory Publication.
-4. Staff Access Requests and scoped workspace development.
-5. Broader account/profile/onboarding/workspace-switching experience.
+The notification should lead the authorized reviewer directly to the
+relevant Reviewer Case Workspace.
 
-This order may be adjusted when implementation dependencies require it,
-but do not silently collapse approval and authoritative publication.
+Do not build notifications as directory-request-specific database
+columns. Establish a reusable foundation suitable for future:
+
+- official notices;
+- placement updates;
+- coordinator interventions;
+- SIWES/logbook/report/defence reminders;
+- supervisor updates;
+- staff-access workflows;
+- institution and Platform Administration events.
+
+## Planned Sequence After Milestone C
+
+1. Platform Administration dashboard/navigation refresh.
+2. Controlled Directory Publication.
+3. Staff Access Requests and scoped workspace development.
+4. Broader account/profile/onboarding/workspace-switching experience.
+
+The sequence may be adjusted when real implementation dependencies
+require it, but approval and authoritative publication must remain
+separate.
 
 ## Development Workflow
 
@@ -300,29 +386,21 @@ Do not perform large uncontrolled rewrites.
 
 The repository and current tests override stale documentation.
 
-## Current Test Baseline
-
-At commit `8654703`:
-
-**223 tests passed in the full unittest suite.**
-
-Known non-failing warning:
-
-SQLAlchemy `Query.get()` is a legacy API under SQLAlchemy 2.x and should
-eventually migrate toward `Session.get()`. It is not a blocker for the
-current milestone.
-
 ## Immediate Next Step
 
-Before modifying Milestone B code, inspect:
+Before implementing Milestone C, inspect the existing architecture for:
 
-- `routes/admin.py` directory-request detail/review routes;
-- `templates/admin/directory_request_detail.html`;
-- `models/directory_request.py`;
-- clarification-message model/relationship;
-- directory-request review service;
-- current review ownership tests;
-- current admin review/detail tests.
+- `User` relationships and account model conventions;
+- global authenticated header/base template;
+- authentication/session helpers;
+- database model and migration conventions;
+- existing notification-like behavior, if any;
+- directory clarification response service/route;
+- authorization boundaries for reviewer destinations.
 
-Then define the smallest Reviewer Case Workspace change and its targeted
-tests before implementation.
+Then define the smallest reusable Notification model/service foundation
+and targeted tests before implementation.
+
+Do not begin with notification UI alone. Establish the reusable
+user-level data and service contract first, then integrate one real
+event and finally expose the notification UI.

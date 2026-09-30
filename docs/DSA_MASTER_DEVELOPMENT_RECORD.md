@@ -649,3 +649,90 @@ After Reviewer Case Workspace, the planned sequence is:
 
 At this checkpoint the verified implementation baseline is commit
 `8654703` with **223 passing tests**.
+
+## 24. Reviewer Case Workspace Completion
+
+Milestone B was completed in commit:
+
+`06bd46f Add directory request reviewer case workspace`
+
+The Platform Administrator directory-request review page now functions
+as a case workspace rather than a static request detail page.
+
+It includes:
+
+- chronological clarification conversation;
+- clear Reviewer and Requester identity;
+- supporting clarification references;
+- assigned reviewer context;
+- derived Response received state;
+- responsive review decision controls.
+
+Response received is intentionally derived from existing state rather
+than persisted as another DirectoryRequest status. It applies when the
+request is Under Review and the latest clarification message was
+authored by the Requester.
+
+Reviewer ownership remains unchanged when a requester responds.
+
+The Decision Panel supports:
+
+- Request More Information;
+- Approve Request;
+- Reject Request.
+
+Approval remains separate from authoritative academic directory
+publication. No review action silently creates or verifies an
+Institution, AcademicUnit, Department, or Programme.
+
+Verification at this milestone:
+
+- 4 focused Reviewer Case Workspace tests passed;
+- 44 directory-request regression tests passed;
+- 227 full-suite tests passed;
+- desktop UI passed;
+- 390 x 844 mobile UI passed.
+
+The mobile footer was also inspected and confirmed to render correctly;
+no footer redesign was required.
+
+The known SQLAlchemy `Query.get()` LegacyAPIWarning remains non-failing
+technical debt.
+
+## 25. Reusable Notifications Milestone Direction
+
+The next milestone is:
+
+**Reusable DSA Notifications Foundation**
+
+Notifications must be user-centered and reusable across roles and
+workspaces.
+
+A notification should be capable of representing:
+
+- recipient User;
+- read/unread state;
+- category/type/source;
+- title;
+- message;
+- creation timestamp;
+- direct action destination.
+
+Notification links provide navigation only. Authorization must still be
+enforced by the destination route.
+
+The first real integration should build on the completed directory
+clarification workflow: when a requester responds to a clarification,
+the assigned reviewer should be able to receive an actionable
+notification linking to the Reviewer Case Workspace.
+
+The architecture must remain suitable for later official notices,
+placement activity, coordinator interventions, SIWES deadlines,
+supervisor activity, staff-access workflows, and other institutional or
+Platform Administration events.
+
+Do not implement notifications as special-purpose fields on
+DirectoryRequest.
+
+The implementation baseline entering this milestone is commit
+`06bd46f` with **227 passing tests**.
