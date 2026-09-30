@@ -18,8 +18,18 @@ from models.user import User
 from models.academic import Institution, AcademicUnit, Department, Programme
 from models.access import Role, Permission, UserRoleAssignment
 from models.directory_request import DirectoryRequest, DirectoryRequestMessage
+from models.notification import Notification
 from services.placement_search import PlacementSearchService
 from services.authorization import user_has_permission
+from services.notification_service import (
+    NotificationServiceError,
+    create_notification,
+    get_notifications_for_user,
+    get_unread_count_for_user,
+    get_notification_for_user,
+    mark_notification_read,
+    mark_all_notifications_read,
+)
 
 
 class DSATestCase(unittest.TestCase):
@@ -51,6 +61,209 @@ class DSATestCase(unittest.TestCase):
         db.session.add_all([self.guide, self.org])
         db.session.commit()
 
+
+    def _create_notification_route_users(self):
+        user_a = User(
+            full_name="Notification User A",
+            email="notification-user-a@example.com",
+            account_status="Active",
+        )
+        user_a.set_password("notification-user-a-password")
+
+        user_b = User(
+            full_name="Notification User B",
+            email="notification-user-b@example.com",
+            account_status="Active",
+        )
+        user_b.set_password("notification-user-b-password")
+
+        db.session.add_all([user_a, user_b])
+        db.session.commit()
+
+        return user_a, user_b
+
+    def _login_notification_user(self, user):
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess["user_id"] = user.id
+
+    def test_notification_centre_requires_authentication(self):
+        response = self.client.get(
+            "/notifications/",
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login", response.headers["Location"])
+
+    def test_notification_centre_only_shows_current_users_notifications(self):
+        user_a, user_b = self._create_notification_route_users()
+
+        notification_a = create_notification(
+            recipient_user=user_a,
+            category=Notification.CATEGORY_SYSTEM,
+            notification_type="route_isolation_a",
+            title="Private notification for User A",
+            message="Only User A should see this notification.",
+        )
+        create_notification(
+            recipient_user=user_b,
+            category=Notification.CATEGORY_SYSTEM,
+            notification_type="route_isolation_b",
+            title="Private notification for User B",
+            message="User A must never see this notification.",
+        )
+
+        self._login_notification_user(user_a)
+
+        response = self.client.get("/notifications/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            notification_a.title.encode(),
+            response.data,
+        )
+        self.assertNotIn(
+            b"Private notification for User B",
+            response.data,
+        )
+
+    def test_user_cannot_mark_another_users_notification_read(self):
+        user_a, user_b = self._create_notification_route_users()
+
+        foreign_notification = create_notification(
+            recipient_user=user_b,
+            category=Notification.CATEGORY_SYSTEM,
+            notification_type="foreign_read_attempt",
+            title="User B private notification",
+            message="This belongs only to User B.",
+        )
+
+        self._login_notification_user(user_a)
+
+        response = self.client.post(
+            f"/notifications/{foreign_notification.id}/read",
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+        db.session.refresh(foreign_notification)
+
+        self.assertIsNone(foreign_notification.read_at)
+        self.assertFalse(foreign_notification.is_read)
+
+    def test_user_cannot_open_another_users_notification(self):
+        user_a, user_b = self._create_notification_route_users()
+
+        foreign_notification = create_notification(
+            recipient_user=user_b,
+            category=Notification.CATEGORY_SYSTEM,
+            notification_type="foreign_open_attempt",
+            title="User B private action",
+            message="User A must not open this.",
+            action_url="/",
+        )
+
+        self._login_notification_user(user_a)
+
+        response = self.client.post(
+            f"/notifications/{foreign_notification.id}/open",
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+        db.session.refresh(foreign_notification)
+
+        self.assertIsNone(foreign_notification.read_at)
+
+    def test_mark_all_read_only_changes_current_users_notifications(self):
+        user_a, user_b = self._create_notification_route_users()
+
+        notification_a = create_notification(
+            recipient_user=user_a,
+            category=Notification.CATEGORY_SYSTEM,
+            notification_type="mark_all_a",
+            title="User A unread notification",
+            message="This should become read.",
+        )
+        notification_b = create_notification(
+            recipient_user=user_b,
+            category=Notification.CATEGORY_SYSTEM,
+            notification_type="mark_all_b",
+            title="User B unread notification",
+            message="This must remain unread.",
+        )
+
+        self._login_notification_user(user_a)
+
+        response = self.client.post(
+            "/notifications/read-all",
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        db.session.refresh(notification_a)
+        db.session.refresh(notification_b)
+
+        self.assertTrue(notification_a.is_read)
+        self.assertFalse(notification_b.is_read)
+        self.assertIsNone(notification_b.read_at)
+
+    def test_inactive_user_cannot_access_notification_centre_with_stale_session(self):
+        inactive_user = User(
+            full_name="Inactive Notification User",
+            email="inactive-notification-user@example.com",
+            account_status="Suspended",
+        )
+        inactive_user.set_password("inactive-notification-password")
+
+        db.session.add(inactive_user)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess["user_id"] = inactive_user.id
+
+        response = self.client.get(
+            "/notifications/",
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login", response.headers["Location"])
+
+    def test_platform_admin_cannot_open_another_users_private_notification(self):
+        data = self._create_platform_admin_security_fixture()
+        platform_admin = data["platform_admin"]
+        managed_user = data["managed_user"]
+
+        private_notification = create_notification(
+            recipient_user=managed_user,
+            category=Notification.CATEGORY_SYSTEM,
+            notification_type="admin_foreign_open_attempt",
+            title="Managed user private notification",
+            message="Platform authority does not transfer inbox ownership.",
+            action_url="/",
+        )
+
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess["user_id"] = platform_admin.id
+
+        response = self.client.post(
+            f"/notifications/{private_notification.id}/open",
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+        db.session.refresh(private_notification)
+
+        self.assertIsNone(private_notification.read_at)
+        self.assertFalse(private_notification.is_read)
     def tearDown(self):
         db.session.remove()
         db.drop_all()
@@ -2959,6 +3172,430 @@ class DSATestCase(unittest.TestCase):
             data['user'],
             'view_department_students'
         ))
+
+    def test_notification_belongs_to_user(self):
+        user = User(
+            full_name="Notification Recipient",
+            email="notification-recipient@example.com",
+        )
+        user.set_password("TestPassword123!")
+
+        db.session.add(user)
+        db.session.commit()
+
+        notification = Notification(
+            recipient_user_id=user.id,
+            category=Notification.CATEGORY_SYSTEM,
+            notification_type="system_test",
+            title="Test notification",
+            message="This notification belongs directly to a DSA user.",
+        )
+
+        db.session.add(notification)
+        db.session.commit()
+
+        self.assertEqual(notification.recipient.id, user.id)
+        self.assertEqual(user.notifications.count(), 1)
+        self.assertIsNone(
+            StudentProfile.query.filter_by(user_id=user.id).first()
+        )
+
+    def test_notification_defaults_to_normal_and_unread(self):
+        user = User(
+            full_name="Unread Recipient",
+            email="unread-recipient@example.com",
+        )
+        user.set_password("TestPassword123!")
+
+        db.session.add(user)
+        db.session.commit()
+
+        notification = Notification(
+            recipient_user_id=user.id,
+            category=Notification.CATEGORY_SIWES,
+            notification_type="siwes_test",
+            title="SIWES update",
+            message="A reusable SIWES notification.",
+        )
+
+        db.session.add(notification)
+        db.session.commit()
+
+        self.assertEqual(
+            notification.priority,
+            Notification.PRIORITY_NORMAL,
+        )
+        self.assertIsNone(notification.read_at)
+        self.assertFalse(notification.is_read)
+
+    def test_notification_read_state_is_derived_from_read_at(self):
+        user = User(
+            full_name="Read State Recipient",
+            email="read-state-recipient@example.com",
+        )
+        user.set_password("TestPassword123!")
+
+        db.session.add(user)
+        db.session.commit()
+
+        notification = Notification(
+            recipient_user_id=user.id,
+            category=Notification.CATEGORY_DIRECTORY,
+            notification_type="directory_test",
+            title="Directory update",
+            message="A directory notification.",
+        )
+
+        db.session.add(notification)
+        db.session.commit()
+
+        self.assertFalse(notification.is_read)
+
+        notification.read_at = datetime.utcnow()
+        db.session.commit()
+
+        self.assertTrue(notification.is_read)
+
+    def test_notification_preserves_action_and_source_metadata(self):
+        user = User(
+            full_name="Action Recipient",
+            email="action-recipient@example.com",
+        )
+        user.set_password("TestPassword123!")
+
+        db.session.add(user)
+        db.session.commit()
+
+        notification = Notification(
+            recipient_user_id=user.id,
+            category=Notification.CATEGORY_DIRECTORY,
+            notification_type="directory_request_response_received",
+            title="Directory request response received",
+            message="A requester responded to a clarification.",
+            priority=Notification.PRIORITY_IMPORTANT,
+            action_url="/admin/directory-requests/42",
+            source_type="DirectoryRequest",
+            source_id=42,
+        )
+
+        db.session.add(notification)
+        db.session.commit()
+
+        saved = db.session.get(Notification, notification.id)
+
+        self.assertEqual(
+            saved.action_url,
+            "/admin/directory-requests/42",
+        )
+        self.assertEqual(saved.source_type, "DirectoryRequest")
+        self.assertEqual(saved.source_id, 42)
+        self.assertEqual(
+            saved.priority,
+            Notification.PRIORITY_IMPORTANT,
+        )
+
+    def test_user_can_have_multiple_notifications(self):
+        user = User(
+            full_name="Multiple Notification Recipient",
+            email="multiple-notifications@example.com",
+        )
+        user.set_password("TestPassword123!")
+
+        db.session.add(user)
+        db.session.commit()
+
+        first = Notification(
+            recipient_user_id=user.id,
+            category=Notification.CATEGORY_PLACEMENT,
+            notification_type="placement_test",
+            title="Placement update",
+            message="Your placement activity changed.",
+        )
+
+        second = Notification(
+            recipient_user_id=user.id,
+            category=Notification.CATEGORY_OFFICIAL_NOTICE,
+            notification_type="official_notice_test",
+            title="Official notice",
+            message="A new official notice is available.",
+        )
+
+        db.session.add_all([first, second])
+        db.session.commit()
+
+        self.assertEqual(user.notifications.count(), 2)
+
+    def test_notification_service_isolates_user_inboxes(self):
+        user_a = User(
+            full_name="Notification User A",
+            email="notification-user-a@example.com",
+        )
+        user_a.set_password("TestPassword123!")
+
+        user_b = User(
+            full_name="Notification User B",
+            email="notification-user-b@example.com",
+        )
+        user_b.set_password("TestPassword123!")
+
+        db.session.add_all([user_a, user_b])
+        db.session.commit()
+
+        notification_a = create_notification(
+            user_a,
+            Notification.CATEGORY_SYSTEM,
+            "user_a_test",
+            "User A notification",
+            "Visible only to User A.",
+        )
+
+        notification_b = create_notification(
+            user_b,
+            Notification.CATEGORY_SYSTEM,
+            "user_b_test",
+            "User B notification",
+            "Visible only to User B.",
+        )
+
+        user_a_notifications = get_notifications_for_user(user_a)
+        user_b_notifications = get_notifications_for_user(user_b)
+
+        self.assertEqual(
+            [item.id for item in user_a_notifications],
+            [notification_a.id],
+        )
+        self.assertEqual(
+            [item.id for item in user_b_notifications],
+            [notification_b.id],
+        )
+
+    def test_notification_service_unread_count_is_recipient_scoped(self):
+        user_a = User(
+            full_name="Unread User A",
+            email="unread-user-a@example.com",
+        )
+        user_a.set_password("TestPassword123!")
+
+        user_b = User(
+            full_name="Unread User B",
+            email="unread-user-b@example.com",
+        )
+        user_b.set_password("TestPassword123!")
+
+        db.session.add_all([user_a, user_b])
+        db.session.commit()
+
+        create_notification(
+            user_a,
+            Notification.CATEGORY_SIWES,
+            "user_a_unread",
+            "User A unread",
+            "Unread for User A.",
+        )
+
+        create_notification(
+            user_b,
+            Notification.CATEGORY_SIWES,
+            "user_b_unread_one",
+            "User B unread one",
+            "First unread for User B.",
+        )
+
+        create_notification(
+            user_b,
+            Notification.CATEGORY_SIWES,
+            "user_b_unread_two",
+            "User B unread two",
+            "Second unread for User B.",
+        )
+
+        self.assertEqual(get_unread_count_for_user(user_a), 1)
+        self.assertEqual(get_unread_count_for_user(user_b), 2)
+
+    def test_notification_service_cannot_fetch_another_users_notification(self):
+        user_a = User(
+            full_name="Fetch User A",
+            email="fetch-user-a@example.com",
+        )
+        user_a.set_password("TestPassword123!")
+
+        user_b = User(
+            full_name="Fetch User B",
+            email="fetch-user-b@example.com",
+        )
+        user_b.set_password("TestPassword123!")
+
+        db.session.add_all([user_a, user_b])
+        db.session.commit()
+
+        notification_b = create_notification(
+            user_b,
+            Notification.CATEGORY_SYSTEM,
+            "private_notification",
+            "Private notification",
+            "This belongs to User B.",
+        )
+
+        self.assertIsNone(
+            get_notification_for_user(
+                user_a,
+                notification_b.id,
+            )
+        )
+
+    def test_notification_service_cannot_mark_another_users_notification_read(self):
+        user_a = User(
+            full_name="Read User A",
+            email="read-user-a@example.com",
+        )
+        user_a.set_password("TestPassword123!")
+
+        user_b = User(
+            full_name="Read User B",
+            email="read-user-b@example.com",
+        )
+        user_b.set_password("TestPassword123!")
+
+        db.session.add_all([user_a, user_b])
+        db.session.commit()
+
+        notification_b = create_notification(
+            user_b,
+            Notification.CATEGORY_ACCESS_SECURITY,
+            "private_access_event",
+            "Private access notification",
+            "This belongs to User B.",
+        )
+
+        result = mark_notification_read(
+            user_a,
+            notification_b.id,
+        )
+
+        db.session.refresh(notification_b)
+
+        self.assertIsNone(result)
+        self.assertIsNone(notification_b.read_at)
+        self.assertFalse(notification_b.is_read)
+
+    def test_mark_all_notifications_read_does_not_touch_another_user(self):
+        user_a = User(
+            full_name="Bulk User A",
+            email="bulk-user-a@example.com",
+        )
+        user_a.set_password("TestPassword123!")
+
+        user_b = User(
+            full_name="Bulk User B",
+            email="bulk-user-b@example.com",
+        )
+        user_b.set_password("TestPassword123!")
+
+        db.session.add_all([user_a, user_b])
+        db.session.commit()
+
+        create_notification(
+            user_a,
+            Notification.CATEGORY_PLACEMENT,
+            "placement_one",
+            "Placement one",
+            "First User A notification.",
+        )
+
+        create_notification(
+            user_a,
+            Notification.CATEGORY_PLACEMENT,
+            "placement_two",
+            "Placement two",
+            "Second User A notification.",
+        )
+
+        notification_b = create_notification(
+            user_b,
+            Notification.CATEGORY_PLACEMENT,
+            "placement_private",
+            "User B placement",
+            "User B notification.",
+        )
+
+        changed = mark_all_notifications_read(user_a)
+
+        db.session.refresh(notification_b)
+
+        self.assertEqual(changed, 2)
+        self.assertEqual(get_unread_count_for_user(user_a), 0)
+        self.assertEqual(get_unread_count_for_user(user_b), 1)
+        self.assertIsNone(notification_b.read_at)
+
+    def test_notification_service_rejects_external_action_url(self):
+        user = User(
+            full_name="Action URL User",
+            email="action-url-user@example.com",
+        )
+        user.set_password("TestPassword123!")
+
+        db.session.add(user)
+        db.session.commit()
+
+        with self.assertRaises(NotificationServiceError):
+            create_notification(
+                user,
+                Notification.CATEGORY_SYSTEM,
+                "unsafe_link",
+                "Unsafe action",
+                "External links must not become notification actions.",
+                action_url="https://example.com/phishing",
+            )
+
+        with self.assertRaises(NotificationServiceError):
+            create_notification(
+                user,
+                Notification.CATEGORY_SYSTEM,
+                "unsafe_protocol_relative_link",
+                "Unsafe action",
+                "Protocol-relative links must also be rejected.",
+                action_url="//example.com/phishing",
+            )
+
+    def test_notification_service_validates_category_priority_and_source(self):
+        user = User(
+            full_name="Validation User",
+            email="notification-validation@example.com",
+        )
+        user.set_password("TestPassword123!")
+
+        db.session.add(user)
+        db.session.commit()
+
+        with self.assertRaises(NotificationServiceError):
+            create_notification(
+                user,
+                "Unknown Category",
+                "invalid_category",
+                "Invalid category",
+                "This category must be rejected.",
+            )
+
+        with self.assertRaises(NotificationServiceError):
+            create_notification(
+                user,
+                Notification.CATEGORY_SYSTEM,
+                "invalid_priority",
+                "Invalid priority",
+                "This priority must be rejected.",
+                priority="Critical",
+            )
+
+        with self.assertRaises(NotificationServiceError):
+            create_notification(
+                user,
+                Notification.CATEGORY_DIRECTORY,
+                "invalid_source",
+                "Invalid source",
+                "Source metadata must remain consistent.",
+                source_type="DirectoryRequest",
+                source_id=None,
+            )
 
 
 if __name__ == '__main__':

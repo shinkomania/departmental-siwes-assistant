@@ -39,9 +39,11 @@ from routes import (
     placement_bp,
     admin_bp,
     auth_bp,
+    notifications_bp,
 )
 
 from services.authorization import user_has_permission
+from services.notification_service import get_unread_count_for_user
 
 
 migrate = Migrate()
@@ -98,6 +100,7 @@ def create_app(config_name=None):
     app.register_blueprint(placement_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(notifications_bp)
 
     @app.context_processor
     def inject_global_context():
@@ -121,6 +124,7 @@ def create_app(config_name=None):
         current_user = None
         current_student = None
         can_access_platform_admin = False
+        notification_unread_count = 0
 
         if user_id:
             current_user = db.session.get(
@@ -150,6 +154,12 @@ def create_app(config_name=None):
                 )
             )
 
+            notification_unread_count = (
+                get_unread_count_for_user(
+                    current_user
+                )
+            )
+
         return {
             "app_name": app.config.get(
                 "APP_NAME",
@@ -162,6 +172,7 @@ def create_app(config_name=None):
             "current_year": datetime.utcnow().year,
             "current_user": current_user,
             "current_student": current_student,
+            "notification_unread_count": notification_unread_count,
             "can_access_platform_admin":
                 can_access_platform_admin,
         }

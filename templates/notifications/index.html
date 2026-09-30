@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+<section class="notification-page">
+    <div class="container">
+
+        <div class="notification-hero">
+            <div class="notification-hero-copy">
+                <span class="notification-eyebrow">Your DSA updates</span>
+
+                <h1>Notifications</h1>
+
+                <p>
+                    Keep track of important updates across your DSA account,
+                    SIWES activities, reviews, placements, official notices,
+                    access and other platform services.
+                </p>
+            </div>
+
+            <div class="notification-summary" aria-label="Notification summary">
+                <div class="notification-summary-item">
+                    <strong>{{ unread_count }}</strong>
+                    <span>Unread</span>
+                </div>
+
+                <div class="notification-summary-divider" aria-hidden="true"></div>
+
+                <div class="notification-summary-item">
+                    <strong>{{ notifications|length }}</strong>
+                    <span>Total</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="notification-toolbar">
+            <div>
+                <h2>Recent updates</h2>
+
+                <p>
+                    {% if unread_count %}
+                        You have {{ unread_count }} unread
+                        notification{% if unread_count != 1 %}s{% endif %}.
+                    {% else %}
+                        You're all caught up.
+                    {% endif %}
+                </p>
+            </div>
+
+            {% if unread_count %}
+            <form
+                method="POST"
+                action="{{ url_for('notifications.mark_all_read') }}"
+                class="notification-toolbar-form"
+            >
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="{{ csrf_token() }}"
+                >
+
+                <button type="submit" class="btn btn-outline btn-sm">
+                    Mark all as read
+                </button>
+            </form>
+            {% endif %}
+        </div>
+
+        {% if notifications %}
+        <div class="notification-list">
+            {% for notification in notifications %}
+            <article
+                class="notification-card{% if not notification.is_read %} notification-card-unread{% endif %}"
+            >
+                <div
+                    class="notification-status-dot"
+                    aria-hidden="true"
+                ></div>
+
+                <div class="notification-card-main">
+                    <div class="notification-card-top">
+                        <div class="notification-meta">
+                            <span class="notification-category">
+                                {{ notification.category }}
+                            </span>
+
+                            {% if notification.priority == 'Urgent' %}
+                            <span class="notification-priority notification-priority-urgent">
+                                Urgent
+                            </span>
+                            {% elif notification.priority == 'Important' %}
+                            <span class="notification-priority notification-priority-important">
+                                Important
+                            </span>
+                            {% endif %}
+
+                            {% if not notification.is_read %}
+                            <span class="notification-unread-label">
+                                New
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <time
+                            class="notification-time"
+                            datetime="{{ notification.created_at.isoformat() }}"
+                            title="{{ notification.created_at.strftime('%d %B %Y at %H:%M') }}"
+                        >
+                            {{ notification.created_at.strftime('%d %b %Y · %H:%M') }}
+                        </time>
+                    </div>
+
+                    <h3>{{ notification.title }}</h3>
+
+                    <p>{{ notification.message }}</p>
+
+                    <div class="notification-card-actions">
+                        {% if notification.action_url %}
+                        <form
+                            method="POST"
+                            action="{{ url_for('notifications.open_notification', notification_id=notification.id) }}"
+                        >
+                            <input
+                                type="hidden"
+                                name="csrf_token"
+                                value="{{ csrf_token() }}"
+                            >
+
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                View update
+                            </button>
+                        </form>
+                        {% endif %}
+
+                        {% if not notification.is_read %}
+                        <form
+                            method="POST"
+                            action="{{ url_for('notifications.mark_read', notification_id=notification.id) }}"
+                        >
+                            <input
+                                type="hidden"
+                                name="csrf_token"
+                                value="{{ csrf_token() }}"
+                            >
+
+                            <button type="submit" class="notification-read-action">
+                                Mark as read
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <div class="notification-empty">
+            <div class="notification-empty-icon" aria-hidden="true">
+                <svg
+                    viewBox="0 0 24 24"
+                    width="28"
+                    height="28"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+            </div>
+
+            <h2>You're all caught up</h2>
+
+            <p>
+                There are no notifications to show right now. Important DSA
+                updates will appear here when they need your attention.
+            </p>
+        </div>
+        {% endif %}
+
+    </div>
+</section>
+{% endblock %}
