@@ -327,6 +327,8 @@ def _apply_organization_form(org):
 @admin_required
 def dashboard():
     """Platform Administration overview and operational review queue."""
+    platform_admin = _current_platform_administrator()
+
     total_orgs = Organization.query.count()
 
     pending_reviews = Organization.query.filter_by(
@@ -362,6 +364,66 @@ def dashboard():
         status=DirectoryRequest.STATUS_SUBMITTED
     ).count()
 
+    # Platform Administration attention signals.
+    #
+    # DirectoryRequest.status remains the authoritative workflow state.
+    # "Response received" is derived from clarification history rather
+    # than being introduced as another persisted request status.
+    my_active_directory_reviews = DirectoryRequest.query.filter_by(
+        status=DirectoryRequest.STATUS_UNDER_REVIEW,
+        reviewed_by_user_id=platform_admin.id,
+    ).count()
+
+    awaiting_requester_directory_requests = DirectoryRequest.query.filter_by(
+        status=DirectoryRequest.STATUS_MORE_INFO_REQUIRED,
+        reviewed_by_user_id=platform_admin.id,
+    ).count()
+
+    latest_clarification = (
+        db.session.query(
+            DirectoryRequestMessage.directory_request_id.label(
+                "directory_request_id"
+            ),
+            db.func.max(DirectoryRequestMessage.id).label(
+                "latest_message_id"
+            ),
+        )
+        .group_by(DirectoryRequestMessage.directory_request_id)
+        .subquery()
+    )
+
+    response_received_directory_requests = (
+        DirectoryRequest.query
+        .join(
+            latest_clarification,
+            latest_clarification.c.directory_request_id
+            == DirectoryRequest.id,
+        )
+        .join(
+            DirectoryRequestMessage,
+            DirectoryRequestMessage.id
+            == latest_clarification.c.latest_message_id,
+        )
+        .filter(
+            DirectoryRequest.status
+            == DirectoryRequest.STATUS_UNDER_REVIEW,
+            DirectoryRequest.reviewed_by_user_id
+            == platform_admin.id,
+            DirectoryRequestMessage.author_type
+            == DirectoryRequestMessage.AUTHOR_REQUESTER,
+        )
+        .count()
+    )
+
+    # Response received is a subset of active reviews, so it is not
+    # added separately to the total attention workload.
+    total_attention_items = (
+        pending_reviews
+        + submitted_directory_requests
+        + my_active_directory_reviews
+        + awaiting_requester_directory_requests
+    )
+
     recent_pending_reviews = (
         Organization.query
         .filter_by(review_status="Pending")
@@ -389,6 +451,10 @@ def dashboard():
         total_applications=total_applications,
         guide_topics_count=guide_topics_count,
         submitted_directory_requests=submitted_directory_requests,
+        my_active_directory_reviews=my_active_directory_reviews,
+        awaiting_requester_directory_requests=awaiting_requester_directory_requests,
+        response_received_directory_requests=response_received_directory_requests,
+        total_attention_items=total_attention_items,
         recent_pending_reviews=recent_pending_reviews,
         recent_users=recent_users,
     )

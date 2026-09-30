@@ -1920,7 +1920,7 @@ class DSATestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(
-            b'Platform overview',
+            b'Platform Administration',
             response.data,
         )
 
@@ -2069,6 +2069,190 @@ class DSATestCase(unittest.TestCase):
         })
 
         return data
+
+    def test_platform_admin_dashboard_attention_counts_are_scoped_and_derived(self):
+        data = self._create_directory_request_queue_fixture()
+        platform_admin = data["platform_admin"]
+        requester = data["managed_user"]
+
+        second_admin = User(
+            full_name="Second Platform Admin",
+            email="second-platform-admin@example.com",
+            account_status="Active",
+        )
+        second_admin.set_password("second-platform-admin-password")
+        db.session.add(second_admin)
+        db.session.flush()
+
+        platform_role = Role.query.filter_by(
+            slug="platform_administrator"
+        ).one()
+
+        db.session.add(
+            UserRoleAssignment(
+                user_id=second_admin.id,
+                role_id=platform_role.id,
+                institution_id=None,
+                department_id=None,
+                programme_id=None,
+                status="Approved",
+                approved_at=datetime.utcnow(),
+            )
+        )
+
+        active_review = DirectoryRequest(
+            user_id=requester.id,
+            request_type=DirectoryRequest.TYPE_INSTITUTION,
+            institution_name="Active Review University",
+            state="Kaduna",
+            city="Zaria",
+            status=DirectoryRequest.STATUS_UNDER_REVIEW,
+            reviewed_by_user_id=platform_admin.id,
+            review_started_at=datetime.utcnow(),
+        )
+
+        awaiting_requester = DirectoryRequest(
+            user_id=requester.id,
+            request_type=DirectoryRequest.TYPE_INSTITUTION,
+            institution_name="Awaiting Requester University",
+            state="Kaduna",
+            city="Zaria",
+            status=DirectoryRequest.STATUS_MORE_INFO_REQUIRED,
+            reviewed_by_user_id=platform_admin.id,
+            review_started_at=datetime.utcnow(),
+        )
+
+        response_received = DirectoryRequest(
+            user_id=requester.id,
+            request_type=DirectoryRequest.TYPE_INSTITUTION,
+            institution_name="Response Received University",
+            state="Kaduna",
+            city="Zaria",
+            status=DirectoryRequest.STATUS_UNDER_REVIEW,
+            reviewed_by_user_id=platform_admin.id,
+            review_started_at=datetime.utcnow(),
+        )
+
+        reviewer_latest = DirectoryRequest(
+            user_id=requester.id,
+            request_type=DirectoryRequest.TYPE_INSTITUTION,
+            institution_name="Reviewer Latest University",
+            state="Kaduna",
+            city="Zaria",
+            status=DirectoryRequest.STATUS_UNDER_REVIEW,
+            reviewed_by_user_id=platform_admin.id,
+            review_started_at=datetime.utcnow(),
+        )
+
+        other_admin_active = DirectoryRequest(
+            user_id=requester.id,
+            request_type=DirectoryRequest.TYPE_INSTITUTION,
+            institution_name="Other Admin Active University",
+            state="Kaduna",
+            city="Zaria",
+            status=DirectoryRequest.STATUS_UNDER_REVIEW,
+            reviewed_by_user_id=second_admin.id,
+            review_started_at=datetime.utcnow(),
+        )
+
+        other_admin_waiting = DirectoryRequest(
+            user_id=requester.id,
+            request_type=DirectoryRequest.TYPE_INSTITUTION,
+            institution_name="Other Admin Waiting University",
+            state="Kaduna",
+            city="Zaria",
+            status=DirectoryRequest.STATUS_MORE_INFO_REQUIRED,
+            reviewed_by_user_id=second_admin.id,
+            review_started_at=datetime.utcnow(),
+        )
+
+        db.session.add_all([
+            active_review,
+            awaiting_requester,
+            response_received,
+            reviewer_latest,
+            other_admin_active,
+            other_admin_waiting,
+        ])
+        db.session.flush()
+
+        db.session.add_all([
+            DirectoryRequestMessage(
+                directory_request_id=response_received.id,
+                author_user_id=platform_admin.id,
+                author_type=DirectoryRequestMessage.AUTHOR_REVIEWER,
+                message="Please provide more information.",
+            ),
+            DirectoryRequestMessage(
+                directory_request_id=response_received.id,
+                author_user_id=requester.id,
+                author_type=DirectoryRequestMessage.AUTHOR_REQUESTER,
+                message="The requested information is now available.",
+            ),
+            DirectoryRequestMessage(
+                directory_request_id=reviewer_latest.id,
+                author_user_id=requester.id,
+                author_type=DirectoryRequestMessage.AUTHOR_REQUESTER,
+                message="Here is my response.",
+            ),
+            DirectoryRequestMessage(
+                directory_request_id=reviewer_latest.id,
+                author_user_id=platform_admin.id,
+                author_type=DirectoryRequestMessage.AUTHOR_REVIEWER,
+                message="One additional clarification is required.",
+            ),
+        ])
+        db.session.commit()
+
+        recorded = {}
+
+        def capture_template(sender, template, context, **extra):
+            recorded["template"] = template.name
+            recorded["context"] = context
+
+        from flask import template_rendered
+
+        template_rendered.connect(
+            capture_template,
+            self.app,
+            weak=False,
+        )
+
+        try:
+            response = self.client.get("/admin/")
+        finally:
+            template_rendered.disconnect(
+                capture_template,
+                self.app,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(recorded["template"], "admin/dashboard.html")
+
+        context = recorded["context"]
+
+        self.assertEqual(context["submitted_directory_requests"], 2)
+        self.assertEqual(context["my_active_directory_reviews"], 3)
+        self.assertEqual(context["awaiting_requester_directory_requests"], 1)
+        self.assertEqual(context["response_received_directory_requests"], 1)
+
+        expected_attention = (
+            context["pending_reviews"]
+            + 2
+            + 3
+            + 1
+        )
+        self.assertEqual(
+            context["total_attention_items"],
+            expected_attention,
+        )
+
+        # The response-received case is already one of the three active
+        # reviews and therefore must not be counted a second time.
+        self.assertNotEqual(
+            context["total_attention_items"],
+            expected_attention + context["response_received_directory_requests"],
+        )
 
     def test_platform_admin_dashboard_exposes_submitted_directory_requests(self):
         self._create_directory_request_queue_fixture()

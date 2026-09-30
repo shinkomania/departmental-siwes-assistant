@@ -10,18 +10,18 @@
         <div>
             <span class="admin-eyebrow">DSA Platform Administration</span>
 
-            <h1>Platform overview</h1>
+            <h1>Platform Administration</h1>
 
             <p>
-                Manage organization evidence, review community contributions,
-                oversee user access and maintain SIWES guidance across DSA.
+                Monitor platform operations, review trusted data and manage
+                the administrative work that keeps DSA reliable and ready for students.
             </p>
         </div>
 
         <div class="admin-header-actions">
             {% if pending_reviews %}
             <a href="{{ url_for('admin.organization_review_queue') }}" class="btn btn-primary">
-                Review pending
+                Organization reviews
                 <span class="admin-button-count">{{ pending_reviews }}</span>
             </a>
             {% endif %}
@@ -32,58 +32,111 @@
         </div>
     </header>
 
-    <!-- Pending review alert -->
-    {% if pending_reviews %}
-    <section class="admin-review-alert">
-        <div class="admin-review-alert-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-                <path d="M12 8v5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" />
-                <path d="M12 16.5h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
-                <path d="M10.3 4.8 3.4 17a2 2 0 0 0 1.8 3h13.6a2 2 0 0 0 1.8-3L13.7 4.8a2 2 0 0 0-3.4 0Z"
-                    stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-            </svg>
+    <!-- Platform attention centre -->
+    <section class="admin-attention-centre" aria-labelledby="admin-attention-title">
+        <div class="admin-attention-heading">
+            <div>
+                <span class="admin-card-kicker">Operational attention</span>
+                <h2 id="admin-attention-title">Attention Centre</h2>
+                <p>
+                    Review the work currently requiring Platform Administration attention.
+                    Assignment-sensitive counts show only cases belonging to your review workload.
+                </p>
+            </div>
+
+            <div class="admin-attention-total" aria-label="Total actionable items">
+                <span>Actionable</span>
+                <strong>{{ total_attention_items }}</strong>
+            </div>
         </div>
 
-        <div class="admin-review-alert-content">
-            <span class="admin-review-alert-label">
-                Review queue
-            </span>
+        <div class="admin-attention-grid">
+            <a href="{{ url_for('admin.organization_review_queue') }}"
+                class="admin-attention-item {% if pending_reviews %}has-work{% else %}is-clear{% endif %}">
+                <div class="admin-attention-item-top">
+                    <span class="admin-attention-label">Organizations</span>
+                    <strong>{{ pending_reviews }}</strong>
+                </div>
+                <h3>Organization reviews</h3>
+                <p>
+                    {% if pending_reviews %}
+                    Evidence and provenance checks are waiting.
+                    {% else %}
+                    No organization records are waiting for review.
+                    {% endif %}
+                </p>
+                <span class="admin-attention-link">Open review queue <span aria-hidden="true">&rarr;</span></span>
+            </a>
 
-            <h2>
-                {{ pending_reviews }}
-                organization
-                {% if pending_reviews == 1 %}record is{% else %}records are{% endif %}
-                waiting for review
-            </h2>
+            <a href="{{ url_for('admin.directory_request_queue', status='Submitted') }}"
+                class="admin-attention-item {% if submitted_directory_requests %}has-work{% else %}is-clear{% endif %}">
+                <div class="admin-attention-item-top">
+                    <span class="admin-attention-label">Academic directory</span>
+                    <strong>{{ submitted_directory_requests }}</strong>
+                </div>
+                <h3>New directory requests</h3>
+                <p>
+                    {% if submitted_directory_requests %}
+                    New institution or programme requests need triage.
+                    {% else %}
+                    No new academic directory requests are waiting.
+                    {% endif %}
+                </p>
+                <span class="admin-attention-link">Open request queue <span aria-hidden="true">&rarr;</span></span>
+            </a>
 
-            <p>
-                These records may include community-submitted information.
-                Review their provenance and supporting evidence before changing
-                directory visibility or making stronger intake claims.
-            </p>
+            <a href="{{ url_for('admin.directory_request_queue', status='Under Review') }}"
+                class="admin-attention-item {% if my_active_directory_reviews %}has-work{% else %}is-clear{% endif %}">
+                <div class="admin-attention-item-top">
+                    <span class="admin-attention-label">My workload</span>
+                    <strong>{{ my_active_directory_reviews }}</strong>
+                </div>
+                <h3>My active reviews</h3>
+                <p>
+                    {% if my_active_directory_reviews %}
+                    Claimed directory cases are currently under your review.
+                    {% else %}
+                    You have no claimed directory cases in progress.
+                    {% endif %}
+                </p>
+                <span class="admin-attention-link">View active reviews <span aria-hidden="true">&rarr;</span></span>
+            </a>
+
+            <a href="{{ url_for('admin.directory_request_queue', status='More Info Required') }}"
+                class="admin-attention-item {% if awaiting_requester_directory_requests %}has-work{% else %}is-clear{% endif %}">
+                <div class="admin-attention-item-top">
+                    <span class="admin-attention-label">Clarification</span>
+                    <strong>{{ awaiting_requester_directory_requests }}</strong>
+                </div>
+                <h3>Awaiting requester</h3>
+                <p>
+                    {% if awaiting_requester_directory_requests %}
+                    Your cases are waiting for additional requester information.
+                    {% else %}
+                    None of your cases are waiting for requester clarification.
+                    {% endif %}
+                </p>
+                <span class="admin-attention-link">View waiting cases <span aria-hidden="true">&rarr;</span></span>
+            </a>
+
+            <a href="{{ url_for('admin.directory_request_queue', status='Under Review') }}"
+                class="admin-attention-item admin-attention-response {% if response_received_directory_requests %}has-response{% else %}is-clear{% endif %}">
+                <div class="admin-attention-item-top">
+                    <span class="admin-attention-label">Ready for you</span>
+                    <strong>{{ response_received_directory_requests }}</strong>
+                </div>
+                <h3>Response received</h3>
+                <p>
+                    {% if response_received_directory_requests %}
+                    Requesters have replied and these reviews are ready to continue.
+                    {% else %}
+                    No clarification responses are currently waiting for you.
+                    {% endif %}
+                </p>
+                <span class="admin-attention-link">Continue reviews <span aria-hidden="true">&rarr;</span></span>
+            </a>
         </div>
-
-        <a href="{{ url_for('admin.organization_review_queue') }}" class="btn btn-primary">
-            Open review queue
-        </a>
     </section>
-    {% else %}
-    <section class="admin-review-clear">
-        <div aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-                <path d="M12 3 5 6v5c0 4.4 2.8 7.6 7 9 4.2-1.4 7-4.6 7-9V6l-7-3Z" stroke="currentColor"
-                    stroke-width="1.8" stroke-linejoin="round" />
-                <path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-                    stroke-linejoin="round" />
-            </svg>
-        </div>
-
-        <p>
-            <strong>Organization review queue is clear.</strong>
-            No records are currently waiting for DSA review.
-        </p>
-    </section>
-    {% endif %}
 
     <!-- Core metrics -->
     <section class="admin-metrics-grid" aria-label="Platform metrics">
