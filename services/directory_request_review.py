@@ -12,6 +12,7 @@ from datetime import datetime
 from models.db import db
 from models.directory_request import DirectoryRequest, DirectoryRequestMessage
 from services.authorization import user_has_permission
+from services.notification_service import create_notification
 
 
 PLATFORM_ADMIN_PERMISSION = "access_platform_admin_panel"
@@ -138,6 +139,22 @@ def request_directory_request_more_information(
     )
     db.session.add(clarification_message)
 
+    create_notification(
+        recipient_user=directory_request.user,
+        category="Directory & Reviews",
+        notification_type="directory_clarification_requested",
+        title="Additional information required",
+        message=(
+            "Additional information is required for your academic directory "
+            "request. Open the request to review the update and respond."
+        ),
+        priority="Important",
+        action_url=f"/academic/directory-requests/{directory_request.id}",
+        source_type="DirectoryRequest",
+        source_id=directory_request.id,
+        commit=False,
+    )
+
     _commit()
     return directory_request
 
@@ -186,6 +203,22 @@ def respond_to_directory_request_more_information(
     )
     db.session.add(clarification_message)
 
+    create_notification(
+        recipient_user=directory_request.reviewed_by,
+        category="Directory & Reviews",
+        notification_type="directory_clarification_response_received",
+        title="Directory request response received",
+        message=(
+            "A requester has submitted additional information for an academic "
+            "directory request assigned to you."
+        ),
+        priority="Important",
+        action_url=f"/admin/directory-requests/{directory_request.id}",
+        source_type="DirectoryRequest",
+        source_id=directory_request.id,
+        commit=False,
+    )
+
     _commit()
     return directory_request
 
@@ -214,6 +247,22 @@ def approve_directory_request(
         directory_request.review_started_at = _utcnow()
 
     directory_request.decided_at = _utcnow()
+
+    create_notification(
+        recipient_user=directory_request.user,
+        category="Directory & Reviews",
+        notification_type="directory_request_approved",
+        title="Directory request approved",
+        message=(
+            "Your academic directory request has been approved. Approval does "
+            "not by itself publish or verify an academic directory record."
+        ),
+        priority="Normal",
+        action_url=f"/academic/directory-requests/{directory_request.id}",
+        source_type="DirectoryRequest",
+        source_id=directory_request.id,
+        commit=False,
+    )
 
     _commit()
     return directory_request
@@ -247,6 +296,22 @@ def reject_directory_request(
         directory_request.review_started_at = _utcnow()
 
     directory_request.decided_at = _utcnow()
+
+    create_notification(
+        recipient_user=directory_request.user,
+        category="Directory & Reviews",
+        notification_type="directory_request_rejected",
+        title="Directory request not approved",
+        message=(
+            "Your academic directory request was not approved. Open the "
+            "request to review its current status and reviewer information."
+        ),
+        priority="Important",
+        action_url=f"/academic/directory-requests/{directory_request.id}",
+        source_type="DirectoryRequest",
+        source_id=directory_request.id,
+        commit=False,
+    )
 
     _commit()
     return directory_request

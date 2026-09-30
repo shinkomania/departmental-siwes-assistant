@@ -3173,6 +3173,211 @@ class DSATestCase(unittest.TestCase):
             'view_department_students'
         ))
 
+
+    def test_c4_clarification_request_notifies_requester(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        requester = data["managed_user"]
+        reviewer = data["platform_admin"]
+        sensitive_notes = "PRIVATE REVIEW NOTE: verify reference 88421."
+
+        directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        directory_request.reviewed_by_user_id = reviewer.id
+        db.session.commit()
+
+        response = self.client.post(
+            f"/admin/directory-requests/{directory_request.id}/more-information",
+            data={"reviewer_notes": sensitive_notes},
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        notification = Notification.query.filter_by(
+            recipient_user_id=requester.id,
+            notification_type="directory_clarification_requested",
+            source_id=directory_request.id,
+        ).one()
+
+        self.assertEqual(notification.category, "Directory & Reviews")
+        self.assertEqual(notification.priority, "Important")
+        self.assertEqual(notification.source_type, "DirectoryRequest")
+        self.assertEqual(
+            notification.action_url,
+            f"/academic/directory-requests/{directory_request.id}",
+        )
+        self.assertNotIn(sensitive_notes, notification.message)
+
+        self.assertEqual(
+            Notification.query.filter_by(
+                recipient_user_id=reviewer.id,
+                notification_type="directory_clarification_requested",
+                source_id=directory_request.id,
+            ).count(),
+            0,
+        )
+
+    def test_c4_requester_response_notifies_assigned_reviewer(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        requester = data["managed_user"]
+        reviewer = data["platform_admin"]
+        sensitive_response = "PRIVATE RESPONSE: registration reference 12345."
+
+        directory_request.status = DirectoryRequest.STATUS_MORE_INFO_REQUIRED
+        directory_request.reviewed_by_user_id = reviewer.id
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess["user_id"] = requester.id
+
+        response = self.client.post(
+            f"/academic/directory-requests/{directory_request.id}/respond",
+            data={
+                "clarification_message": sensitive_response,
+                "evidence_reference": "https://example.edu/supporting-reference",
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        db.session.refresh(directory_request)
+
+        self.assertEqual(
+            directory_request.status,
+            DirectoryRequest.STATUS_UNDER_REVIEW,
+        )
+        self.assertEqual(
+            directory_request.reviewed_by_user_id,
+            reviewer.id,
+        )
+
+        notification = Notification.query.filter_by(
+            recipient_user_id=reviewer.id,
+            notification_type="directory_clarification_response_received",
+            source_id=directory_request.id,
+        ).one()
+
+        self.assertEqual(notification.category, "Directory & Reviews")
+        self.assertEqual(notification.priority, "Important")
+        self.assertEqual(notification.source_type, "DirectoryRequest")
+        self.assertEqual(
+            notification.action_url,
+            f"/admin/directory-requests/{directory_request.id}",
+        )
+        self.assertNotIn(sensitive_response, notification.message)
+        self.assertNotIn(
+            "https://example.edu/supporting-reference",
+            notification.message,
+        )
+
+        self.assertEqual(
+            Notification.query.filter_by(
+                recipient_user_id=requester.id,
+                notification_type="directory_clarification_response_received",
+                source_id=directory_request.id,
+            ).count(),
+            0,
+        )
+
+    def test_c4_approval_notifies_requester_without_publishing_directory_record(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        requester = data["managed_user"]
+        reviewer = data["platform_admin"]
+
+        directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        directory_request.reviewed_by_user_id = reviewer.id
+        db.session.commit()
+
+        response = self.client.post(
+            f"/admin/directory-requests/{directory_request.id}/approve",
+            data={"reviewer_notes": "Official evidence reviewed."},
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        notification = Notification.query.filter_by(
+            recipient_user_id=requester.id,
+            notification_type="directory_request_approved",
+            source_id=directory_request.id,
+        ).one()
+
+        self.assertEqual(notification.category, "Directory & Reviews")
+        self.assertEqual(notification.priority, "Normal")
+        self.assertEqual(notification.source_type, "DirectoryRequest")
+        self.assertEqual(
+            notification.action_url,
+            f"/academic/directory-requests/{directory_request.id}",
+        )
+
+        self.assertIsNone(
+            Institution.query.filter_by(
+                name=directory_request.institution_name,
+            ).first()
+        )
+
+    def test_c4_rejection_notifies_requester_without_exposing_reviewer_notes(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        requester = data["managed_user"]
+        reviewer = data["platform_admin"]
+        sensitive_notes = "PRIVATE REJECTION DETAIL: internal reference 7788."
+
+        directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        directory_request.reviewed_by_user_id = reviewer.id
+        db.session.commit()
+
+        response = self.client.post(
+            f"/admin/directory-requests/{directory_request.id}/reject",
+            data={"reviewer_notes": sensitive_notes},
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        notification = Notification.query.filter_by(
+            recipient_user_id=requester.id,
+            notification_type="directory_request_rejected",
+            source_id=directory_request.id,
+        ).one()
+
+        self.assertEqual(notification.category, "Directory & Reviews")
+        self.assertEqual(notification.priority, "Important")
+        self.assertEqual(notification.source_type, "DirectoryRequest")
+        self.assertEqual(
+            notification.action_url,
+            f"/academic/directory-requests/{directory_request.id}",
+        )
+        self.assertNotIn(sensitive_notes, notification.message)
+
+    def test_c4_invalid_final_transition_creates_no_notification(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["approved_request"]
+
+        before_count = Notification.query.filter_by(
+            source_type="DirectoryRequest",
+            source_id=directory_request.id,
+        ).count()
+
+        response = self.client.post(
+            f"/admin/directory-requests/{directory_request.id}/approve",
+            data={"reviewer_notes": "Attempted duplicate approval."},
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        after_count = Notification.query.filter_by(
+            source_type="DirectoryRequest",
+            source_id=directory_request.id,
+        ).count()
+
+        self.assertEqual(after_count, before_count)
+
     def test_notification_belongs_to_user(self):
         user = User(
             full_name="Notification Recipient",
