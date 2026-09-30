@@ -978,3 +978,188 @@ Verified, active, suspended and inactive directory lifecycle states should remai
 Future Platform Administration may include a real Academic Directory / Source Sync workspace once the underlying workflows exist. Fake navigation routes must not be created in advance.
 
 This architectural change expands rather than discards the previously planned Controlled Directory Publication milestone.
+## 30. Trusted Data, Live SIWES and Community Intelligence - Future Architecture
+
+Research and architecture discussion around the unfinished Organizations Directory
+identified a broader trusted-data direction that should influence Milestone E
+without diverting the current implementation into premature live-sync or chat work.
+
+### Organization Directory and Live SIWES Are Different Concepts
+
+A persistent Organization record must be distinguished from a time-sensitive SIWES
+opportunity or intake event.
+
+An organization may exist and be source-backed without currently accepting SIWES
+students. Historical acceptance also does not prove current acceptance.
+
+Future placement architecture should therefore support a separate SIWESOpportunity
+or equivalent domain concept linked to an Organization, preserving opportunity
+history instead of repeatedly overwriting the organization's state.
+
+### Trusted Organization Evidence
+
+Organization intelligence may eventually combine evidence from:
+
+- official ITF SIWES employer sources and employer-request information;
+- institution SIWES/placement records;
+- organization official sources;
+- appropriate government/public registries;
+- verified coordinator or institution evidence;
+- community/student contributions.
+
+Each source proves only the claim it actually supports. Organization existence,
+historical placement, current intake and programme relevance must remain distinct.
+
+### Live Opportunity Synchronization
+
+Future live SIWES data should not depend primarily on Platform Administrators
+manually changing acceptance states.
+
+Preferred direction:
+
+External/Official Source -> Source Observation -> Normalize -> Match/Deduplicate ->
+Validate -> Opportunity/Directory Update -> Exception Review
+
+Source-specific adapters/import jobs should isolate external-source changes from
+core DSA logic. If an official API or authorized integration becomes available,
+the adapter should be replaceable without redesigning the domain model.
+
+Synchronization should record source health and freshness. DSA must not continue
+presenting information as freshly confirmed when its supporting source has not
+been successfully refreshed.
+
+Live opportunity records should be capable of retaining information such as:
+
+- source and source reference;
+- first observed time;
+- last successfully observed time;
+- publication time;
+- application deadline where known;
+- expiry/freshness information where known or policy-derived;
+- requested discipline/programme information;
+- reported capacity where supplied by the source;
+- lifecycle state such as Active, Stale, Closed/Expired or Archived.
+
+Disappearance from an external feed must not automatically be interpreted as a
+confirmed closure without an appropriate source-specific policy.
+
+### Automation by Default, Human Review by Exception
+
+DSA should automate routine evidence-backed updates where safe and practical.
+
+Human attention should focus on exceptions such as:
+
+- possible duplicates;
+- unmatched organizations;
+- suspicious or malformed source data;
+- conflicting evidence;
+- unusual source changes;
+- synchronization failures;
+- low-confidence transformations.
+
+Core principle:
+
+**Automate routine evidence-backed updates where practical; use human review for
+exceptions; never automate trust beyond what the evidence actually proves.**
+
+### Programme-Aware Placement Intelligence
+
+Future placement discovery should connect opportunity evidence with academic
+context rather than presenting students with an undifferentiated national list.
+
+The long-term relationship is conceptually:
+
+Student -> Programme -> SIWES context
+
+and
+
+SIWESOpportunity -> Organization -> requested/relevant discipline -> location ->
+freshness -> application information
+
+This can later support explainable placement matching while preserving the
+difference between source-provided facts and DSA-derived recommendations.
+
+### Student Signals and Community Intelligence
+
+Students may eventually submit structured placement signals such as:
+
+- still accepting;
+- applications closed;
+- I applied here;
+- I was accepted here;
+- I was rejected;
+- contact information changed;
+- other placement updates.
+
+A student signal is evidence/community intelligence, not an authoritative fact.
+Signals may be corroborated with other student reports, verified coordinator
+evidence, organization-confirmed information or official sources.
+
+Self-reported activity must not be misrepresented as an unbiased acceptance rate
+or official employer statistic.
+
+### Official DSA Communities / Channels
+
+The previously deferred community concept should remain purpose-driven rather than
+becoming unrestricted generic social networking.
+
+Future official communities/channels may be associated with canonical DSA entities
+or scopes such as:
+
+- institution;
+- department/programme;
+- SIWES session;
+- organization/placement;
+- specific opportunity where appropriate.
+
+Community discussion, structured student signals and Official Notices are separate
+concepts.
+
+Official Notices retain controlled staff publishing authority. Community messages
+must never visually or semantically acquire the authority of an Official Notice.
+
+Future community implementation will require moderation, reporting/blocking,
+rate limiting, spam controls, privacy protection and careful handling of
+unverified claims about organizations.
+
+### Shared Trusted-Data Foundation
+
+Milestone E should avoid an academic-only source architecture if a reusable source
+and evidence foundation can safely support multiple DSA domains.
+
+Potential consumers include:
+
+- Academic Directory;
+- Organizations Directory;
+- SIWES configuration evidence;
+- placement/opportunity intelligence;
+- future controlled source synchronization.
+
+Shared infrastructure must not erase domain-specific trust semantics.
+
+### Implementation Timing
+
+Build now:
+
+- the reusable source/provenance foundation required for Milestone E.
+
+Design now, implement later:
+
+- source observations/import runs;
+- source adapters and synchronization;
+- source-health monitoring;
+- SIWESOpportunity;
+- opportunity freshness/history;
+- programme-aware placement matching;
+- structured student/coordinator/employer signals.
+
+Defer safely:
+
+- real-time community/chat infrastructure;
+- WebSockets and push infrastructure;
+- advanced moderation systems;
+- direct submission to external systems unless supported by an authorized
+  integration mechanism.
+
+This direction should guide E1 architecture without expanding E1 into the complete
+Live SIWES or community implementation.

@@ -290,6 +290,65 @@ Current broader roadmap remains:
 2. Broader account/profile/onboarding and workspace switching.
 3. Evidence/attachment architecture where it best fits the workflow.
 
+## Live SIWES / Trusted Data Future Direction
+
+Milestone E source/provenance architecture should be reusable enough to support
+trusted academic-directory data and later organization/placement intelligence
+without treating their verification rules as identical.
+
+Important future direction:
+
+- an Organization is a relatively persistent directory entity;
+- a SIWES opportunity/intake is time-sensitive and should eventually be modeled
+  separately rather than overwriting organization history;
+- live opportunity information should support source freshness, first/last seen
+  timestamps, deadlines/expiry where known and lifecycle states such as Active,
+  Stale, Closed/Expired and Archived;
+- external source synchronization should use controlled adapters/import jobs
+  rather than fragile logic inside normal web requests;
+- synchronization must record source health/freshness so DSA never presents stale
+  data as freshly confirmed;
+- trustworthy routine updates should be automated where practical, while
+  suspicious, conflicting, unmatched or low-confidence changes should be routed
+  to human review;
+- official-source evidence, institution/coordinator evidence,
+  organization-confirmed information and student/community signals must retain
+  their different meanings and provenance;
+- student reports such as "still accepting", "applications closed" and
+  "I was accepted here" should become structured signals that may corroborate
+  placement intelligence but must not automatically become authoritative facts;
+- future official DSA communities/channels may be linked to canonical
+  institutions, programmes, organizations, SIWES sessions or opportunities;
+- community discussion must remain separate from structured signals and from
+  Official Notices;
+- programme-aware opportunity matching should eventually connect trusted/live
+  placement evidence with the student's academic context;
+- DSA should remain a discovery, matching, coordination and workflow layer and
+  should prefer official integrations where available rather than impersonating
+  users or automating external submissions without authorization.
+
+Standing principle:
+
+**Automate routine evidence-backed updates where practical; use human review for
+exceptions; never automate trust beyond what the evidence actually proves.**
+
+Build now:
+- reusable source/provenance foundations needed by Milestone E.
+
+Design now, implement later:
+- source synchronization/import runs;
+- source-health monitoring;
+- SIWESOpportunity and opportunity history;
+- freshness/expiry policies;
+- programme-aware placement matching;
+- structured student/coordinator/employer signals.
+
+Defer safely:
+- real-time chat/community infrastructure;
+- WebSockets/push infrastructure;
+- advanced community moderation;
+- direct external-system submission/integration unless an authorized integration
+  mechanism exists.
 ## Evidence / Attachment Future Requirement
 
 Directory-request evidence is currently text/reference based.
