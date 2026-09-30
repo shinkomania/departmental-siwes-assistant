@@ -40,7 +40,7 @@ from flask import (
 from models.access import UserRoleAssignment
 from models.application import PlacementApplication
 from models.db import db
-from models.directory_request import DirectoryRequest
+from models.directory_request import DirectoryRequest, DirectoryRequestMessage
 from models.guide import GuideTopic
 from models.organization import Organization
 from models.student import StudentProfile
@@ -585,10 +585,25 @@ def directory_request_detail(request_id):
         and directory_request.reviewed_by_user_id == current_admin.id
     )
 
+    clarification_messages = directory_request.clarification_messages.all()
+    latest_clarification_message = (
+        clarification_messages[-1]
+        if clarification_messages
+        else None
+    )
+    response_received = (
+        directory_request.status == DirectoryRequest.STATUS_UNDER_REVIEW
+        and latest_clarification_message is not None
+        and latest_clarification_message.author_type == DirectoryRequestMessage.AUTHOR_REQUESTER
+    )
+
     return render_template(
         "admin/directory_request_detail.html",
         directory_request=directory_request,
         can_review_directory_request=can_review_directory_request,
+        clarification_messages=clarification_messages,
+        response_received=response_received,
+        assigned_reviewer=directory_request.reviewed_by,
     )
 
 @admin_bp.route(

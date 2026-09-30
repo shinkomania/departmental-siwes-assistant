@@ -12087,3 +12087,386 @@ textarea.form-control {
         max-width: none;
     }
 }
+/* ================================================================
+   DIRECTORY REQUEST REVIEW CASE WORKSPACE
+   ================================================================ */
+
+.directory-review-workspace {
+    margin: 1.5rem;
+    border: 1px solid rgba(15, 38, 71, 0.1);
+    border-radius: 16px;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.directory-review-state {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 0.36fr);
+    gap: 1.5rem;
+    padding: 1.25rem 1.35rem;
+    background: #f8fafc;
+    border-bottom: 1px solid rgba(15, 38, 71, 0.08);
+}
+
+.directory-review-section-label {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.directory-review-state-title {
+    display: block;
+    color: #0f2647;
+    font-size: 1.05rem;
+}
+
+.directory-review-state p {
+    max-width: 680px;
+    margin: 0.35rem 0 0;
+    color: #64748b;
+    font-size: 0.86rem;
+    line-height: 1.6;
+}
+
+.directory-review-assignment {
+    padding-left: 1.25rem;
+    border-left: 1px solid rgba(15, 38, 71, 0.1);
+}
+
+.directory-review-assignment span,
+.directory-review-assignment small {
+    display: block;
+    color: #64748b;
+    font-size: 0.75rem;
+}
+
+.directory-review-assignment strong {
+    display: block;
+    margin: 0.3rem 0 0.15rem;
+    color: #0f2647;
+    font-size: 0.9rem;
+}
+
+.directory-review-conversation {
+    padding: 1.35rem;
+}
+
+.directory-review-conversation-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.1rem;
+}
+
+.directory-review-conversation-header h3 {
+    margin: 0;
+    color: #0f2647;
+    font-size: 1.15rem;
+}
+
+.directory-review-message-count {
+    flex: 0 0 auto;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    background: #eef3f8;
+    color: #334155;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.directory-review-timeline {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.directory-review-message {
+    position: relative;
+    padding: 1rem 1.05rem;
+    border: 1px solid rgba(15, 38, 71, 0.09);
+    border-radius: 13px;
+    background: #fbfcfe;
+}
+
+.directory-review-message[data-author-type="requester"] {
+    border-left: 3px solid #2563eb;
+    background: #f8fbff;
+}
+
+.directory-review-message[data-author-type="reviewer"] {
+    border-left: 3px solid #0f766e;
+}
+
+.directory-review-message-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.directory-review-message-meta > div {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.directory-review-author-type {
+    padding: 0.2rem 0.45rem;
+    border-radius: 6px;
+    background: #e8eef5;
+    color: #334155;
+    font-size: 0.67rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.directory-review-message-meta strong {
+    color: #0f2647;
+    font-size: 0.82rem;
+}
+
+.directory-review-message-meta time {
+    color: #64748b;
+    font-size: 0.7rem;
+    white-space: nowrap;
+}
+
+.directory-review-message-body {
+    margin: 0.75rem 0 0;
+    color: #334155;
+    font-size: 0.86rem;
+    line-height: 1.65;
+    white-space: pre-wrap;
+}
+
+.directory-review-message-evidence {
+    margin-top: 0.85rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 9px;
+    background: rgba(15, 38, 71, 0.045);
+}
+
+.directory-review-message-evidence span {
+    display: block;
+    margin-bottom: 0.2rem;
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.directory-review-message-evidence p {
+    margin: 0;
+    color: #334155;
+    font-size: 0.8rem;
+    overflow-wrap: anywhere;
+}
+
+.directory-review-empty {
+    padding: 1.3rem;
+    border: 1px dashed rgba(15, 38, 71, 0.18);
+    border-radius: 12px;
+    text-align: center;
+    background: #fbfcfe;
+}
+
+.directory-review-empty strong {
+    color: #0f2647;
+    font-size: 0.9rem;
+}
+
+.directory-review-empty p {
+    max-width: 520px;
+    margin: 0.35rem auto 0;
+    color: #64748b;
+    font-size: 0.8rem;
+    line-height: 1.6;
+}
+
+@media (max-width: 700px) {
+    .directory-review-workspace {
+        margin: 1.1rem;
+    }
+
+    .directory-review-state {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 1.05rem;
+    }
+
+    .directory-review-assignment {
+        padding: 0.9rem 0 0;
+        border-left: 0;
+        border-top: 1px solid rgba(15, 38, 71, 0.1);
+    }
+
+    .directory-review-conversation {
+        padding: 1.05rem;
+    }
+
+    .directory-review-message-meta {
+        flex-direction: column;
+        gap: 0.45rem;
+    }
+
+    .directory-review-message-meta time {
+        white-space: normal;
+    }
+}
+/* ================================================================
+   DIRECTORY REQUEST REVIEW DECISION PANEL
+   ================================================================ */
+
+.directory-admin-request-footer {
+    align-items: flex-start;
+    padding: 1.5rem;
+    gap: 1.5rem;
+}
+
+.directory-admin-request-footer > div:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: grid;
+    gap: 1rem;
+}
+
+.directory-admin-request-footer > div:first-child > p {
+    padding: 0.95rem 1rem;
+    border: 1px solid rgba(37, 99, 235, 0.12);
+    border-radius: 12px;
+    background: #f8fbff;
+    color: #475569;
+    font-size: 0.82rem;
+    line-height: 1.6;
+}
+
+.directory-admin-request-footer form,
+.directory-admin-review-decision {
+    width: 100%;
+}
+
+.directory-admin-request-footer > div:first-child > form,
+.directory-admin-review-decision {
+    padding: 1.1rem;
+    border: 1px solid rgba(15, 38, 71, 0.1);
+    border-radius: 14px;
+    background: #ffffff;
+}
+
+.directory-admin-review-decision {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.directory-admin-review-decision p {
+    color: #64748b;
+    font-size: 0.8rem;
+    line-height: 1.6;
+}
+
+.directory-admin-request-footer form {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.directory-admin-request-footer label {
+    display: block;
+    color: #0f2647;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.directory-admin-request-footer label span {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.directory-admin-request-footer textarea {
+    display: block;
+    width: 100%;
+    min-height: 96px;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #0f172a;
+    font: inherit;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    resize: vertical;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.directory-admin-request-footer textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.directory-admin-request-footer textarea::placeholder {
+    color: #94a3b8;
+}
+
+.directory-admin-request-footer form .btn {
+    justify-self: start;
+}
+
+.directory-admin-review-decision:last-of-type {
+    border-color: rgba(185, 28, 28, 0.14);
+    background: #fffdfd;
+}
+
+.directory-admin-review-decision:last-of-type textarea:focus {
+    border-color: #b91c1c;
+    box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.08);
+}
+
+.directory-admin-request-footer > .btn {
+    flex: 0 0 auto;
+    margin-top: 0;
+}
+
+@media (max-width: 900px) {
+    .directory-admin-request-footer {
+        flex-direction: column;
+    }
+
+    .directory-admin-request-footer > div:first-child,
+    .directory-admin-request-footer > .btn {
+        width: 100%;
+    }
+
+    .directory-admin-request-footer > .btn {
+        text-align: center;
+    }
+}
+
+@media (max-width: 700px) {
+    .directory-admin-request-footer {
+        padding: 1.1rem;
+        gap: 1rem;
+    }
+
+    .directory-admin-request-footer > div:first-child > form,
+    .directory-admin-review-decision {
+        padding: 1rem;
+    }
+
+    .directory-admin-request-footer textarea {
+        min-height: 110px;
+    }
+
+    .directory-admin-request-footer form .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

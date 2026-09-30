@@ -17,7 +17,7 @@ from models.application import SavedOrganization, PlacementApplication
 from models.user import User
 from models.academic import Institution, AcademicUnit, Department, Programme
 from models.access import Role, Permission, UserRoleAssignment
-from models.directory_request import DirectoryRequest
+from models.directory_request import DirectoryRequest, DirectoryRequestMessage
 from services.placement_search import PlacementSearchService
 from services.authorization import user_has_permission
 
@@ -2126,6 +2126,155 @@ class DSATestCase(unittest.TestCase):
             f"/admin/directory-requests/{directory_request.id}/reject".encode(),
             response.data,
         )
+    def test_directory_request_detail_shows_review_conversation(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        reviewer = data["platform_admin"]
+        requester = directory_request.user
+
+        directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        directory_request.reviewed_by_user_id = reviewer.id
+
+        reviewer_message = DirectoryRequestMessage(
+            directory_request_id=directory_request.id,
+            author_user_id=reviewer.id,
+            author_type=DirectoryRequestMessage.AUTHOR_REVIEWER,
+            message="Please provide the official programme reference.",
+        )
+        requester_message = DirectoryRequestMessage(
+            directory_request_id=directory_request.id,
+            author_user_id=requester.id,
+            author_type=DirectoryRequestMessage.AUTHOR_REQUESTER,
+            message="The requested programme reference is now provided.",
+            evidence_reference="https://example.edu/programme-reference",
+        )
+
+        db.session.add_all([reviewer_message, requester_message])
+        db.session.commit()
+
+        response = self.client.get(
+            f"/admin/directory-requests/{directory_request.id}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Review Conversation", response.data)
+        self.assertIn(
+            b"Please provide the official programme reference.",
+            response.data,
+        )
+        self.assertIn(
+            b"The requested programme reference is now provided.",
+            response.data,
+        )
+        self.assertIn(
+            b"https://example.edu/programme-reference",
+            response.data,
+        )
+        self.assertIn(reviewer.full_name.encode(), response.data)
+        self.assertIn(requester.full_name.encode(), response.data)
+
+    def test_directory_request_detail_shows_clarifications_chronologically(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        reviewer = data["platform_admin"]
+        requester = directory_request.user
+
+        directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        directory_request.reviewed_by_user_id = reviewer.id
+
+        first_message = DirectoryRequestMessage(
+            directory_request_id=directory_request.id,
+            author_user_id=reviewer.id,
+            author_type=DirectoryRequestMessage.AUTHOR_REVIEWER,
+            message="FIRST REVIEW MESSAGE",
+            created_at=datetime(2026, 9, 29, 10, 0, 0),
+        )
+        second_message = DirectoryRequestMessage(
+            directory_request_id=directory_request.id,
+            author_user_id=requester.id,
+            author_type=DirectoryRequestMessage.AUTHOR_REQUESTER,
+            message="SECOND REQUESTER MESSAGE",
+            created_at=datetime(2026, 9, 29, 11, 0, 0),
+        )
+
+        db.session.add_all([second_message, first_message])
+        db.session.commit()
+
+        response = self.client.get(
+            f"/admin/directory-requests/{directory_request.id}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        html = response.data.decode()
+
+        self.assertIn("FIRST REVIEW MESSAGE", html)
+        self.assertIn("SECOND REQUESTER MESSAGE", html)
+        self.assertLess(
+            html.index("FIRST REVIEW MESSAGE"),
+            html.index("SECOND REQUESTER MESSAGE"),
+        )
+
+    def test_directory_request_detail_derives_response_received_state(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        reviewer = data["platform_admin"]
+        requester = directory_request.user
+
+        directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        directory_request.reviewed_by_user_id = reviewer.id
+
+        db.session.add_all(
+            [
+                DirectoryRequestMessage(
+                    directory_request_id=directory_request.id,
+                    author_user_id=reviewer.id,
+                    author_type=DirectoryRequestMessage.AUTHOR_REVIEWER,
+                    message="Please clarify the submitted information.",
+                    created_at=datetime(2026, 9, 29, 10, 0, 0),
+                ),
+                DirectoryRequestMessage(
+                    directory_request_id=directory_request.id,
+                    author_user_id=requester.id,
+                    author_type=DirectoryRequestMessage.AUTHOR_REQUESTER,
+                    message="Here is the requested clarification.",
+                    created_at=datetime(2026, 9, 29, 11, 0, 0),
+                ),
+            ]
+        )
+        db.session.commit()
+
+        response = self.client.get(
+            f"/admin/directory-requests/{directory_request.id}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Response received", response.data)
+
+    def test_directory_request_detail_does_not_false_flag_response_received(self):
+        data = self._create_directory_request_queue_fixture()
+        directory_request = data["submitted_institution"]
+        reviewer = data["platform_admin"]
+
+        directory_request.status = DirectoryRequest.STATUS_UNDER_REVIEW
+        directory_request.reviewed_by_user_id = reviewer.id
+
+        db.session.add(
+            DirectoryRequestMessage(
+                directory_request_id=directory_request.id,
+                author_user_id=reviewer.id,
+                author_type=DirectoryRequestMessage.AUTHOR_REVIEWER,
+                message="Please provide additional supporting information.",
+            )
+        )
+        db.session.commit()
+
+        response = self.client.get(
+            f"/admin/directory-requests/{directory_request.id}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(b"Response received", response.data)
     def test_other_platform_admin_can_view_claimed_request_without_review_actions(self):
         data = self._create_directory_request_queue_fixture()
         directory_request = data["submitted_institution"]

@@ -245,6 +245,135 @@ Directory Request #{{ directory_request.id }} | Platform Administration | DSA
         </div>
         {% endif %}
 
+        <section class="directory-review-workspace" aria-labelledby="review-conversation-title">
+            <div class="directory-review-state">
+                <div>
+                    <span class="directory-review-section-label">Current review state</span>
+
+                    {% if response_received %}
+                    <strong class="directory-review-state-title">
+                        Response received
+                    </strong>
+                    <p>
+                        The requester has responded to the latest clarification request.
+                        Review the response below before taking the next action.
+                    </p>
+                    {% elif directory_request.status == "More Info Required" %}
+                    <strong class="directory-review-state-title">
+                        Awaiting requester response
+                    </strong>
+                    <p>
+                        Additional information has been requested and the case is
+                        waiting for the requester to respond.
+                    </p>
+                    {% elif directory_request.status == "Under Review" %}
+                    <strong class="directory-review-state-title">
+                        Review in progress
+                    </strong>
+                    <p>
+                        This case is currently under formal review.
+                    </p>
+                    {% else %}
+                    <strong class="directory-review-state-title">
+                        {{ directory_request.status }}
+                    </strong>
+                    <p>
+                        This is the current review state recorded for the request.
+                    </p>
+                    {% endif %}
+                </div>
+
+                <div class="directory-review-assignment">
+                    <span>Assigned reviewer</span>
+
+                    <strong>
+                        {% if assigned_reviewer %}
+                            {{ assigned_reviewer.full_name }}
+                        {% else %}
+                            Not assigned
+                        {% endif %}
+                    </strong>
+
+                    {% if assigned_reviewer and assigned_reviewer.email %}
+                    <small>{{ assigned_reviewer.email }}</small>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="directory-review-conversation">
+                <div class="directory-review-conversation-header">
+                    <div>
+                        <span class="directory-review-section-label">Case communication</span>
+                        <h3 id="review-conversation-title">Review Conversation</h3>
+                    </div>
+
+                    {% if clarification_messages %}
+                    <span class="directory-review-message-count">
+                        {{ clarification_messages|length }}
+                        {% if clarification_messages|length == 1 %}
+                            message
+                        {% else %}
+                            messages
+                        {% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+
+                {% if clarification_messages %}
+                <div class="directory-review-timeline">
+                    {% for clarification_message in clarification_messages %}
+                    <article
+                        class="directory-review-message"
+                        data-author-type="{{ clarification_message.author_type|lower }}">
+                        <div class="directory-review-message-meta">
+                            <div>
+                                <span class="directory-review-author-type">
+                                    {{ clarification_message.author_type }}
+                                </span>
+
+                                <strong>
+                                    {% if clarification_message.author %}
+                                        {{ clarification_message.author.full_name }}
+                                    {% else %}
+                                        User #{{ clarification_message.author_user_id }}
+                                    {% endif %}
+                                </strong>
+                            </div>
+
+                            <time>
+                                {% if clarification_message.created_at %}
+                                    {{ clarification_message.created_at.strftime("%d %b %Y, %H:%M") }} UTC
+                                {% else %}
+                                    Time not recorded
+                                {% endif %}
+                            </time>
+                        </div>
+
+                        <p class="directory-review-message-body">
+                            {{ clarification_message.message }}
+                        </p>
+
+                        {% if clarification_message.evidence_reference %}
+                        <div class="directory-review-message-evidence">
+                            <span>Supporting reference</span>
+                            <p>{{ clarification_message.evidence_reference }}</p>
+                        </div>
+                        {% endif %}
+                    </article>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="directory-review-empty">
+                    <strong>No clarification conversation yet</strong>
+                    <p>
+                        Review messages and requester responses will appear here
+                        in chronological order when clarification is required.
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+
         <footer class="directory-admin-request-footer">
             <div>
                 {% if directory_request.status == "Submitted" %}
