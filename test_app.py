@@ -4099,3 +4099,408 @@ class ProvenanceModelTestCase(unittest.TestCase):
             self.institution.directory_status,
             "Pending Verification",
         )
+
+class AcademicDirectoryIdentityConstraintTestCase(unittest.TestCase):
+    """Database-level integrity tests for canonical academic identity."""
+
+    def setUp(self):
+        self.app = create_app("testing")
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def _create_hierarchy(
+        self,
+        institution_name,
+        unit_name="Faculty of Engineering",
+        department_name="Computer Engineering",
+    ):
+        institution = Institution(
+            name=institution_name,
+            institution_type="University",
+        )
+        db.session.add(institution)
+        db.session.flush()
+
+        unit = AcademicUnit(
+            institution_id=institution.id,
+            name=unit_name,
+            unit_type="Faculty",
+        )
+        db.session.add(unit)
+        db.session.flush()
+
+        department = Department(
+            academic_unit_id=unit.id,
+            name=department_name,
+        )
+        db.session.add(department)
+        db.session.flush()
+
+        return institution, unit, department
+
+    def test_institution_rejects_canonical_duplicate(self):
+        first = Institution(
+            name="Ahmadu Bello University",
+            institution_type="University",
+        )
+        db.session.add(first)
+        db.session.commit()
+
+        duplicate = Institution(
+            name="  AHMADU   BELLO UNIVERSITY  ",
+            institution_type="University",
+        )
+        db.session.add(duplicate)
+
+        with self.assertRaises(IntegrityError):
+            db.session.commit()
+
+        db.session.rollback()
+
+    def test_academic_unit_rejects_duplicate_inside_same_institution(self):
+        institution = Institution(
+            name="Scope Test University",
+            institution_type="University",
+        )
+        db.session.add(institution)
+        db.session.flush()
+
+        first = AcademicUnit(
+            institution_id=institution.id,
+            name="Faculty of Engineering",
+            unit_type="Faculty",
+        )
+        db.session.add(first)
+        db.session.commit()
+
+        duplicate = AcademicUnit(
+            institution_id=institution.id,
+            name="  FACULTY   OF ENGINEERING ",
+            unit_type="Faculty",
+        )
+        db.session.add(duplicate)
+
+        with self.assertRaises(IntegrityError):
+            db.session.commit()
+
+        db.session.rollback()
+
+    def test_academic_unit_allows_same_identity_in_different_institutions(self):
+        first_institution = Institution(
+            name="First Scope University",
+            institution_type="University",
+        )
+        second_institution = Institution(
+            name="Second Scope University",
+            institution_type="University",
+        )
+        db.session.add_all([
+            first_institution,
+            second_institution,
+        ])
+        db.session.flush()
+
+        db.session.add_all([
+            AcademicUnit(
+                institution_id=first_institution.id,
+                name="Faculty of Engineering",
+                unit_type="Faculty",
+            ),
+            AcademicUnit(
+                institution_id=second_institution.id,
+                name=" FACULTY   OF ENGINEERING ",
+                unit_type="Faculty",
+            ),
+        ])
+
+        db.session.commit()
+
+        self.assertEqual(AcademicUnit.query.count(), 2)
+
+    def test_department_rejects_duplicate_inside_same_academic_unit(self):
+        _, unit, _ = self._create_hierarchy(
+            "Department Collision University"
+        )
+        db.session.commit()
+
+        first = Department(
+            academic_unit_id=unit.id,
+            name="Electrical Engineering",
+        )
+        db.session.add(first)
+        db.session.commit()
+
+        duplicate = Department(
+            academic_unit_id=unit.id,
+            name=" ELECTRICAL   ENGINEERING ",
+        )
+        db.session.add(duplicate)
+
+        with self.assertRaises(IntegrityError):
+            db.session.commit()
+
+        db.session.rollback()
+
+    def test_department_allows_same_identity_in_different_academic_units(self):
+        institution = Institution(
+            name="Multi Unit University",
+            institution_type="University",
+        )
+        db.session.add(institution)
+        db.session.flush()
+
+        first_unit = AcademicUnit(
+            institution_id=institution.id,
+            name="Faculty of Engineering",
+            unit_type="Faculty",
+        )
+        second_unit = AcademicUnit(
+            institution_id=institution.id,
+            name="College of Engineering",
+            unit_type="College",
+        )
+        db.session.add_all([first_unit, second_unit])
+        db.session.flush()
+
+        db.session.add_all([
+            Department(
+                academic_unit_id=first_unit.id,
+                name="Computer Engineering",
+            ),
+            Department(
+                academic_unit_id=second_unit.id,
+                name=" COMPUTER   ENGINEERING ",
+            ),
+        ])
+
+        db.session.commit()
+
+        self.assertEqual(Department.query.count(), 2)
+
+    def test_programme_rejects_same_canonical_identity_in_same_department(self):
+        _, _, department = self._create_hierarchy(
+            "Programme Collision University"
+        )
+
+        first = Programme(
+            department_id=department.id,
+            name="Computer Engineering",
+            award="B.Eng.",
+        )
+        db.session.add(first)
+        db.session.commit()
+
+        duplicate = Programme(
+            department_id=department.id,
+            name=" COMPUTER   ENGINEERING ",
+            award=" B.ENG. ",
+        )
+        db.session.add(duplicate)
+
+        with self.assertRaises(IntegrityError):
+            db.session.commit()
+
+        db.session.rollback()
+
+    def test_programme_allows_same_name_with_different_awards(self):
+        _, _, department = self._create_hierarchy(
+            "Programme Award University"
+        )
+
+        db.session.add_all([
+            Programme(
+                department_id=department.id,
+                name="Computer Engineering",
+                award="B.Eng.",
+            ),
+            Programme(
+                department_id=department.id,
+                name=" COMPUTER   ENGINEERING ",
+                award="B.Sc.",
+            ),
+        ])
+
+        db.session.commit()
+
+        self.assertEqual(Programme.query.count(), 2)
+
+    def test_programme_allows_same_identity_in_different_departments(self):
+        institution = Institution(
+            name="Programme Scope University",
+            institution_type="University",
+        )
+        db.session.add(institution)
+        db.session.flush()
+
+        unit = AcademicUnit(
+            institution_id=institution.id,
+            name="Faculty of Engineering",
+            unit_type="Faculty",
+        )
+        db.session.add(unit)
+        db.session.flush()
+
+        first_department = Department(
+            academic_unit_id=unit.id,
+            name="Computer Engineering",
+        )
+        second_department = Department(
+            academic_unit_id=unit.id,
+            name="Electrical Engineering",
+        )
+        db.session.add_all([
+            first_department,
+            second_department,
+        ])
+        db.session.flush()
+
+        db.session.add_all([
+            Programme(
+                department_id=first_department.id,
+                name="Computer Engineering",
+                award="B.Eng.",
+            ),
+            Programme(
+                department_id=second_department.id,
+                name=" COMPUTER   ENGINEERING ",
+                award=" B.ENG. ",
+            ),
+        ])
+
+        db.session.commit()
+
+        self.assertEqual(Programme.query.count(), 2)
+
+class AcademicDirectoryIdentityTestCase(unittest.TestCase):
+    """Focused tests for canonical academic-directory identity."""
+
+    def test_directory_identity_normalization_is_conservative_and_stable(self):
+        from domain.academic_identity import normalize_directory_identity
+
+        self.assertEqual(
+            normalize_directory_identity(
+                "  Ahmadu   Bello University  "
+            ),
+            "ahmadu bello university",
+        )
+
+        self.assertEqual(
+            normalize_directory_identity(
+                "AHMADU BELLO UNIVERSITY"
+            ),
+            "ahmadu bello university",
+        )
+
+        # Canonical normalization must not silently turn abbreviations
+        # into authoritative identity matches.
+        self.assertEqual(
+            normalize_directory_identity("ABU"),
+            "abu",
+        )
+
+    def test_academic_models_derive_identity_keys_automatically(self):
+        app = create_app("testing")
+        context = app.app_context()
+        context.push()
+
+        try:
+            db.create_all()
+
+            institution = Institution(
+                name="  Ahmadu   Bello University  ",
+                institution_type="University",
+            )
+            db.session.add(institution)
+            db.session.flush()
+
+            self.assertEqual(
+                institution.normalized_name,
+                "ahmadu bello university",
+            )
+
+            unit = AcademicUnit(
+                institution_id=institution.id,
+                name=" Faculty   of Engineering ",
+                unit_type="Faculty",
+            )
+            db.session.add(unit)
+            db.session.flush()
+
+            self.assertEqual(
+                unit.normalized_name,
+                "faculty of engineering",
+            )
+
+            department = Department(
+                academic_unit_id=unit.id,
+                name=" Department of Computer Engineering ",
+            )
+            db.session.add(department)
+            db.session.flush()
+
+            self.assertEqual(
+                department.normalized_name,
+                "department of computer engineering",
+            )
+
+            programme = Programme(
+                department_id=department.id,
+                name=" Computer   Engineering ",
+                award=" B.Eng. ",
+            )
+            db.session.add(programme)
+            db.session.flush()
+
+            self.assertEqual(
+                programme.normalized_name,
+                "computer engineering",
+            )
+            self.assertEqual(
+                programme.normalized_award,
+                "b.eng.",
+            )
+
+        finally:
+            db.session.rollback()
+            db.session.remove()
+            db.drop_all()
+            context.pop()
+
+    def test_identity_keys_resynchronize_when_display_values_change(self):
+        app = create_app("testing")
+        context = app.app_context()
+        context.push()
+
+        try:
+            db.create_all()
+
+            institution = Institution(
+                name="Example University",
+            )
+            db.session.add(institution)
+            db.session.flush()
+
+            self.assertEqual(
+                institution.normalized_name,
+                "example university",
+            )
+
+            institution.name = "  Renamed   Example University "
+            db.session.flush()
+
+            self.assertEqual(
+                institution.normalized_name,
+                "renamed example university",
+            )
+
+        finally:
+            db.session.rollback()
+            db.session.remove()
+            db.drop_all()
+            context.pop()

@@ -11,11 +11,25 @@ patterns such as 300 Level, 400 Level, ND, or NCE.
 """
 
 from datetime import datetime
+
+from sqlalchemy import event
+
 from .db import db
+from domain.academic_identity import (
+    normalize_directory_identity,
+    normalize_optional_directory_identity,
+)
 
 
 class Institution(db.Model):
     __tablename__ = "institutions"
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "normalized_name",
+            name="uq_institutions_normalized_name",
+        ),
+    )
 
     DIRECTORY_STATUSES = (
         "Pending Verification",
@@ -31,7 +45,15 @@ class Institution(db.Model):
     )
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(200), nullable=False, unique=True)
+    name = db.Column(db.String(200), nullable=False)
+
+    # Deterministic canonical identity used for matching and duplicate
+    # protection. Display names remain human-readable and source-faithful.
+    normalized_name = db.Column(
+        db.String(200),
+        nullable=False,
+        index=True,
+    )
 
     # Examples: University, Polytechnic, College of Technology,
     # College of Agriculture, College of Education.
@@ -62,6 +84,14 @@ class Institution(db.Model):
 class AcademicUnit(db.Model):
     __tablename__ = "academic_units"
 
+    __table_args__ = (
+        db.UniqueConstraint(
+            "institution_id",
+            "normalized_name",
+            name="uq_academic_units_institution_normalized_name",
+        ),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
 
     institution_id = db.Column(
@@ -71,6 +101,13 @@ class AcademicUnit(db.Model):
     )
 
     name = db.Column(db.String(200), nullable=False)
+
+    # Scoped canonical identity within the parent Institution.
+    normalized_name = db.Column(
+        db.String(200),
+        nullable=False,
+        index=True,
+    )
 
     # Institution-neutral terminology. Examples:
     # Faculty, College, School, Directorate, Institute.
@@ -91,6 +128,14 @@ class AcademicUnit(db.Model):
 class Department(db.Model):
     __tablename__ = "departments"
 
+    __table_args__ = (
+        db.UniqueConstraint(
+            "academic_unit_id",
+            "normalized_name",
+            name="uq_departments_unit_normalized_name",
+        ),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
 
     academic_unit_id = db.Column(
@@ -100,6 +145,13 @@ class Department(db.Model):
     )
 
     name = db.Column(db.String(200), nullable=False)
+
+    # Scoped canonical identity within the parent AcademicUnit.
+    normalized_name = db.Column(
+        db.String(200),
+        nullable=False,
+        index=True,
+    )
 
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -113,6 +165,15 @@ class Department(db.Model):
 class Programme(db.Model):
     __tablename__ = "programmes"
 
+    __table_args__ = (
+        db.UniqueConstraint(
+            "department_id",
+            "normalized_name",
+            "normalized_award",
+            name="uq_programmes_department_normalized_identity",
+        ),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
 
     department_id = db.Column(
@@ -123,8 +184,23 @@ class Programme(db.Model):
 
     name = db.Column(db.String(200), nullable=False)
 
+    # Scoped canonical programme identity within the parent Department.
+    normalized_name = db.Column(
+        db.String(200),
+        nullable=False,
+        index=True,
+    )
+
     # Examples: B.Eng., B.Sc., HND, ND, NCE.
     award = db.Column(db.String(100))
+
+    # Nullable display award is represented by an empty normalized key when
+    # absent so future composite uniqueness remains deterministic.
+    normalized_award = db.Column(
+        db.String(100),
+        nullable=False,
+        default="",
+    )
 
     # Normal academic duration of the programme where known.
     # This describes the programme; it does NOT determine SIWES eligibility.
@@ -206,3 +282,36 @@ class SIWESConfiguration(db.Model):
             uselist=False,
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# Canonical academic-directory identity synchronization
+# ---------------------------------------------------------------------------
+
+def _sync_institution_identity(mapper, connection, target):
+    target.normalized_name = normalize_directory_identity(target.name)
+
+
+def _sync_academic_unit_identity(mapper, connection, target):
+    target.normalized_name = normalize_directory_identity(target.name)
+
+
+def _sync_department_identity(mapper, connection, target):
+    target.normalized_name = normalize_directory_identity(target.name)
+
+
+def _sync_programme_identity(mapper, connection, target):
+    target.normalized_name = normalize_directory_identity(target.name)
+    target.normalized_award = normalize_optional_directory_identity(
+        target.award
+    )
+
+
+for _model, _listener in (
+    (Institution, _sync_institution_identity),
+    (AcademicUnit, _sync_academic_unit_identity),
+    (Department, _sync_department_identity),
+    (Programme, _sync_programme_identity),
+):
+    event.listen(_model, "before_insert", _listener)
+    event.listen(_model, "before_update", _listener)
