@@ -978,6 +978,7 @@ Verified, active, suspended and inactive directory lifecycle states should remai
 Future Platform Administration may include a real Academic Directory / Source Sync workspace once the underlying workflows exist. Fake navigation routes must not be created in advance.
 
 This architectural change expands rather than discards the previously planned Controlled Directory Publication milestone.
+
 ## 30. Trusted Data, Live SIWES and Community Intelligence - Future Architecture
 
 Research and architecture discussion around the unfinished Organizations Directory

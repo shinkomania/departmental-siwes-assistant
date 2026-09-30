@@ -349,6 +349,7 @@ Defer safely:
 - advanced community moderation;
 - direct external-system submission/integration unless an authorized integration
   mechanism exists.
+
 ## Evidence / Attachment Future Requirement
 
 Directory-request evidence is currently text/reference based.
