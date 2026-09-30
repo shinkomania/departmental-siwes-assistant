@@ -7,6 +7,7 @@ role + permission + scope authorization.
 """
 import unittest
 from datetime import datetime, timedelta
+from sqlalchemy.exc import IntegrityError
 
 from app import create_app
 from models.db import db
@@ -19,6 +20,7 @@ from models.academic import Institution, AcademicUnit, Department, Programme
 from models.access import Role, Permission, UserRoleAssignment
 from models.directory_request import DirectoryRequest, DirectoryRequestMessage
 from models.notification import Notification
+from models.provenance import DataSource, SourceEvidence
 from services.placement_search import PlacementSearchService
 from services.authorization import user_has_permission
 from services.notification_service import (
@@ -3990,3 +3992,110 @@ class DSATestCase(unittest.TestCase):
 if __name__ == '__main__':
     unittest.main()
 
+class ProvenanceModelTestCase(unittest.TestCase):
+    def setUp(self):
+        self.app = create_app("testing")
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+
+        self.source = DataSource(
+            name="NUC Test Source",
+            source_type="Regulator",
+            authority_name="National Universities Commission",
+            base_url="https://example.test/nuc",
+        )
+
+        self.institution = Institution(
+            name="Provenance Test University",
+            institution_type="University",
+            directory_status="Pending Verification",
+        )
+
+        db.session.add_all([self.source, self.institution])
+        db.session.commit()
+
+    def tearDown(self):
+        db.session.rollback()
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def test_source_evidence_accepts_exactly_one_target(self):
+        evidence = SourceEvidence(
+            data_source_id=self.source.id,
+            claim_type="Institution Recognition",
+            institution_id=self.institution.id,
+            reference_url="https://example.test/nuc/institution",
+        )
+
+        db.session.add(evidence)
+        db.session.commit()
+
+        saved = db.session.get(SourceEvidence, evidence.id)
+
+        self.assertIsNotNone(saved)
+        self.assertEqual(saved.target_type, "Institution")
+        self.assertEqual(saved.target_id, self.institution.id)
+        self.assertEqual(saved.data_source_id, self.source.id)
+
+    def test_source_evidence_rejects_zero_targets(self):
+        evidence = SourceEvidence(
+            data_source_id=self.source.id,
+            claim_type="Institution Recognition",
+        )
+
+        db.session.add(evidence)
+
+        with self.assertRaises(IntegrityError):
+            db.session.commit()
+
+        db.session.rollback()
+
+        self.assertEqual(SourceEvidence.query.count(), 0)
+
+    def test_source_evidence_rejects_multiple_targets(self):
+        unit = AcademicUnit(
+            institution_id=self.institution.id,
+            name="Faculty of Engineering",
+            unit_type="Faculty",
+        )
+        db.session.add(unit)
+        db.session.commit()
+
+        evidence = SourceEvidence(
+            data_source_id=self.source.id,
+            claim_type="Academic Structure",
+            institution_id=self.institution.id,
+            academic_unit_id=unit.id,
+        )
+
+        db.session.add(evidence)
+
+        with self.assertRaises(IntegrityError):
+            db.session.commit()
+
+        db.session.rollback()
+
+        self.assertEqual(SourceEvidence.query.count(), 0)
+
+    def test_source_evidence_does_not_verify_target(self):
+        self.assertEqual(
+            self.institution.directory_status,
+            "Pending Verification",
+        )
+
+        evidence = SourceEvidence(
+            data_source_id=self.source.id,
+            claim_type="Institution Recognition",
+            institution_id=self.institution.id,
+        )
+
+        db.session.add(evidence)
+        db.session.commit()
+        db.session.refresh(self.institution)
+
+        self.assertEqual(
+            self.institution.directory_status,
+            "Pending Verification",
+        )

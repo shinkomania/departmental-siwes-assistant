@@ -20,6 +20,7 @@ from .access import Role, Permission, UserRoleAssignment, role_permissions
 from .role_application import RoleApplication
 from .directory_request import DirectoryRequest, DirectoryRequestMessage
 from .notification import Notification
+from .provenance import DataSource, SourceEvidence
 
 
 __all__ = [
@@ -43,4 +44,6 @@ __all__ = [
     'DirectoryRequest',
     'DirectoryRequestMessage',
     'Notification',
+    'DataSource',
+    'SourceEvidence',
 ]
