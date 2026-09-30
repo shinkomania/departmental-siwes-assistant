@@ -21,6 +21,10 @@ from .role_application import RoleApplication
 from .directory_request import DirectoryRequest, DirectoryRequestMessage
 from .notification import Notification
 from .provenance import DataSource, SourceEvidence
+from .academic_directory_identity import (
+    AcademicDirectoryAlias,
+    AcademicDirectorySourceIdentity,
+)
 
 
 __all__ = [
@@ -46,4 +50,6 @@ __all__ = [
     'Notification',
     'DataSource',
     'SourceEvidence',
+    'AcademicDirectoryAlias',
+    'AcademicDirectorySourceIdentity',
 ]

@@ -4100,6 +4100,450 @@ class ProvenanceModelTestCase(unittest.TestCase):
             "Pending Verification",
         )
 
+class AcademicDirectorySourceIdentityTestCase(unittest.TestCase):
+    """Focused tests for E1.3 alias and source identity infrastructure."""
+
+    def setUp(self):
+        self.app = create_app("testing")
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+
+        from models import (
+            AcademicDirectoryAlias,
+            AcademicDirectorySourceIdentity,
+            DataSource,
+        )
+
+        self.AcademicDirectoryAlias = AcademicDirectoryAlias
+        self.AcademicDirectorySourceIdentity = (
+            AcademicDirectorySourceIdentity
+        )
+        self.DataSource = DataSource
+
+        self.institution = Institution(
+            name="Ahmadu Bello University",
+            institution_type="University",
+        )
+        db.session.add(self.institution)
+        db.session.flush()
+
+        self.unit = AcademicUnit(
+            institution_id=self.institution.id,
+            name="Faculty of Engineering",
+            unit_type="Faculty",
+        )
+        db.session.add(self.unit)
+        db.session.flush()
+
+        self.department = Department(
+            academic_unit_id=self.unit.id,
+            name="Computer Engineering",
+        )
+        db.session.add(self.department)
+        db.session.flush()
+
+        self.programme = Programme(
+            department_id=self.department.id,
+            name="Computer Engineering",
+            award="B.Eng.",
+        )
+        db.session.add(self.programme)
+
+        self.source = self.DataSource(
+            name="E1.3 Test Official Source",
+            source_type="Institution Official Source",
+            authority_name="E1.3 Test Authority",
+        )
+        db.session.add(self.source)
+        db.session.commit()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def test_alias_derives_conservative_normalized_identity(self):
+        alias = self.AcademicDirectoryAlias(
+            alias="  ABU  ",
+            institution_id=self.institution.id,
+        )
+
+        db.session.add(alias)
+        db.session.commit()
+
+        self.assertEqual(
+            alias.normalized_alias,
+            "abu",
+        )
+        self.assertEqual(
+            alias.target_type,
+            "Institution",
+        )
+        self.assertEqual(
+            alias.target_id,
+            self.institution.id,
+        )
+
+        self.assertNotEqual(
+            alias.normalized_alias,
+            self.institution.normalized_name,
+        )
+
+    def test_alias_resynchronizes_when_display_value_changes(self):
+        alias = self.AcademicDirectoryAlias(
+            alias="ABU",
+            institution_id=self.institution.id,
+        )
+
+        db.session.add(alias)
+        db.session.commit()
+
+        alias.alias = "  A.B.U.  "
+        db.session.commit()
+
+        self.assertEqual(
+            alias.normalized_alias,
+            "a.b.u.",
+        )
+
+    def test_alias_requires_exactly_one_academic_target(self):
+        alias = self.AcademicDirectoryAlias(
+            alias="ABU",
+        )
+
+        db.session.add(alias)
+
+        with self.assertRaises(IntegrityError):
+            db.session.commit()
+
+        db.session.rollback()
+
+        alias = self.AcademicDirectoryAlias(
+            alias="Engineering",
+            institution_id=self.institution.id,
+            academic_unit_id=self.unit.id,
+        )
+
+        db.session.add(alias)
+
+        with self.assertRaises(IntegrityError):
+            db.session.commit()
+
+        db.session.rollback()
+
+    def test_same_alias_may_refer_to_different_targets(self):
+        institution_alias = self.AcademicDirectoryAlias(
+            alias="Engineering",
+            institution_id=self.institution.id,
+        )
+
+        unit_alias = self.AcademicDirectoryAlias(
+            alias=" ENGINEERING ",
+            academic_unit_id=self.unit.id,
+        )
+
+        db.session.add_all([
+            institution_alias,
+            unit_alias,
+        ])
+        db.session.commit()
+
+        self.assertEqual(
+            self.AcademicDirectoryAlias.query.count(),
+            2,
+        )
+
+    def test_duplicate_alias_for_same_target_is_rejected(self):
+        first = self.AcademicDirectoryAlias(
+            alias="ABU",
+            institution_id=self.institution.id,
+        )
+
+        db.session.add(first)
+        db.session.commit()
+
+        duplicate = self.AcademicDirectoryAlias(
+            alias="  ABU  ",
+            institution_id=self.institution.id,
+        )
+
+        db.session.add(duplicate)
+
+        with self.assertRaises(IntegrityError):
+            db.session.commit()
+
+        db.session.rollback()
+
+    def test_source_identity_derives_external_name_key(self):
+        identity = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_identifier="ABU-001",
+            external_name="  AHMADU   BELLO UNIVERSITY ",
+            institution_id=self.institution.id,
+            reference_url="https://example.test/abu",
+        )
+
+        db.session.add(identity)
+        db.session.commit()
+
+        self.assertEqual(
+            identity.normalized_external_name,
+            "ahmadu bello university",
+        )
+        self.assertEqual(
+            identity.target_type,
+            "Institution",
+        )
+        self.assertEqual(
+            identity.target_id,
+            self.institution.id,
+        )
+
+    def test_source_identity_allows_identifier_without_name(self):
+        identity = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_identifier="PROGRAMME-001",
+            programme_id=self.programme.id,
+        )
+
+        db.session.add(identity)
+        db.session.commit()
+
+        self.assertEqual(
+            identity.normalized_external_name,
+            "",
+        )
+        self.assertEqual(
+            identity.target_type,
+            "Programme",
+        )
+
+    def test_source_identity_requires_external_identity(self):
+        identity = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            institution_id=self.institution.id,
+        )
+
+        db.session.add(identity)
+
+        with self.assertRaises(IntegrityError):
+            db.session.commit()
+
+        db.session.rollback()
+
+    def test_source_identity_requires_exactly_one_academic_target(self):
+        identity = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_identifier="MULTI-001",
+            institution_id=self.institution.id,
+            department_id=self.department.id,
+        )
+
+        db.session.add(identity)
+
+        with self.assertRaises(IntegrityError):
+            db.session.commit()
+
+        db.session.rollback()
+
+    def test_source_identity_rejects_duplicate_external_identifier_within_source(self):
+        first = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_identifier="ABU-001",
+            external_name="Ahmadu Bello University",
+            institution_id=self.institution.id,
+        )
+
+        db.session.add(first)
+        db.session.commit()
+
+        duplicate = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_identifier="ABU-001",
+            external_name="Another Name",
+            department_id=self.department.id,
+        )
+
+        db.session.add(duplicate)
+
+        with self.assertRaises(IntegrityError):
+            db.session.commit()
+
+        db.session.rollback()
+
+    def test_source_identity_allows_same_external_identifier_from_different_sources(self):
+        second_source = self.DataSource(
+            name="E1.3 Second Official Source",
+            source_type="Institution Official Source",
+            authority_name="E1.3 Second Authority",
+        )
+        db.session.add(second_source)
+        db.session.flush()
+
+        first = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_identifier="ABU-001",
+            institution_id=self.institution.id,
+        )
+
+        second = self.AcademicDirectorySourceIdentity(
+            data_source_id=second_source.id,
+            external_identifier="ABU-001",
+            institution_id=self.institution.id,
+        )
+
+        db.session.add_all([first, second])
+        db.session.commit()
+
+        self.assertEqual(
+            self.AcademicDirectorySourceIdentity.query.count(),
+            2,
+        )
+
+    def test_source_identity_rejects_duplicate_normalized_name_for_same_institution(self):
+        first = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_name="Ahmadu Bello University",
+            institution_id=self.institution.id,
+        )
+
+        db.session.add(first)
+        db.session.commit()
+
+        duplicate = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_name="  AHMADU   BELLO UNIVERSITY  ",
+            institution_id=self.institution.id,
+        )
+
+        db.session.add(duplicate)
+
+        with self.assertRaises(IntegrityError):
+            db.session.commit()
+
+        db.session.rollback()
+
+    def test_source_identity_allows_same_normalized_name_for_different_targets(self):
+        second_institution = Institution(
+            name="Bayero University Kano",
+            institution_type="University",
+        )
+        db.session.add(second_institution)
+        db.session.flush()
+
+        first = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_name="Engineering",
+            institution_id=self.institution.id,
+        )
+
+        second = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_name="Engineering",
+            institution_id=second_institution.id,
+        )
+
+        db.session.add_all([first, second])
+        db.session.commit()
+
+        self.assertEqual(
+            self.AcademicDirectorySourceIdentity.query.count(),
+            2,
+        )
+
+    def test_source_identity_rejects_duplicate_normalized_name_for_same_academic_unit(self):
+        first = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_name="Faculty of Engineering",
+            academic_unit_id=self.unit.id,
+        )
+
+        db.session.add(first)
+        db.session.commit()
+
+        duplicate = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_name="  FACULTY   OF ENGINEERING  ",
+            academic_unit_id=self.unit.id,
+        )
+
+        db.session.add(duplicate)
+
+        with self.assertRaises(IntegrityError):
+            db.session.commit()
+
+        db.session.rollback()
+
+    def test_source_identity_rejects_duplicate_normalized_name_for_same_department(self):
+        first = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_name="Computer Engineering",
+            department_id=self.department.id,
+        )
+
+        db.session.add(first)
+        db.session.commit()
+
+        duplicate = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_name="  COMPUTER   ENGINEERING  ",
+            department_id=self.department.id,
+        )
+
+        db.session.add(duplicate)
+
+        with self.assertRaises(IntegrityError):
+            db.session.commit()
+
+        db.session.rollback()
+
+    def test_source_identity_rejects_duplicate_normalized_name_for_same_programme(self):
+        first = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_name="Computer Engineering",
+            programme_id=self.programme.id,
+        )
+
+        db.session.add(first)
+        db.session.commit()
+
+        duplicate = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_name="  COMPUTER   ENGINEERING  ",
+            programme_id=self.programme.id,
+        )
+
+        db.session.add(duplicate)
+
+        with self.assertRaises(IntegrityError):
+            db.session.commit()
+
+        db.session.rollback()
+
+    def test_source_identity_does_not_verify_target(self):
+        self.assertEqual(
+            self.institution.directory_status,
+            "Pending Verification",
+        )
+
+        identity = self.AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_identifier="ABU-001",
+            external_name="Ahmadu Bello University",
+            institution_id=self.institution.id,
+        )
+
+        db.session.add(identity)
+        db.session.commit()
+        db.session.refresh(self.institution)
+
+        self.assertEqual(
+            self.institution.directory_status,
+            "Pending Verification",
+        )
+
+
 class AcademicDirectoryIdentityConstraintTestCase(unittest.TestCase):
     """Database-level integrity tests for canonical academic identity."""
 
