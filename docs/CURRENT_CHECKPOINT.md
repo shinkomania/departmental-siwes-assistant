@@ -1,372 +1,202 @@
-# DSA CURRENT CHECKPOINT
+# DSA Current Development Checkpoint
 
-## Current Repository State
-
-Project:
-
-**DSA - currently Departmental SIWES Assistant**
-Leading future brand direction: **Digital SIWES Assistant**
-
-Branch:
+## Current Branch
 
 `phase4-programme-siwes-config`
+
+## Current Implementation Baseline
 
 Latest implementation commit:
 
-`8654703 Enforce directory request eligibility and streamline profile support`
+`5714446 Add reusable user notification system`
 
-Milestone A - **Directory Request Eligibility + Profile Cleanup** - is complete.
+Previous completed milestones:
 
-Verified full regression baseline:
+- `8654703` - Directory Request Eligibility + Profile Cleanup
+- `06bd46f` - Reviewer Case Workspace
+- `5714446` - Reusable User Notification System
 
-**223 tests passing**
+The repository working tree was clean immediately after commit `5714446`.
 
-No migration was added for Milestone A.
+## Verification Baseline
 
-At the time this checkpoint was prepared, the implementation working
-tree was clean immediately after commit `8654703`.
+At completion of the reusable notification foundation:
 
-## Completed Directory Request Workflow
+- 246 full-suite tests passed;
+- notification model/service tests passed;
+- 7 focused notification HTTP/security tests passed;
+- `py_compile` passed for notification-related Python modules;
+- `git diff --check` reported no whitespace errors;
+- desktop notification UI passed;
+- 390 x 844 mobile notification UI passed;
+- populated notification state passed;
+- read-state transition and bell-count update passed.
 
-The Academic Directory Request workflow currently supports:
+Known non-failing technical debt:
 
-- student submission of Institution and Programme requests;
-- Platform Administrator review queue;
-- secured individual review/detail page;
-- reviewer ownership/claiming;
-- Under Review workflow;
-- More Info Required workflow;
-- requester clarification responses;
-- approval;
-- rejection;
-- requester withdrawal of open requests;
-- chronological clarification history on the student side;
-- ownership-safe student request access.
+- SQLAlchemy legacy `Query.get()` warnings remain elsewhere in the application.
+- Windows Git may report LF/CRLF working-tree conversion warnings.
 
-Review ownership remains lightweight:
+## Completed Milestone C - Reusable DSA Notifications
 
-- Submitted requests begin in the general review queue;
-- a Platform Administrator claims a request by beginning review;
-- only the assigned reviewer may perform controlled review actions;
-- clarification responses return the request to Under Review while
-  preserving the assigned reviewer.
+DSA now has a reusable user-level notification subsystem.
 
-## Critical Directory Invariant
+Notifications belong to `User`, not `StudentProfile`.
 
-A `DirectoryRequest` is a review record.
+Implemented model:
 
-Approval does **not** automatically create, publish, activate, or verify
-an Institution, AcademicUnit, Department, or Programme.
+`models/notification.py`
 
-Authoritative academic-directory publication remains a separate,
-deliberate Platform Administration operation.
+Implemented migration:
 
-## Milestone A Rules Now Enforced
+`8f5d74b88835_add_reusable_user_notifications.py`
 
-Directory-request eligibility now enforces:
+Implemented reusable service:
 
-- one user may have at most one open DirectoryRequest at a time;
-- Submitted, Under Review, and More Info Required count as open;
-- final request states do not permanently block a future eligible request;
-- a student whose structured `programme_id` is already linked cannot use
-  the normal missing-directory workflow to request another Institution
-  or Programme;
-- Programme requests require an appropriate authoritative Institution;
-- server-side enforcement is authoritative; UI hiding is not relied upon
-  for security or correctness.
+`services/notification_service.py`
 
-Changing an already-established academic identity must eventually use a
-separate profile correction/change workflow rather than abusing the
-missing-directory request workflow.
+Implemented global routes:
 
-## Student Profile Directory Support UI
+`routes/notifications.py`
 
-The duplicate Academic Directory experience on `/profile` has been
-consolidated into a state-aware Academic Directory Support component.
+Implemented notification centre:
 
-States:
+`templates/notifications/index.html`
 
-1. Eligible/unlinked:
-   - Request Missing Record;
-   - My Directory Requests;
-   - expandable directory submission workspace.
+The signed-in global header now contains a notification bell with an
+unread-count badge.
 
-2. Open request:
-   - Directory request in progress;
-   - request type and status;
-   - View Active Request;
-   - My Directory Requests;
-   - no second submission workspace.
+### Notification Data Contract
 
-3. Structured programme linked:
-   - Academic directory linked;
-   - My Directory Requests;
-   - no normal missing-record request action.
+The current notification model supports:
 
-The profile account message is also state-aware:
+- recipient user;
+- category;
+- notification type;
+- title;
+- message;
+- priority;
+- internal action URL;
+- generic source type and source ID;
+- read timestamp;
+- creation timestamp.
 
-- existing StudentProfile -> Account-linked profile;
-- no StudentProfile -> No student profile yet.
+Read state is derived from `read_at`. There is no duplicate persisted
+`is_read` boolean.
 
-The no-profile message explicitly avoids implying that every DSA account
-must be a student account.
+Current categories include:
 
-## UI Verification Completed
+- Directory & Reviews
+- Placements
+- SIWES
+- Official Notices
+- Access & Security
+- Organizations
+- System
 
-Milestone A was manually verified on desktop and mobile.
+Current priorities include:
 
-Verified states:
+- Normal
+- Important
+- Urgent
 
-- eligible/unlinked - desktop PASS;
-- eligible/unlinked - 390x844 mobile PASS;
-- active directory request - desktop PASS;
-- active directory request - 390x844 mobile PASS;
-- linked programme/no active request - desktop PASS;
-- linked programme/no active request - 390x844 mobile PASS.
+### Security Contract
 
-The Profile directory workspace received scoped responsive styling
-without changing generic directory-request card behavior.
+Notification ownership is a hard authorization boundary.
 
-## Identity and Access Architecture Decision
+User A must never be able to view, count, mark as read, open, or
+bulk-modify User B's notifications.
 
-DSA should use **one user account with multiple separately controlled
-profiles/roles**, not permanently separate Student and Staff accounts.
+This is enforced by the service and HTTP routes rather than relying only
+on the interface.
 
-Core distinction:
+Foreign notification IDs return no usable private inbox access.
 
-- `User` = account identity;
-- `StudentProfile` = optional student/academic context;
-- staff-role application = request for institutional authority;
-- `UserRoleAssignment` = approved authority.
+Platform Administrator authority does not automatically grant access to
+another user's private notification inbox.
 
-Registration should eventually lead to a purpose-based onboarding step
-such as:
+Inactive/suspended accounts cannot use stale sessions to access the
+notification centre.
 
-**How will you use DSA?**
+Notification action URLs provide navigation only. Destination routes
+must independently enforce ownership, permission and scope.
 
-Primary paths:
+Only controlled internal DSA paths are currently accepted as
+notification action URLs.
 
-- Student -> create Student Profile;
-- SIWES Staff / Coordinator -> Request Staff Access.
+## Notification UI
 
-A lecturer/coordinator choosing the staff path must not be forced through
-student matriculation, level, placement-preference, or other
-student-profile fields.
+The notification centre currently provides:
 
-A user who initially creates a Student Profile may later request staff
-access if they genuinely hold an official SIWES responsibility.
+- unread and total counts;
+- category labels;
+- Important and Urgent priority cues;
+- visible unread state;
+- timestamps;
+- Mark as read;
+- Mark all as read;
+- contextual View update actions;
+- polished empty state;
+- responsive mobile behavior.
 
-Student status must not automatically grant staff authority, and staff
-authority must not automatically create a StudentProfile.
+A JavaScript-heavy notification dropdown is intentionally deferred.
 
-## Staff Access Direction
+Pagination becomes necessary before production-scale notification
+volume.
 
-Use the terminology:
+Future preferences, category muting, email/push/SMS delivery, batching,
+digests, WebSockets and notification analytics remain deferred.
 
-**Request Staff Access**
+## Directory Review Invariants
 
-rather than presenting ordinary users with a generic "Apply for a role"
-experience.
+DirectoryRequest review state remains separate from authoritative
+academic directory publication.
 
-Staff access is for lecturers or other authorized institutional
-personnel who already hold an official SIWES responsibility.
+Approving a DirectoryRequest must not automatically create or verify an
+Institution, AcademicUnit, Department or Programme.
 
-Requested roles require verification before authority is granted.
+Clarification ownership remains:
 
-Platform Administrator must never be self-requestable.
+- Platform Admin claims Submitted request;
+- request becomes Under Review;
+- claiming reviewer may request clarification;
+- request becomes More Info Required;
+- requester responds;
+- request returns to Under Review;
+- original reviewer remains assigned.
 
-A user may legitimately hold both:
+The next notification integration must preserve these rules.
 
-- Student Profile;
-- approved scoped staff role.
+## Immediate Next Step - Milestone C4
 
-Such users should eventually use **Switch Workspace** rather than
-separate accounts.
+Connect real directory-review workflow events to the reusable
+notification system.
 
-Possible workspaces include:
+Initial events:
 
-- Student Workspace;
-- Departmental SIWES Coordinator Workspace;
-- Institution Workspace;
-- Platform Administration.
+1. Reviewer requests clarification -> notify requester.
+2. Requester submits clarification response -> notify assigned reviewer.
+3. Reviewer approves request -> notify requester.
+4. Reviewer rejects request -> notify requester.
 
-Actions must remain permission- and scope-controlled and auditable.
+Notifications should link to the appropriate permission-safe DSA
+destination.
 
-## Platform Authority Direction
+Where practical, the domain change and notification should participate
+in the same database transaction so one does not succeed while the
+other fails.
 
-The intended initial highest authority is the Primary Platform
-Administrator / Platform Owner.
+Do not put directory-specific business logic inside the generic
+notification service.
 
-Do not hard-code a person's name into the authority model.
+Do not change approval into authoritative publication.
 
-The Primary Platform Administrator may eventually delegate specific
-platform permissions to aides without making every aide a full root
-administrator.
-
-Examples include:
-
-- Organization Review Officer;
-- User & Access Administrator.
-
-Use permission-based delegation and least privilege.
-
-Global Platform Administration authority should permit support across
-scopes without pretending that the Platform Administrator is actually a
-member of every institutional or departmental role.
-
-## Notifications Direction
-
-A reusable DSA Notification System is planned around the `User`
-recipient rather than StudentProfile.
-
-Future notification data should support:
-
-- unread/read state;
-- category/source;
-- title/message;
-- timestamp;
-- direct action destination.
-
-It should support students, Platform Administrators, institution staff,
-coordinators, and future scoped roles.
-
-## Evidence Direction
-
-Current directory-request evidence remains text/reference based.
-
-Future evidence should support reusable evidence items such as:
-
-- official/reference URL;
-- document/image attachment;
-- supporting note.
-
-Evidence is supporting material only and must never automatically verify
-or publish an academic-directory record.
-
-Do not implement this evidence subsystem as part of the current review
-workspace milestone.
-
-## Milestone B Completion
-
-**Milestone B - Reviewer Case Workspace is complete.**
-
-Implementation commit:
-
-`06bd46f Add directory request reviewer case workspace`
-
-The Platform Administrator directory-request detail page now provides:
-
-1. Request summary and academic context.
-2. Chronological Review Conversation.
-3. Reviewer and Requester message identity.
-4. Supporting clarification references where supplied.
-5. Assigned reviewer context.
-6. A derived **Response received** state when:
-   - the request is Under Review; and
-   - the latest clarification message is from the requester.
-7. A responsive Decision Panel for:
-   - Request More Information;
-   - Approve Request;
-   - Reject Request.
-
-No new persisted "Response Received" request status was introduced.
-
-The existing review ownership model remains intact. A requester response
-returns the request to Under Review while preserving the assigned
-reviewer.
-
-Approval remains a review decision only. It does not create, verify, or
-publish an authoritative Institution, AcademicUnit, Department, or
-Programme record.
-
-## Milestone B Verification
-
-Verified at commit `06bd46f`:
-
-- focused Reviewer Case Workspace tests: **4 passed**;
-- directory-request regression tests: **44 passed**;
-- full unittest suite: **227 passed**;
-- desktop reviewer workspace UI: **PASS**;
-- mobile reviewer workspace at 390 x 844: **PASS**;
-- responsive Decision Panel: **PASS**;
-- mobile global footer inspection: **PASS**.
-
-Known non-failing warning:
-
-SQLAlchemy `Query.get()` is a legacy API under SQLAlchemy 2.x and should
-eventually migrate toward `Session.get()`. This is not a blocker for the
-current development sequence.
-
-## Current Repository Baseline
-
-Branch:
-
-`phase4-programme-siwes-config`
-
-Current implementation baseline:
-
-`06bd46f Add directory request reviewer case workspace`
-
-Previous meaningful checkpoints:
-
-- `c3898ce Update DSA checkpoint after directory eligibility milestone`
-- `8654703 Enforce directory request eligibility and streamline profile support`
-- `31b8f28 Add directory request withdrawal workflow`
-- `e477f74 Add directory request clarification workflow`
-
-The working tree was clean immediately after commit `06bd46f`.
-
-## Next Milestone
-
-**Milestone C - Reusable DSA Notifications Foundation**
-
-The notification architecture must be reusable across DSA rather than
-being built specifically for students or directory requests.
-
-Core direction:
-
-- notifications belong to `User`, not `StudentProfile`;
-- support read/unread state;
-- support notification category/type/source;
-- support title and message;
-- support creation timestamp;
-- support a direct action destination/URL;
-- provide a global signed-in notification entry point;
-- preserve authorization at the destination rather than treating a
-  notification link as authorization.
-
-The first practical integration should support the existing directory
-clarification workflow, especially notifying the assigned reviewer when
-a requester submits a clarification response.
-
-Example:
-
-**Directory Request #2 - Response received**
-
-The notification should lead the authorized reviewer directly to the
-relevant Reviewer Case Workspace.
-
-Do not build notifications as directory-request-specific database
-columns. Establish a reusable foundation suitable for future:
-
-- official notices;
-- placement updates;
-- coordinator interventions;
-- SIWES/logbook/report/defence reminders;
-- supervisor updates;
-- staff-access workflows;
-- institution and Platform Administration events.
-
-## Planned Sequence After Milestone C
+After C4, proceed to:
 
 1. Platform Administration dashboard/navigation refresh.
 2. Controlled Directory Publication.
-3. Staff Access Requests and scoped workspace development.
-4. Broader account/profile/onboarding/workspace-switching experience.
-
-The sequence may be adjusted when real implementation dependencies
-require it, but approval and authoritative publication must remain
-separate.
+3. Staff Access Requests and scoped workspaces.
+4. Broader account/profile/onboarding/workspace-switching development.
 
 ## Development Workflow
 
@@ -384,23 +214,7 @@ Prefer guarded PowerShell changes when practical.
 
 Do not perform large uncontrolled rewrites.
 
+Keep inspection output small because large PowerShell output is easily
+truncated.
+
 The repository and current tests override stale documentation.
-
-## Immediate Next Step
-
-Before implementing Milestone C, inspect the existing architecture for:
-
-- `User` relationships and account model conventions;
-- global authenticated header/base template;
-- authentication/session helpers;
-- database model and migration conventions;
-- existing notification-like behavior, if any;
-- directory clarification response service/route;
-- authorization boundaries for reviewer destinations.
-
-Then define the smallest reusable Notification model/service foundation
-and targeted tests before implementation.
-
-Do not begin with notification UI alone. Establish the reusable
-user-level data and service contract first, then integrate one real
-event and finally expose the notification UI.

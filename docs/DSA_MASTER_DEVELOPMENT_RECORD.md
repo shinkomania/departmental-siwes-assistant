@@ -736,3 +736,82 @@ DirectoryRequest.
 
 The implementation baseline entering this milestone is commit
 `06bd46f` with **227 passing tests**.
+
+## 26. Reusable DSA Notifications Foundation - Completed
+
+Milestone C established notifications as a reusable platform-level DSA
+capability rather than a directory-request-specific feature.
+
+Implementation commit:
+
+`5714446 Add reusable user notification system`
+
+A reusable `Notification` model, migration, notification service,
+global notification routes, responsive notification centre and signed-in
+header bell were implemented.
+
+Notifications belong to `User`, not `StudentProfile`, allowing the same
+system to support students, coordinators, institution officers,
+delegated Platform Administrators and other legitimate future roles.
+
+The model supports recipient, category, notification type, title,
+message, priority, internal action URL, generic source metadata,
+`read_at`, and creation timestamp.
+
+Read state is derived from `read_at`.
+
+The reusable notification service centralizes creation, inbox queries,
+unread counts and read operations.
+
+A hard recipient-isolation security contract was established:
+
+**User A must never be able to view, count, mark as read, open, or
+bulk-modify User B's notifications.**
+
+This boundary is enforced at service and HTTP-route level.
+
+Platform Administrator authority does not itself provide access to
+another user's private notification inbox.
+
+Inactive accounts cannot use stale sessions to access notification
+routes.
+
+Notification action URLs are navigation only and do not grant
+authorization at their destination. The current service accepts only
+controlled internal DSA paths.
+
+The global signed-in interface now provides a notification bell and
+unread badge. The notification centre provides unread/total summaries,
+category and priority cues, unread state, timestamps, contextual
+actions, individual read actions, Mark all as read, and a polished empty
+state.
+
+Desktop and 390 x 844 mobile layouts were manually validated.
+
+Temporary development notifications were used to validate the populated
+state, priority badges, action controls, bell count and persisted read
+transition. The temporary records were removed afterward.
+
+Verification at completion:
+
+- 246 full-suite tests passed;
+- 7 focused HTTP notification/security tests passed;
+- Python compilation checks passed;
+- `git diff --check` reported no whitespace errors;
+- desktop UI passed;
+- 390 x 844 mobile UI passed;
+- populated and read-state UI behavior passed.
+
+Pagination is intentionally deferred but should be added before
+production-scale notification volume.
+
+Notification preferences, category muting, external email/push/SMS
+delivery, batching/digests, WebSockets and richer analytics remain
+future work.
+
+The next step is Milestone C4: connect real directory-review workflow
+events to the reusable notification system, beginning with clarification
+requested, requester response received, approval and rejection.
+
+Directory review state remains separate from authoritative directory
+publication. Notifications must not weaken that invariant.
