@@ -5266,3 +5266,601 @@ class AcademicDirectoryImportServiceTestCase(DSATestCase):
             1,
         )
         self.assertEqual(summary["TOTAL"], 4)
+
+# ---------------------------------------------------------------------------
+# E2.2 Academic Directory Publication Service Tests
+# ---------------------------------------------------------------------------
+
+class AcademicDirectoryPublicationServiceTestCase(unittest.TestCase):
+    """
+    E2.2 regression tests for the controlled academic-directory publication
+    boundary.
+
+    These tests verify publication of canonical Institution records only.
+    They explicitly protect SIWES configuration and academic hierarchy data
+    from unintended mutation.
+    """
+
+    def setUp(self):
+        self.app = create_app("testing")
+        self.client = self.app.test_client()
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+
+        from models import (
+            DataSource,
+            Institution,
+            SIWESConfiguration,
+        )
+
+        from services.academic_directory_import import (
+            AcademicDirectoryImportResult,
+            AcademicDirectorySourceRecord,
+        )
+
+        from services.academic_directory_publication import (
+            AcademicDirectoryPublicationService,
+        )
+
+        self.DataSource = DataSource
+        self.Institution = Institution
+        self.SIWESConfiguration = SIWESConfiguration
+
+        self.AcademicDirectoryImportResult = (
+            AcademicDirectoryImportResult
+        )
+        self.AcademicDirectorySourceRecord = (
+            AcademicDirectorySourceRecord
+        )
+        self.AcademicDirectoryPublicationService = (
+            AcademicDirectoryPublicationService
+        )
+
+        self.source = DataSource(
+            name="E2.2 Publication Test Authority",
+            source_type="Government/Public Registry",
+            authority_name="E2.2 Test Authority",
+            base_url="https://example.test/",
+            description="Controlled publication-service test source.",
+            is_active=True,
+        )
+        db.session.add(self.source)
+        db.session.flush()
+
+        self.record = AcademicDirectorySourceRecord(
+            source_name="E2.2 Publication Test Authority",
+            source_type="Government/Public Registry",
+            external_identifier="E22-001",
+            external_name="E2.2 Test Institution",
+            institution_type="University",
+            city="Abuja",
+            state="FCT",
+            official_website="https://institution.example.test/",
+            reference_url="https://example.test/institutions/E22-001",
+            source_snapshot="E2.2 controlled source snapshot",
+        )
+
+        self.service = self.AcademicDirectoryPublicationService(
+            db.session
+        )
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def _result(
+        self,
+        result,
+        *,
+        matched_institution_id=None,
+        reason="Controlled E2.2 test result.",
+    ):
+        return self.AcademicDirectoryImportResult(
+            result=result,
+            source_name=self.record.source_name,
+            external_identifier=self.record.external_identifier,
+            external_name=self.record.external_name,
+            normalized_external_name=(
+                "e2.2 test institution"
+                if self.record.external_name
+                == "E2.2 Test Institution"
+                else self.record.external_name.lower()
+            ),
+            matched_institution_id=matched_institution_id,
+            reason=reason,
+        )
+
+    def test_new_institution_publication_creates_pending_institution(self):
+        before = self.Institution.query.count()
+
+        result = self.service.publish(
+            self.record,
+            self._result("NEW_INSTITUTION"),
+            data_source_id=self.source.id,
+        )
+
+        self.assertEqual(
+            result.result,
+            "NEW_INSTITUTION_PUBLISHED",
+        )
+        self.assertTrue(result.created_institution)
+        self.assertTrue(result.created_source_identity)
+        self.assertTrue(result.created_evidence)
+
+        self.assertEqual(
+            self.Institution.query.count(),
+            before + 1,
+        )
+
+        institution = self.Institution.query.get(
+            result.institution_id
+        )
+
+        self.assertIsNotNone(institution)
+        self.assertEqual(
+            institution.name,
+            "E2.2 Test Institution",
+        )
+        self.assertEqual(
+            institution.normalized_name,
+            "e2.2 test institution",
+        )
+        self.assertEqual(
+            institution.directory_status,
+            "Pending Verification",
+        )
+
+    def test_exact_canonical_match_does_not_create_duplicate_institution(
+        self,
+    ):
+        institution = self.Institution(
+            name="E2.2 Existing Canonical Institution",
+            normalized_name="e2.2 existing canonical institution",
+            institution_type="University",
+            city="Abuja",
+            state="FCT",
+            official_website="https://canonical.example.test/",
+            directory_status="Pending Verification",
+            administration_status="Unclaimed",
+            is_active=True,
+        )
+        db.session.add(institution)
+        db.session.flush()
+
+        before = self.Institution.query.count()
+
+        record = self.AcademicDirectorySourceRecord(
+            source_name=self.record.source_name,
+            source_type=self.record.source_type,
+            external_identifier="E22-002",
+            external_name="E2.2 Existing Canonical Institution",
+            institution_type=self.record.institution_type,
+            city=self.record.city,
+            state=self.record.state,
+            official_website=self.record.official_website,
+            reference_url=self.record.reference_url,
+            source_snapshot=self.record.source_snapshot,
+        )
+
+        result = self.service.publish(
+            record,
+            self._result(
+                "EXACT_CANONICAL_MATCH",
+                matched_institution_id=institution.id,
+            ),
+            data_source_id=self.source.id,
+        )
+
+        self.assertEqual(
+            result.result,
+            "EXACT_CANONICAL_MATCH_PUBLISHED",
+        )
+        self.assertFalse(result.created_institution)
+        self.assertEqual(
+            self.Institution.query.count(),
+            before,
+        )
+        self.assertEqual(
+            result.institution_id,
+            institution.id,
+        )
+
+    def test_existing_canonical_display_name_is_not_overwritten(self):
+        institution = self.Institution(
+            name="Canonical Institution Display Name",
+            normalized_name="canonical institution display name",
+            institution_type="University",
+            city="Zaria",
+            state="Kaduna",
+            official_website="https://canonical.example.test/",
+            directory_status="Verified",
+            administration_status="Unclaimed",
+            is_active=True,
+        )
+        db.session.add(institution)
+        db.session.flush()
+
+        record = self.AcademicDirectorySourceRecord(
+            source_name=self.record.source_name,
+            source_type=self.record.source_type,
+            external_identifier="E22-003",
+            external_name="Different Source Name",
+            institution_type=self.record.institution_type,
+            city=self.record.city,
+            state=self.record.state,
+            official_website=self.record.official_website,
+            reference_url=self.record.reference_url,
+            source_snapshot=self.record.source_snapshot,
+        )
+
+        result = self.service.publish(
+            record,
+            self._result(
+                "EXACT_CANONICAL_MATCH",
+                matched_institution_id=institution.id,
+            ),
+            data_source_id=self.source.id,
+        )
+
+        self.assertEqual(
+            result.result,
+            "EXACT_CANONICAL_MATCH_PUBLISHED",
+        )
+
+        db.session.refresh(institution)
+
+        self.assertEqual(
+            institution.name,
+            "Canonical Institution Display Name",
+        )
+        self.assertEqual(
+            institution.normalized_name,
+            "canonical institution display name",
+        )
+
+    def test_source_identity_is_created_for_successful_publication(self):
+        from models import AcademicDirectorySourceIdentity
+
+        result = self.service.publish(
+            self.record,
+            self._result("NEW_INSTITUTION"),
+            data_source_id=self.source.id,
+        )
+
+        identity = AcademicDirectorySourceIdentity.query.get(
+            result.source_identity_id
+        )
+
+        self.assertIsNotNone(identity)
+        self.assertEqual(
+            identity.data_source_id,
+            self.source.id,
+        )
+        self.assertEqual(
+            identity.external_identifier,
+            "E22-001",
+        )
+        self.assertEqual(
+            identity.external_name,
+            "E2.2 Test Institution",
+        )
+        self.assertEqual(
+            identity.normalized_external_name,
+            "e2.2 test institution",
+        )
+        self.assertEqual(
+            identity.institution_id,
+            result.institution_id,
+        )
+
+    def test_source_evidence_is_created_for_successful_publication(self):
+        from models import SourceEvidence
+
+        result = self.service.publish(
+            self.record,
+            self._result("NEW_INSTITUTION"),
+            data_source_id=self.source.id,
+        )
+
+        evidence = SourceEvidence.query.get(
+            result.evidence_id
+        )
+
+        self.assertIsNotNone(evidence)
+        self.assertEqual(
+            evidence.data_source_id,
+            self.source.id,
+        )
+        self.assertEqual(
+            evidence.claim_type,
+            "Institution Recognition",
+        )
+        self.assertEqual(
+            evidence.institution_id,
+            result.institution_id,
+        )
+        self.assertEqual(
+            evidence.reference_url,
+            self.record.reference_url,
+        )
+
+    def test_existing_source_identity_is_rejected(self):
+        from models import AcademicDirectorySourceIdentity
+
+        result = self.service.publish(
+            self.record,
+            self._result("NEW_INSTITUTION"),
+            data_source_id=self.source.id,
+        )
+
+        self.assertEqual(
+            result.result,
+            "NEW_INSTITUTION_PUBLISHED",
+        )
+
+        duplicate = self.service.publish(
+            self.record,
+            self._result("NEW_INSTITUTION"),
+            data_source_id=self.source.id,
+        )
+
+        self.assertEqual(
+            duplicate.result,
+            "EXISTING_SOURCE_IDENTITY",
+        )
+
+        self.assertEqual(
+            AcademicDirectorySourceIdentity.query.count(),
+            1,
+        )
+
+    def test_review_required_is_rejected(self):
+        before = self.Institution.query.count()
+
+        result = self.service.publish(
+            self.record,
+            self._result("REVIEW_REQUIRED"),
+            data_source_id=self.source.id,
+        )
+
+        self.assertEqual(
+            result.result,
+            "REJECTED_RESULT",
+        )
+        self.assertEqual(
+            self.Institution.query.count(),
+            before,
+        )
+
+    def test_invalid_result_is_rejected(self):
+        before = self.Institution.query.count()
+
+        result = self.service.publish(
+            self.record,
+            self._result("INVALID"),
+            data_source_id=self.source.id,
+        )
+
+        self.assertEqual(
+            result.result,
+            "REJECTED_RESULT",
+        )
+        self.assertEqual(
+            self.Institution.query.count(),
+            before,
+        )
+
+    def test_missing_data_source_is_rejected(self):
+        before = self.Institution.query.count()
+
+        result = self.service.publish(
+            self.record,
+            self._result("NEW_INSTITUTION"),
+            data_source_id=999999,
+        )
+
+        self.assertEqual(
+            result.result,
+            "DATA_SOURCE_NOT_FOUND",
+        )
+        self.assertEqual(
+            self.Institution.query.count(),
+            before,
+        )
+
+    def test_dry_run_new_institution_creates_no_records(self):
+        from models import (
+            AcademicDirectorySourceIdentity,
+            SourceEvidence,
+        )
+
+        institution_before = self.Institution.query.count()
+        identity_before = (
+            AcademicDirectorySourceIdentity.query.count()
+        )
+        evidence_before = SourceEvidence.query.count()
+
+        result = self.service.publish(
+            self.record,
+            self._result("NEW_INSTITUTION"),
+            data_source_id=self.source.id,
+            dry_run=True,
+        )
+
+        self.assertEqual(
+            result.result,
+            "DRY_RUN_NEW_INSTITUTION",
+        )
+        self.assertTrue(result.dry_run)
+
+        self.assertEqual(
+            self.Institution.query.count(),
+            institution_before,
+        )
+        self.assertEqual(
+            AcademicDirectorySourceIdentity.query.count(),
+            identity_before,
+        )
+        self.assertEqual(
+            SourceEvidence.query.count(),
+            evidence_before,
+        )
+
+    def test_dry_run_exact_match_creates_no_records(self):
+        institution = self.Institution(
+            name="E2.2 Dry Run Existing",
+            normalized_name="e2.2 dry run existing",
+            institution_type="University",
+            city="Abuja",
+            state="FCT",
+            directory_status="Pending Verification",
+            administration_status="Unclaimed",
+            is_active=True,
+        )
+        db.session.add(institution)
+        db.session.flush()
+
+        from models import (
+            AcademicDirectorySourceIdentity,
+            SourceEvidence,
+        )
+
+        identity_before = (
+            AcademicDirectorySourceIdentity.query.count()
+        )
+        evidence_before = SourceEvidence.query.count()
+
+        record = self.AcademicDirectorySourceRecord(
+            source_name=self.record.source_name,
+            source_type=self.record.source_type,
+            external_identifier="E22-DRY-001",
+            external_name="E2.2 Dry Run Existing",
+            institution_type=self.record.institution_type,
+            city=self.record.city,
+            state=self.record.state,
+            official_website=self.record.official_website,
+            reference_url=self.record.reference_url,
+            source_snapshot=self.record.source_snapshot,
+        )
+
+        result = self.service.publish(
+            record,
+            self._result(
+                "EXACT_CANONICAL_MATCH",
+                matched_institution_id=institution.id,
+            ),
+            data_source_id=self.source.id,
+            dry_run=True,
+        )
+
+        self.assertEqual(
+            result.result,
+            "DRY_RUN_EXACT_CANONICAL_MATCH",
+        )
+        self.assertTrue(result.dry_run)
+
+        self.assertEqual(
+            AcademicDirectorySourceIdentity.query.count(),
+            identity_before,
+        )
+        self.assertEqual(
+            SourceEvidence.query.count(),
+            evidence_before,
+        )
+
+    def test_publication_does_not_create_or_modify_siwes_configuration(
+        self,
+    ):
+        before = self.SIWESConfiguration.query.count()
+
+        result = self.service.publish(
+            self.record,
+            self._result("NEW_INSTITUTION"),
+            data_source_id=self.source.id,
+        )
+
+        self.assertEqual(
+            result.result,
+            "NEW_INSTITUTION_PUBLISHED",
+        )
+
+        self.assertEqual(
+            self.SIWESConfiguration.query.count(),
+            before,
+        )
+
+    def test_publication_does_not_create_academic_children(self):
+        from models import (
+            AcademicUnit,
+            Department,
+            Programme,
+        )
+
+        academic_units_before = AcademicUnit.query.count()
+        departments_before = Department.query.count()
+        programmes_before = Programme.query.count()
+
+        result = self.service.publish(
+            self.record,
+            self._result("NEW_INSTITUTION"),
+            data_source_id=self.source.id,
+        )
+
+        self.assertEqual(
+            result.result,
+            "NEW_INSTITUTION_PUBLISHED",
+        )
+
+        self.assertEqual(
+            AcademicUnit.query.count(),
+            academic_units_before,
+        )
+        self.assertEqual(
+            Department.query.count(),
+            departments_before,
+        )
+        self.assertEqual(
+            Programme.query.count(),
+            programmes_before,
+        )
+
+    def test_publication_preserves_reference_url(self):
+        from models import SourceEvidence
+
+        result = self.service.publish(
+            self.record,
+            self._result("NEW_INSTITUTION"),
+            data_source_id=self.source.id,
+        )
+
+        evidence = SourceEvidence.query.get(
+            result.evidence_id
+        )
+
+        self.assertEqual(
+            evidence.reference_url,
+            "https://example.test/institutions/E22-001",
+        )
+
+    def test_inactive_data_source_is_rejected(self):
+        self.source.is_active = False
+        db.session.flush()
+
+        before = self.Institution.query.count()
+
+        result = self.service.publish(
+            self.record,
+            self._result("NEW_INSTITUTION"),
+            data_source_id=self.source.id,
+        )
+
+        self.assertEqual(
+            result.result,
+            "DATA_SOURCE_NOT_FOUND",
+        )
+        self.assertEqual(
+            self.Institution.query.count(),
+            before,
+        )
