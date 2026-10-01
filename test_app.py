@@ -4948,3 +4948,321 @@ class AcademicDirectoryIdentityTestCase(unittest.TestCase):
             db.session.remove()
             db.drop_all()
             context.pop()
+
+# ---------------------------------------------------------------------------
+# E2.1 Academic Directory Import Service Tests
+# ---------------------------------------------------------------------------
+
+class AcademicDirectoryImportServiceTestCase(DSATestCase):
+    """
+    E2.1 regression tests for the read-only academic-directory importer.
+
+    These tests use the repository's established DSATestCase lifecycle.
+    They do not publish, verify, or SIWES-enable directory records.
+    """
+
+    def setUp(self):
+        super().setUp()
+
+        self.source = DataSource(
+            name="E2.1 Test Import Authority",
+            source_type="Regulator",
+            authority_name="E2.1 Test Authority",
+            base_url="https://example.test/",
+            description="Temporary test source for importer regression tests.",
+            is_active=True,
+        )
+
+        db.session.add(self.source)
+        db.session.commit()
+
+    def _import_service(self):
+        from services.academic_directory_import import (
+            AcademicDirectoryImportService,
+        )
+
+        return AcademicDirectoryImportService(db.session)
+
+    def test_invalid_source_record_returns_invalid(self):
+        from services.academic_directory_import import (
+            AcademicDirectorySourceRecord,
+        )
+
+        service = self._import_service()
+
+        result = service.resolve(
+            AcademicDirectorySourceRecord(
+                source_name="Test Authority",
+                source_type="Regulator",
+                external_identifier="INVALID-001",
+                external_name="   ",
+            )
+        )
+
+        self.assertEqual(result.result, "INVALID")
+
+    def test_existing_canonical_institution_returns_exact_match(self):
+        from services.academic_directory_import import (
+            AcademicDirectorySourceRecord,
+        )
+
+        institution = Institution(
+            name="E2.1 Permanent Test University",
+            normalized_name="e2.1 permanent test university",
+            institution_type="University",
+            city="Test City",
+            state="Test State",
+            is_active=True,
+        )
+
+        db.session.add(institution)
+        db.session.flush()
+
+        service = self._import_service()
+
+        result = service.resolve(
+            AcademicDirectorySourceRecord(
+                source_name="Test Authority",
+                source_type="Regulator",
+                external_identifier="EXACT-001",
+                external_name="E2.1 Permanent Test University",
+            )
+        )
+
+        self.assertEqual(
+            result.result,
+            "EXACT_CANONICAL_MATCH",
+        )
+        self.assertEqual(
+            result.matched_institution_id,
+            institution.id,
+        )
+
+    def test_new_institution_returns_new_institution(self):
+        from services.academic_directory_import import (
+            AcademicDirectorySourceRecord,
+        )
+
+        service = self._import_service()
+
+        result = service.resolve(
+            AcademicDirectorySourceRecord(
+                source_name="Test Authority",
+                source_type="Regulator",
+                external_identifier="NEW-001",
+                external_name="E2.1 New Test University",
+            )
+        )
+
+        self.assertEqual(
+            result.result,
+            "NEW_INSTITUTION",
+        )
+
+    def test_existing_source_identity_returns_existing_identity(self):
+        from models import AcademicDirectorySourceIdentity
+        from services.academic_directory_import import (
+            AcademicDirectorySourceRecord,
+        )
+
+        institution = Institution(
+            name="E2.1 Source Identity University",
+            normalized_name="e2.1 source identity university",
+            institution_type="University",
+            city="Test City",
+            state="Test State",
+            is_active=True,
+        )
+
+        db.session.add(institution)
+        db.session.flush()
+
+        identity = AcademicDirectorySourceIdentity(
+            data_source_id=self.source.id,
+            external_identifier="SOURCE-001",
+            external_name="E2.1 Source Identity University",
+            normalized_external_name=(
+                "e2.1 source identity university"
+            ),
+            institution_id=institution.id,
+            reference_url="https://example.test/source-001",
+        )
+
+        db.session.add(identity)
+        db.session.flush()
+
+        service = self._import_service()
+
+        result = service.resolve(
+            AcademicDirectorySourceRecord(
+                source_name="Test Authority",
+                source_type="Regulator",
+                external_identifier="SOURCE-001",
+                external_name="E2.1 Source Identity University",
+            ),
+            data_source_id=self.source.id,
+        )
+
+        self.assertEqual(
+            result.result,
+            "EXISTING_SOURCE_IDENTITY",
+        )
+        self.assertEqual(
+            result.matched_institution_id,
+            institution.id,
+        )
+
+    def test_ambiguous_match_returns_review_required(self):
+        from models import AcademicDirectorySourceIdentity
+        from services.academic_directory_import import (
+            AcademicDirectoryImportService,
+            AcademicDirectorySourceRecord,
+        )
+
+        class FakeQuery:
+            def __init__(self, matches):
+                self.matches = matches
+
+            def filter(self, *args, **kwargs):
+                return self
+
+            def all(self):
+                return self.matches
+
+            def first(self):
+                return self.matches[0] if self.matches else None
+
+        class FakeSession:
+            def query(self, model):
+                if model is AcademicDirectorySourceIdentity:
+                    return FakeQuery([])
+
+                if model is Institution:
+                    return FakeQuery(
+                        [
+                            type(
+                                "FakeInstitution",
+                                (),
+                                {
+                                    "id": 101,
+                                    "name": "Duplicate University",
+                                },
+                            )(),
+                            type(
+                                "FakeInstitution",
+                                (),
+                                {
+                                    "id": 102,
+                                    "name": "Duplicate University",
+                                },
+                            )(),
+                        ]
+                    )
+
+                raise AssertionError(
+                    f"Unexpected model queried: {model}"
+                )
+
+            def get(self, model, identity):
+                return None
+
+        service = AcademicDirectoryImportService(
+            FakeSession()
+        )
+
+        result = service.resolve(
+            AcademicDirectorySourceRecord(
+                source_name="Test Authority",
+                source_type="Regulator",
+                external_identifier="AMBIGUOUS-001",
+                external_name="Duplicate University",
+            )
+        )
+
+        self.assertEqual(
+            result.result,
+            "REVIEW_REQUIRED",
+        )
+
+    def test_dry_run_does_not_create_institution(self):
+        from services.academic_directory_import import (
+            AcademicDirectorySourceRecord,
+        )
+
+        service = self._import_service()
+
+        before = Institution.query.count()
+
+        results = service.dry_run(
+            [
+                AcademicDirectorySourceRecord(
+                    source_name="Test Authority",
+                    source_type="Regulator",
+                    external_identifier="DRY-001",
+                    external_name="E2.1 Dry Run University",
+                )
+            ]
+        )
+
+        after = Institution.query.count()
+
+        self.assertEqual(before, after)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(
+            results[0].result,
+            "NEW_INSTITUTION",
+        )
+
+    def test_summary_counts_results(self):
+        from services.academic_directory_import import (
+            AcademicDirectoryImportResult,
+            summarize_results,
+        )
+
+        results = [
+            AcademicDirectoryImportResult(
+                result="INVALID",
+                source_name="Test",
+                external_identifier="1",
+                external_name="Invalid",
+                normalized_external_name=None,
+            ),
+            AcademicDirectoryImportResult(
+                result="EXACT_CANONICAL_MATCH",
+                source_name="Test",
+                external_identifier="2",
+                external_name="Existing",
+                normalized_external_name="existing",
+            ),
+            AcademicDirectoryImportResult(
+                result="NEW_INSTITUTION",
+                source_name="Test",
+                external_identifier="3",
+                external_name="New",
+                normalized_external_name="new",
+            ),
+            AcademicDirectoryImportResult(
+                result="REVIEW_REQUIRED",
+                source_name="Test",
+                external_identifier="4",
+                external_name="Ambiguous",
+                normalized_external_name="ambiguous",
+            ),
+        ]
+
+        summary = summarize_results(results)
+
+        self.assertEqual(summary["INVALID"], 1)
+        self.assertEqual(
+            summary["EXACT_CANONICAL_MATCH"],
+            1,
+        )
+        self.assertEqual(
+            summary["NEW_INSTITUTION"],
+            1,
+        )
+        self.assertEqual(
+            summary["REVIEW_REQUIRED"],
+            1,
+        )
+        self.assertEqual(summary["TOTAL"], 4)
