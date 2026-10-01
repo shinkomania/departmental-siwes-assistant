@@ -1,4 +1,4 @@
-"""
+﻿"""
 Academic Directory Publication Service
 --------------------------------------
 
@@ -268,6 +268,64 @@ class AcademicDirectoryPublicationService:
         institution = None
         created_institution = False
 
+        # A source directory may contain duplicate rows for the same
+        # canonical institution while assigning different external
+        # identifiers to those rows. The database intentionally prevents
+        # duplicate source mappings for the same source/institution/name.
+        #
+        # Do not weaken that uniqueness constraint. Instead, detect the
+        # duplicate before attempting the INSERT and safely skip the
+        # duplicate source row.
+        existing_canonical_source_identity = None
+
+        if (
+            import_result.matched_institution_id is not None
+            and normalized_external_name
+        ):
+            existing_canonical_source_identity = (
+                self.session.query(AcademicDirectorySourceIdentity)
+                .filter(
+                    AcademicDirectorySourceIdentity.data_source_id
+                    == data_source_id,
+                    AcademicDirectorySourceIdentity.institution_id
+                    == import_result.matched_institution_id,
+                    AcademicDirectorySourceIdentity.normalized_external_name
+                    == normalized_external_name,
+                )
+                .first()
+            )
+
+            if existing_canonical_source_identity is not None:
+                existing_institution = self.session.get(
+                    Institution,
+                    existing_canonical_source_identity.institution_id,
+                )
+
+                return AcademicDirectoryPublicationResult(
+                    result="DUPLICATE_SOURCE_RECORD",
+                    institution_id=(
+                        existing_institution.id
+                        if existing_institution is not None
+                        else None
+                    ),
+                    institution_name=(
+                        existing_institution.name
+                        if existing_institution is not None
+                        else None
+                    ),
+                    source_identity_id=(
+                        existing_canonical_source_identity.id
+                    ),
+                    reason=(
+                        "The source directory contains another record "
+                        "for the same canonical institution and normalized "
+                        "source name. The existing authoritative source "
+                        "mapping was preserved and the duplicate row was "
+                        "not published."
+                    ),
+                    dry_run=dry_run,
+                )
+
         if import_result.result == "EXACT_CANONICAL_MATCH":
             if import_result.matched_institution_id is None:
                 return AcademicDirectoryPublicationResult(
@@ -304,7 +362,83 @@ class AcademicDirectoryPublicationService:
                 )
 
         elif import_result.result == "NEW_INSTITUTION":
-            if dry_run:
+            # The import result may have been resolved before another
+            # source record created the canonical institution. Re-check
+            # the canonical name immediately before INSERT so sequential
+            # bulk publication cannot create duplicate institutions.
+            existing_canonical_institution = (
+                self.session.query(Institution)
+                .filter(
+                    Institution.normalized_name
+                    == normalized_external_name
+                )
+                .all()
+            )
+
+            if len(existing_canonical_institution) > 1:
+                return AcademicDirectoryPublicationResult(
+                    result="REVIEW_REQUIRED",
+                    reason=(
+                        "Multiple canonical institutions now match the "
+                        "normalized source identity."
+                    ),
+                    errors=[
+                        "Canonical institution collision requires review."
+                    ],
+                    dry_run=dry_run,
+                )
+
+            if len(existing_canonical_institution) == 1:
+                institution = existing_canonical_institution[0]
+
+                existing_source_identity = (
+                    self.session.query(
+                        AcademicDirectorySourceIdentity
+                    )
+                    .filter(
+                        AcademicDirectorySourceIdentity.data_source_id
+                        == data_source_id,
+                        AcademicDirectorySourceIdentity.institution_id
+                        == institution.id,
+                        AcademicDirectorySourceIdentity
+                        .normalized_external_name
+                        == normalized_external_name,
+                    )
+                    .first()
+                )
+
+                if existing_source_identity is not None:
+                    return AcademicDirectoryPublicationResult(
+                        result="DUPLICATE_SOURCE_RECORD",
+                        institution_id=institution.id,
+                        institution_name=institution.name,
+                        source_identity_id=(
+                            existing_source_identity.id
+                        ),
+                        reason=(
+                            "The canonical institution and authoritative "
+                            "source mapping already exist. The stale "
+                            "NEW_INSTITUTION result was safely rejected."
+                        ),
+                        dry_run=dry_run,
+                    )
+
+                if dry_run:
+                    return AcademicDirectoryPublicationResult(
+                        result="DRY_RUN_EXACT_CANONICAL_MATCH",
+                        institution_id=institution.id,
+                        institution_name=institution.name,
+                        reason=(
+                            "The source record would attach to the "
+                            "canonical institution discovered during "
+                            "publication-time revalidation."
+                        ),
+                        dry_run=True,
+                    )
+
+                created_institution = False
+
+            elif dry_run:
                 return AcademicDirectoryPublicationResult(
                     result="DRY_RUN_NEW_INSTITUTION",
                     institution_name=external_name,
