@@ -1,0 +1,88 @@
+﻿{% extends "base.html" %}
+
+{% block title %}SIWES Configurations | Platform Administration | DSA{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-page-header">
+        <div>
+            <span class="admin-eyebrow">Academic Directory</span>
+            <h1>SIWES Configurations</h1>
+            <p>
+                Programme-level SIWES rules currently recorded in DSA.
+                These configurations describe institutional programme
+                requirements, not individual student sessions.
+            </p>
+        </div>
+    </div>
+
+    <section class="admin-card">
+        {% if programmes %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Programme</th>
+                        <th>Institution</th>
+                        <th>Department</th>
+                        <th>Status</th>
+                        <th>Level</th>
+                        <th>Timing</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for programme in programmes %}
+                    {% set config = programme.siwes_configuration %}
+                    <tr>
+                        <td>
+                            <strong>{{ programme.name }}</strong>
+                            {% if programme.award %}
+                            <small>{{ programme.award }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ programme.department.academic_unit.institution.name }}
+                        </td>
+                        <td>
+                            {{ programme.department.name }}
+                        </td>
+                        <td>
+                            <span class="status-badge">
+                                {{ config.siwes_status }}
+                            </span>
+                        </td>
+                        <td>{{ config.eligible_level or "Not set" }}</td>
+                        <td>
+                            {{ config.timing or "Not set" }}
+                            {% if config.semester %}
+                            · {{ config.semester }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a
+                                class="button button-secondary"
+                                href="{{ url_for(
+                                    'admin.edit_siwes_configuration',
+                                    programme_id=programme.id
+                                ) }}"
+                            >
+                                Review / Edit
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <h2>No SIWES configurations</h2>
+            <p>
+                No programme currently has a SIWES configuration record.
+            </p>
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

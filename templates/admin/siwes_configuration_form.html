@@ -1,0 +1,160 @@
+﻿{% extends "base.html" %}
+
+{% block title %}
+Edit SIWES Configuration | Platform Administration | DSA
+{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-page-header">
+        <div>
+            <span class="admin-eyebrow">Programme SIWES Configuration</span>
+            <h1>{{ programme.name }}</h1>
+            <p>
+                {{ programme.department.academic_unit.institution.name }}
+                · {{ programme.department.academic_unit.name }}
+                · {{ programme.department.name }}
+            </p>
+        </div>
+    </div>
+
+    <section class="admin-card">
+        <form method="post">
+            <div class="form-grid">
+                <div class="form-field">
+                    <label for="siwes_status">SIWES status</label>
+                    <select
+                        id="siwes_status"
+                        name="siwes_status"
+                        required
+                    >
+                        {% for status in [
+                            "Required",
+                            "Optional",
+                            "No SIWES",
+                            "Pending Verification"
+                        ] %}
+                        <option
+                            value="{{ status }}"
+                            {% if configuration.siwes_status == status %}
+                            selected
+                            {% endif %}
+                        >
+                            {{ status }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="duration_months">
+                        Duration (months)
+                    </label>
+                    <input
+                        id="duration_months"
+                        name="duration_months"
+                        type="number"
+                        min="1"
+                        value="{{ configuration.duration_months or '' }}"
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="eligible_level">
+                        Eligible level / stage
+                    </label>
+                    <input
+                        id="eligible_level"
+                        name="eligible_level"
+                        type="text"
+                        value="{{ configuration.eligible_level or '' }}"
+                        placeholder="e.g. 400 Level"
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="timing">Timing</label>
+                    <input
+                        id="timing"
+                        name="timing"
+                        type="text"
+                        value="{{ configuration.timing or '' }}"
+                        placeholder="e.g. Second Semester"
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="semester">Semester</label>
+                    <input
+                        id="semester"
+                        name="semester"
+                        type="text"
+                        value="{{ configuration.semester or '' }}"
+                    >
+                </div>
+
+                <div class="form-field form-field-full">
+                    <label for="required_forms">
+                        Required forms / documents
+                    </label>
+                    <textarea
+                        id="required_forms"
+                        name="required_forms"
+                        rows="4"
+                    >{{ configuration.required_forms or '' }}</textarea>
+                </div>
+
+                <div class="form-field form-field-full">
+                    <label for="special_requirements">
+                        Special requirements
+                    </label>
+                    <textarea
+                        id="special_requirements"
+                        name="special_requirements"
+                        rows="4"
+                    >{{ configuration.special_requirements or '' }}</textarea>
+                </div>
+
+                <div class="form-field form-field-full">
+                    <label for="verification_source">
+                        Verification source
+                    </label>
+                    <input
+                        id="verification_source"
+                        name="verification_source"
+                        type="text"
+                        value="{{ configuration.verification_source or '' }}"
+                        placeholder="Official institution / department source"
+                    >
+                </div>
+
+                <div class="form-field form-field-full">
+                    <label for="verification_reference">
+                        Verification reference
+                    </label>
+                    <input
+                        id="verification_reference"
+                        name="verification_reference"
+                        type="url"
+                        value="{{ configuration.verification_reference or '' }}"
+                        placeholder="https://..."
+                    >
+                </div>
+            </div>
+
+            <div class="admin-form-actions">
+                <a
+                    class="button button-secondary"
+                    href="{{ url_for('admin.siwes_configurations') }}"
+                >
+                    Cancel
+                </a>
+
+                <button class="button button-primary" type="submit">
+                    Save SIWES Configuration
+                </button>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}

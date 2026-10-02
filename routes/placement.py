@@ -24,8 +24,10 @@ from models.db import db
 from models.user import User
 from models.organization import Organization
 from models.student import StudentProfile
+from models.academic import Programme
 from models.application import SavedOrganization, PlacementApplication
 from services.placement_search import PlacementSearchService
+from services.siwes_eligibility import get_siwes_eligibility
 from routes.student import (
     AREAS_OF_INTEREST,
     ORGANIZATION_TYPES,
@@ -86,6 +88,41 @@ def _current_student():
         user_id=user.id
     ).first()
 
+
+
+def _require_siwes_student():
+    """
+    Resolve an authenticated student whose programme has a
+    confirmed SIWES configuration.
+
+    Public placement exploration remains available without a
+    profile. Personal SIWES actions use this stricter boundary.
+    """
+    student = _require_student_profile()
+
+    if not student:
+        return None, (
+            "Please complete your student profile before using "
+            "personal SIWES tools."
+        )
+
+    if not student.programme_id:
+        return None, (
+            "Please complete your academic programme information "
+            "before using personal SIWES tools."
+        )
+
+    programme = db.session.get(
+        Programme,
+        student.programme_id,
+    )
+
+    eligibility = get_siwes_eligibility(programme)
+
+    if not eligibility.eligible:
+        return None, eligibility.reason
+
+    return student, None
 
 def _require_student_profile():
     """
@@ -185,6 +222,7 @@ def organization_detail(org_id):
     student = _current_student()
     is_saved = False
     application = None
+    siwes_eligibility = None
 
     if student:
         is_saved = (
@@ -200,12 +238,23 @@ def organization_detail(org_id):
             organization_id=org.id,
         ).first()
 
+        if student.programme_id:
+            programme = db.session.get(
+                Programme,
+                student.programme_id,
+            )
+            siwes_eligibility = get_siwes_eligibility(programme)
+        else:
+            siwes_eligibility = get_siwes_eligibility(None)
+
     return render_template(
         "organization.html",
         org=org,
+        student=student,
         is_saved=is_saved,
         application=application,
         status_choices=PlacementApplication.STATUS_CHOICES,
+        siwes_eligibility=siwes_eligibility,
     )
 
 
@@ -232,11 +281,11 @@ def toggle_save(org_id):
             )
         )
 
-    student = _require_student_profile()
+    student, eligibility_error = _require_siwes_student()
 
     if not student:
         flash(
-            "Please complete your student profile before saving organizations.",
+            eligibility_error,
             "warning",
         )
         return redirect(url_for("student.profile"))
@@ -306,12 +355,11 @@ def track_application(org_id):
             )
         )
 
-    student = _require_student_profile()
+    student, eligibility_error = _require_siwes_student()
 
     if not student:
         flash(
-            "Please complete your student profile before tracking "
-            "placement applications.",
+            eligibility_error,
             "warning",
         )
         return redirect(url_for("student.profile"))

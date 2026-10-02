@@ -16,7 +16,7 @@ from models.organization import Organization
 from models.guide import GuideTopic
 from models.application import SavedOrganization, PlacementApplication
 from models.user import User
-from models.academic import Institution, AcademicUnit, Department, Programme
+from models.academic import Institution, AcademicUnit, Department, Programme, SIWESConfiguration
 from models.access import Role, Permission, UserRoleAssignment
 from models.directory_request import DirectoryRequest, DirectoryRequestMessage
 from models.notification import Notification
@@ -1352,8 +1352,63 @@ class DSATestCase(unittest.TestCase):
         db.session.add(user)
         db.session.flush()
 
+        # This regression test exercises personal SIWES tools, so the
+        # student must belong to a programme with confirmed SIWES access.
+        institution = Institution(
+            name="Placement Test University",
+            institution_type="University",
+            city="Yaba",
+            state="Lagos",
+            directory_status="Verified",
+            administration_status="Unclaimed",
+            is_active=True,
+        )
+        db.session.add(institution)
+        db.session.flush()
+
+        academic_unit = AcademicUnit(
+            institution_id=institution.id,
+            name="Faculty of Engineering",
+            unit_type="Faculty",
+            is_active=True,
+        )
+        db.session.add(academic_unit)
+        db.session.flush()
+
+        department = Department(
+            academic_unit_id=academic_unit.id,
+            name="Computer Engineering",
+            is_active=True,
+        )
+        db.session.add(department)
+        db.session.flush()
+
+        programme = Programme(
+            department_id=department.id,
+            name="Computer Engineering",
+            award="B.Eng.",
+            is_active=True,
+        )
+        db.session.add(programme)
+        db.session.flush()
+
+        siwes_configuration = SIWESConfiguration(
+            programme_id=programme.id,
+            siwes_status="Required",
+            duration_months=6,
+            eligible_level="400 Level",
+            verification_source="Placement regression test fixture",
+            verification_reference="E3-REGRESSION",
+            last_verified=datetime.utcnow(),
+        )
+        db.session.add(siwes_configuration)
+        db.session.flush()
+
         student = StudentProfile(
             user_id=user.id,
+            programme_id=programme.id,
+            level="400 Level",
+            siwes_session="2026/2027",
             full_name="Test Student",
             matric_no="ENG/TEST/1",
             department="Computer Engineering",
@@ -1425,9 +1480,59 @@ class DSATestCase(unittest.TestCase):
 
         db.session.add_all([owner, attacker])
         db.session.flush()
+        institution = Institution(
+            name="Security Test University",
+            institution_type="University",
+            city="Zaria",
+            state="Kaduna",
+            directory_status="Verified",
+            administration_status="Unclaimed",
+            is_active=True,
+        )
+        db.session.add(institution)
+        db.session.flush()
+
+        academic_unit = AcademicUnit(
+            institution_id=institution.id,
+            name="Faculty of Engineering",
+            unit_type="Faculty",
+            is_active=True,
+        )
+        db.session.add(academic_unit)
+        db.session.flush()
+
+        department = Department(
+            academic_unit_id=academic_unit.id,
+            name="Computer Engineering",
+            is_active=True,
+        )
+        db.session.add(department)
+        db.session.flush()
+
+        programme = Programme(
+            department_id=department.id,
+            name="Computer Engineering",
+            award="B.Eng.",
+            is_active=True,
+        )
+        db.session.add(programme)
+        db.session.flush()
+
+        siwes_configuration = SIWESConfiguration(
+            programme_id=programme.id,
+            siwes_status="Required",
+            duration_months=6,
+            eligible_level="400 Level",
+            verification_source="Security test fixture",
+            verification_reference="E3-SECURITY-001",
+        )
+        db.session.add(siwes_configuration)
+        db.session.flush()
+
 
         owner_profile = StudentProfile(
             user_id=owner.id,
+            programme_id=programme.id,
             full_name="Profile Owner",
             matric_no="SEC/OWNER/001",
             department="Computer Engineering",
@@ -1441,6 +1546,7 @@ class DSATestCase(unittest.TestCase):
 
         attacker_profile = StudentProfile(
             user_id=attacker.id,
+            programme_id=programme.id,
             full_name="Other Student",
             matric_no="SEC/OTHER/002",
             department="Computer Engineering",

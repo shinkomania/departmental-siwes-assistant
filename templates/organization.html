@@ -63,18 +63,20 @@
         </div>
 
 
-        <!-- Bookmark -->
+        <!-- Personal bookmark -->
+        {% if current_user.is_authenticated and student and siwes_eligibility and siwes_eligibility.eligible %}
         <form action="{{ url_for('placement.toggle_save', org_id=org.id) }}" method="POST"
             class="organization-save-form">
 
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <button type="submit" class="organization-save-btn {% if is_saved %}is-saved{% endif %}">
-
                 <svg viewBox="0 0 24 24" fill="{% if is_saved %}currentColor{% else %}none{% endif %}"
                     aria-hidden="true">
-                    <path d="M7 4.5A1.5 1.5 0 0 1 8.5 3h7A1.5 1.5 0 0 1 17 4.5V21l-5-3-5 3V4.5Z" stroke="currentColor"
-                        stroke-width="1.7" stroke-linejoin="round" />
+                    <path d="M7 4.5A1.5 1.5 0 0 1 8.5 3h7A1.5 1.5 0 0 1 17 4.5V21l-5-3-5 3V4.5Z"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                        stroke-linejoin="round" />
                 </svg>
 
                 {% if is_saved %}
@@ -84,7 +86,31 @@
                 {% endif %}
             </button>
         </form>
-    </div>
+
+        {% elif current_user.is_authenticated %}
+        <div class="organization-save-form">
+            <div class="organization-save-btn" aria-disabled="true">
+                {% if not student %}
+                Complete your SIWES profile to save
+                {% elif not student.programme_id %}
+                Complete your programme information to save
+                {% elif siwes_eligibility and siwes_eligibility.status == "Pending Verification" %}
+                SIWES eligibility pending
+                {% elif siwes_eligibility and siwes_eligibility.status == "No SIWES" %}
+                SIWES not applicable
+                {% else %}
+                SIWES access unavailable
+                {% endif %}
+            </div>
+        </div>
+
+        {% else %}
+        <div class="organization-save-form">
+            <div class="organization-save-btn" aria-disabled="true">
+                Sign in to save
+            </div>
+        </div>
+        {% endif %}    </div>
 
 
     <!-- Evidence summary -->
@@ -404,7 +430,7 @@
                 </div>
 
 
-                <form action="{{ url_for('placement.track_application', org_id=org.id) }}" method="POST"
+                {% if current_user.is_authenticated and student and siwes_eligibility and siwes_eligibility.eligible %}                <form action="{{ url_for('placement.track_application', org_id=org.id) }}" method="POST"
                     class="organization-tracker-form">
 
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -466,7 +492,31 @@
                         </button>
                     </div>
 
-                </form>
+                </form>                {% else %}
+                <div class="organization-tracker-notice">
+                    <span aria-hidden="true">!</span>
+                    <p>
+                        {% if not current_user.is_authenticated %}
+                        <strong>Sign in to use your personal tracker.</strong>
+                        Sign in to record contacts, submissions, interviews and follow-ups.
+                        {% elif not student %}
+                        <strong>Complete your SIWES profile first.</strong>
+                        Your academic information is needed before DSA can provide personal SIWES tools.
+                        {% elif not student.programme_id %}
+                        <strong>Complete your programme information first.</strong>
+                        DSA needs your programme to determine your SIWES eligibility.
+                        {% elif siwes_eligibility and siwes_eligibility.status == "Pending Verification" %}
+                        <strong>SIWES eligibility is still being verified.</strong>
+                        You can continue exploring this organization, but personal SIWES tracking is not available yet.
+                        {% elif siwes_eligibility and siwes_eligibility.status == "No SIWES" %}
+                        <strong>SIWES is not enabled for your programme.</strong>
+                        Personal SIWES tracking is therefore unavailable for this programme.
+                        {% else %}
+                        <strong>Personal SIWES tracking is unavailable.</strong>
+                        {% endif %}
+                    </p>
+                </div>
+                {% endif %}
             </section>
 
         </div>

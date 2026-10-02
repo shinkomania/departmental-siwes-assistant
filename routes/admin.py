@@ -45,6 +45,7 @@ from models.guide import GuideTopic
 from models.organization import Organization
 from models.student import StudentProfile
 from models.user import User
+from models.academic import Programme, SIWESConfiguration
 
 from routes.student import (
     AREAS_OF_INTEREST,
@@ -457,6 +458,175 @@ def dashboard():
         total_attention_items=total_attention_items,
         recent_pending_reviews=recent_pending_reviews,
         recent_users=recent_users,
+    )
+
+
+
+@admin_bp.route("/siwes-configurations")
+@admin_required
+def siwes_configurations():
+    """Browse programme-level SIWES configurations."""
+
+    programmes = (
+        Programme.query
+        .join(SIWESConfiguration)
+        .order_by(Programme.name.asc())
+        .all()
+    )
+
+    return render_template(
+        "admin/siwes_configurations.html",
+        programmes=programmes,
+    )
+
+
+@admin_bp.route(
+    "/siwes-configurations/<int:programme_id>/edit",
+    methods=["GET", "POST"],
+)
+@admin_required
+def edit_siwes_configuration(programme_id):
+    """Review and edit the SIWES configuration for one programme."""
+
+    programme = Programme.query.get_or_404(programme_id)
+
+    configuration = programme.siwes_configuration
+
+    if configuration is None:
+        configuration = SIWESConfiguration(
+            programme_id=programme.id,
+            siwes_status="Pending Verification",
+        )
+        db.session.add(configuration)
+        db.session.flush()
+
+    if request.method == "POST":
+        status = request.form.get("siwes_status", "").strip()
+        duration_raw = request.form.get("duration_months", "").strip()
+        eligible_level = request.form.get("eligible_level", "").strip()
+        timing = request.form.get("timing", "").strip()
+        semester = request.form.get("semester", "").strip()
+        required_forms = request.form.get("required_forms", "").strip()
+        special_requirements = request.form.get(
+            "special_requirements",
+            "",
+        ).strip()
+        verification_source = request.form.get(
+            "verification_source",
+            "",
+        ).strip()
+        verification_reference = request.form.get(
+            "verification_reference",
+            "",
+        ).strip()
+
+        if status not in SIWESConfiguration.SIWES_STATUSES:
+            flash("Invalid SIWES status.", "danger")
+            return render_template(
+                "admin/siwes_configuration_form.html",
+                programme=programme,
+                configuration=configuration,
+            )
+
+        duration_months = None
+
+        if duration_raw:
+            try:
+                duration_months = int(duration_raw)
+            except ValueError:
+                flash(
+                    "Duration must be a whole number of months.",
+                    "danger",
+                )
+                return render_template(
+                    "admin/siwes_configuration_form.html",
+                    programme=programme,
+                    configuration=configuration,
+                )
+
+            if duration_months <= 0:
+                flash(
+                    "Duration must be greater than zero.",
+                    "danger",
+                )
+                return render_template(
+                    "admin/siwes_configuration_form.html",
+                    programme=programme,
+                    configuration=configuration,
+                )
+
+        if status == "Required" and not eligible_level:
+            flash(
+                "Eligible level is required for a mandatory SIWES programme.",
+                "danger",
+            )
+            return render_template(
+                "admin/siwes_configuration_form.html",
+                programme=programme,
+                configuration=configuration,
+            )
+
+        if status != "Pending Verification":
+            if not verification_source:
+                flash(
+                    "A verification source is required before "
+                    "publishing a confirmed SIWES status.",
+                    "danger",
+                )
+                return render_template(
+                    "admin/siwes_configuration_form.html",
+                    programme=programme,
+                    configuration=configuration,
+                )
+
+            if not verification_reference:
+                flash(
+                    "A verification reference is required before "
+                    "publishing a confirmed SIWES status.",
+                    "danger",
+                )
+                return render_template(
+                    "admin/siwes_configuration_form.html",
+                    programme=programme,
+                    configuration=configuration,
+                )
+
+        configuration.siwes_status = status
+        configuration.duration_months = duration_months
+        configuration.eligible_level = eligible_level or None
+        configuration.timing = timing or None
+        configuration.semester = semester or None
+        configuration.required_forms = required_forms or None
+        configuration.special_requirements = (
+            special_requirements or None
+        )
+        configuration.verification_source = (
+            verification_source or None
+        )
+        configuration.verification_reference = (
+            verification_reference or None
+        )
+
+        if status != "Pending Verification":
+            configuration.last_verified = datetime.utcnow()
+        else:
+            configuration.last_verified = None
+
+        db.session.commit()
+
+        flash(
+            f'SIWES configuration for "{programme.name}" updated.',
+            "success",
+        )
+
+        return redirect(
+            url_for("admin.siwes_configurations")
+        )
+
+    return render_template(
+        "admin/siwes_configuration_form.html",
+        programme=programme,
+        configuration=configuration,
     )
 
 
